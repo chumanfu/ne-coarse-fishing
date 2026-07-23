@@ -1,0 +1,143 @@
+<?php
+
+namespace App\Models;
+
+use Database\Factories\VenueFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
+
+class Venue extends Model
+{
+    /** @use HasFactory<VenueFactory> */
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'manager_id',
+        'name',
+        'slug',
+        'overview',
+        'latitude',
+        'longitude',
+        'address',
+        'directions',
+        'day_ticket_info',
+        'membership_info',
+        'ticket_type',
+        'opening_times',
+        'season_info',
+        'tactics_guide',
+        'is_complex',
+        'is_approved',
+        'manager_verified',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'latitude' => 'float',
+            'longitude' => 'float',
+            'is_complex' => 'boolean',
+            'is_approved' => 'boolean',
+            'manager_verified' => 'boolean',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Venue $venue): void {
+            if (blank($venue->slug)) {
+                $venue->slug = static::uniqueSlug($venue->name);
+            }
+        });
+    }
+
+    public static function uniqueSlug(string $name): string
+    {
+        $base = Str::slug($name);
+        $slug = $base;
+        $i = 1;
+
+        while (static::query()->where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$i++;
+        }
+
+        return $slug;
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    public function waters(): HasMany
+    {
+        return $this->hasMany(Water::class)->orderBy('sort_order')->orderBy('name');
+    }
+
+    public function fishingSessions(): HasMany
+    {
+        return $this->hasMany(FishingSession::class);
+    }
+
+    public function matchReports(): HasMany
+    {
+        return $this->hasMany(MatchReport::class);
+    }
+
+    public function announcements(): HasMany
+    {
+        return $this->hasMany(Announcement::class);
+    }
+
+    public function claims(): HasMany
+    {
+        return $this->hasMany(VenueClaim::class);
+    }
+
+    public function allSpecies()
+    {
+        return Species::query()
+            ->whereHas('waters', fn ($q) => $q->where('venue_id', $this->id))
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('is_approved', true);
+    }
+
+    public function ticketTypeLabel(): string
+    {
+        return match ($this->ticket_type) {
+            'day_ticket' => 'Day Ticket',
+            'club' => 'Club Waters',
+            'syndicate' => 'Syndicate',
+            'mixed' => 'Day Ticket & Club',
+            default => ucfirst(str_replace('_', ' ', $this->ticket_type)),
+        };
+    }
+
+    public function isManagedBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $this->manager_id === $user->id || $user->hasRole('super_admin');
+    }
+}
