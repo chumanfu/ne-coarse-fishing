@@ -40,9 +40,7 @@ Route::get('/dashboard', function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/venues/create/new', [VenueController::class, 'create'])->name('venues.create');
-    Route::post('/venues', [VenueController::class, 'store'])->name('venues.store');
     Route::get('/venues/{venue:slug}/edit', [VenueController::class, 'edit'])->name('venues.edit');
-    Route::put('/venues/{venue:slug}', [VenueController::class, 'update'])->name('venues.update');
     Route::delete('/venues/{venue:slug}', [VenueController::class, 'destroy'])->name('venues.destroy');
 
     Route::post('/venues/{venue:slug}/claim', [VenueClaimController::class, 'store'])->name('venues.claim');
