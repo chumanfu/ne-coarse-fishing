@@ -36,9 +36,9 @@ Route::get('/dashboard', function () {
         'myVenues' => $user->venues()->latest()->take(5)->get(),
         'managedVenues' => $user->managedVenues()->latest()->take(5)->get(),
     ]);
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth'])->name('dashboard');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/venues/create/new', [VenueController::class, 'create'])->name('venues.create');
     Route::post('/venues', [VenueController::class, 'store'])->name('venues.store');
     Route::get('/venues/{venue:slug}/edit', [VenueController::class, 'edit'])->name('venues.edit');

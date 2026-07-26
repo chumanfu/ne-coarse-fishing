@@ -38,8 +38,6 @@ Open [http://127.0.0.1:8001](http://127.0.0.1:8001).
 
 Admin panel: [http://127.0.0.1:8001/admin](http://127.0.0.1:8001/admin)
 
-Email verification is enabled (`MustVerifyEmail`). In local, verification links are written to `storage/logs/laravel.log` (`MAIL_MAILER=log`).
-
 ## Features
 
 - **Venue directory** with complexes vs single waters, species, tickets, tactics
