@@ -55,13 +55,18 @@ class Venue extends Model
         });
     }
 
-    public static function uniqueSlug(string $name): string
+    public static function uniqueSlug(string $name, ?int $ignoreId = null): string
     {
-        $base = Str::slug($name);
+        $base = Str::slug($name) ?: 'venue';
         $slug = $base;
         $i = 1;
 
-        while (static::query()->where('slug', $slug)->exists()) {
+        while (
+            static::query()
+                ->where('slug', $slug)
+                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
+                ->exists()
+        ) {
             $slug = $base.'-'.$i++;
         }
 
