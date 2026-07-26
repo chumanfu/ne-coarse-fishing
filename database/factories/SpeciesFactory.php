@@ -20,6 +20,8 @@ class SpeciesFactory extends Factory
         return [
             'name' => $name,
             'slug' => Str::slug($name),
+            'type' => fake()->randomElement(array_keys(Species::TYPES)),
+            'habitats' => fake()->randomElements(array_keys(Species::HABITATS), fake()->numberBetween(1, 3)),
         ];
     }
 }
