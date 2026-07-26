@@ -1,3 +1,5 @@
+@import './venue-wizard.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

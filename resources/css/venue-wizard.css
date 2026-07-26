@@ -1,0 +1,365 @@
+/* Self-contained styles so the wizard works inside Filament (no public Tailwind). */
+
+.venue-wizard {
+    --vw-border: #94a3b8;
+    --vw-border-strong: #334155;
+    --vw-bg: #ffffff;
+    --vw-bg-muted: #f8fafc;
+    --vw-text: #0f172a;
+    --vw-muted: #475569;
+    --vw-primary: #0369a1;
+    --vw-primary-fg: #ffffff;
+    --vw-success-border: #059669;
+    --vw-success-bg: #ecfdf5;
+    --vw-success-text: #064e3b;
+    --vw-warning-border: #d97706;
+    --vw-warning-bg: #fffbeb;
+    --vw-warning-text: #78350f;
+    --vw-danger: #b91c1c;
+    color: var(--vw-text);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.dark .venue-wizard,
+.fi-body.dark .venue-wizard {
+    --vw-border: #64748b;
+    --vw-border-strong: #cbd5e1;
+    --vw-bg: #0f172a;
+    --vw-bg-muted: #1e293b;
+    --vw-text: #f8fafc;
+    --vw-muted: #cbd5e1;
+    --vw-primary: #38bdf8;
+    --vw-primary-fg: #0f172a;
+    --vw-success-border: #34d399;
+    --vw-success-bg: #064e3b;
+    --vw-success-text: #d1fae5;
+    --vw-warning-border: #fbbf24;
+    --vw-warning-bg: #78350f;
+    --vw-warning-text: #fef3c7;
+}
+
+.venue-wizard * {
+    box-sizing: border-box;
+}
+
+.venue-wizard-steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+}
+
+@media (min-width: 640px) {
+    .venue-wizard-steps {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
+
+.venue-wizard-step {
+    width: 100%;
+    border: 2px solid var(--vw-border);
+    border-radius: 0.5rem;
+    background: var(--vw-bg);
+    color: var(--vw-muted);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.venue-wizard-step:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.venue-wizard-step.is-current {
+    border-color: var(--vw-primary);
+    background: color-mix(in srgb, var(--vw-primary) 12%, var(--vw-bg));
+    color: var(--vw-text);
+}
+
+.venue-wizard-step.is-done {
+    border-color: var(--vw-success-border);
+    background: var(--vw-success-bg);
+    color: var(--vw-success-text);
+}
+
+.venue-wizard-step-label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.75;
+}
+
+.venue-wizard-panel {
+    background: var(--vw-bg);
+    border: 2px solid var(--vw-border);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+}
+
+.venue-wizard-panel > * + * {
+    margin-top: 1rem;
+}
+
+.venue-wizard h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--vw-text);
+}
+
+.venue-wizard .hint {
+    margin: 0.25rem 0 0;
+    color: var(--vw-muted);
+    font-size: 0.875rem;
+}
+
+.venue-wizard label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--vw-text);
+}
+
+.venue-wizard input[type="text"],
+.venue-wizard input[type="number"],
+.venue-wizard textarea,
+.venue-wizard select {
+    display: block;
+    width: 100%;
+    border: 2px solid var(--vw-border);
+    border-radius: 0.375rem;
+    background: var(--vw-bg);
+    color: var(--vw-text);
+    padding: 0.5rem 0.75rem;
+    font: inherit;
+}
+
+.venue-wizard input[readonly] {
+    background: var(--vw-bg-muted);
+    color: var(--vw-muted);
+}
+
+.venue-wizard textarea {
+    min-height: 6rem;
+    resize: vertical;
+}
+
+.venue-wizard input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+}
+
+.venue-wizard .row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+    .venue-wizard .row {
+        flex-direction: row;
+    }
+
+    .venue-wizard .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .venue-wizard .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+}
+
+.venue-wizard .grid-2,
+.venue-wizard .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.venue-wizard-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid transparent;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.venue-wizard-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.venue-wizard-btn-primary {
+    background: var(--vw-primary);
+    color: var(--vw-primary-fg);
+}
+
+.venue-wizard-btn-dark {
+    background: #0f172a;
+    color: #fff;
+    border-color: #0f172a;
+}
+
+.dark .venue-wizard-btn-dark,
+.fi-body.dark .venue-wizard-btn-dark {
+    background: #e2e8f0;
+    color: #0f172a;
+    border-color: #e2e8f0;
+}
+
+.venue-wizard-btn-secondary {
+    background: transparent;
+    color: var(--vw-text);
+    border-color: var(--vw-border);
+}
+
+.venue-wizard-btn-outline {
+    background: transparent;
+    color: var(--vw-primary);
+    border-color: var(--vw-primary);
+}
+
+.venue-wizard-btn-link {
+    background: none;
+    border: none;
+    color: var(--vw-primary);
+    font-weight: 600;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.venue-wizard-btn-danger {
+    background: none;
+    border: none;
+    color: var(--vw-danger);
+    font-weight: 600;
+    padding: 0;
+    cursor: pointer;
+}
+
+.venue-wizard-map {
+    width: 100%;
+    height: 20rem;
+    min-height: 20rem;
+    border: 2px solid var(--vw-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #cbd5e1;
+    margin-top: 1rem;
+}
+
+.venue-wizard-results {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    border: 2px solid var(--vw-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.venue-wizard-results li + li {
+    border-top: 1px solid var(--vw-border);
+}
+
+.venue-wizard-results button {
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: var(--vw-bg);
+    color: var(--vw-text);
+    padding: 0.5rem 0.75rem;
+    font: inherit;
+    cursor: pointer;
+}
+
+.venue-wizard-results button:hover {
+    background: var(--vw-bg-muted);
+}
+
+.venue-wizard-admin {
+    border: 2px solid var(--vw-warning-border);
+    background: var(--vw-warning-bg);
+    color: var(--vw-warning-text);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.venue-wizard-admin label {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    margin: 0.5rem 0 0;
+}
+
+.venue-wizard-water {
+    border: 2px solid var(--vw-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.venue-wizard-water + .venue-wizard-water {
+    margin-top: 0.75rem;
+}
+
+.venue-wizard-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.venue-wizard .error {
+    color: var(--vw-danger);
+    font-size: 0.875rem;
+    margin: 0.25rem 0 0;
+}
+
+.venue-wizard .ok {
+    color: var(--vw-success-text);
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.venue-wizard .warn {
+    color: var(--vw-warning-text);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.venue-wizard .check-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+    .venue-wizard .check-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.venue-wizard .check-grid label {
+    display: inline-flex;
+    align-items: center;
+    font-weight: 500;
+    margin: 0;
+}
