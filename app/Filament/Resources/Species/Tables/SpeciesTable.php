@@ -23,14 +23,11 @@ class SpeciesTable
                     ->sortable(),
                 TextColumn::make('habitats')
                     ->label('Found in')
-                    ->formatStateUsing(function ($state): string {
-                        $habitats = is_array($state) ? $state : [];
-
-                        return collect($habitats)
-                            ->map(fn (string $habitat) => Species::HABITATS[$habitat] ?? ucfirst($habitat))
-                            ->join(', ');
-                    })
-                    ->wrap(),
+                    ->badge()
+                    ->formatStateUsing(
+                        fn (?string $state): string => Species::HABITATS[$state] ?? ucfirst((string) $state)
+                    )
+                    ->placeholder('—'),
                 TextColumn::make('slug')->searchable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
