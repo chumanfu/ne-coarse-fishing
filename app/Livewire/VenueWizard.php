@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Filament\Resources\Venues\VenueResource;
 use App\Models\Species;
 use App\Models\Venue;
 use App\Models\Water;
@@ -15,7 +16,7 @@ class VenueWizard extends Component
 {
     use AuthorizesRequests;
 
-    public ?Venue $venue = null;
+    public ?int $venueId = null;
 
     public bool $admin = false;
 
@@ -65,10 +66,10 @@ class VenueWizard extends Component
     /** @var list<array{id: ?int, name: string, description: string, peg_count: mixed, depth_info: string, species: list<int|string>}> */
     public array $waters = [];
 
-    public function mount(?Venue $venue = null, bool $admin = false): void
+    public function mount(mixed $venue = null, bool $admin = false): void
     {
         $this->admin = $admin || auth()->user()?->hasRole('super_admin') === true;
-        $this->venue = $venue;
+
         $this->waters = [[
             'id' => null,
             'name' => '',
@@ -78,41 +79,24 @@ class VenueWizard extends Component
             'species' => [],
         ]];
 
-        if ($venue) {
-            $this->authorizeEdit($venue);
-            $venue->load('waters.species');
+        $model = $this->resolveVenueModel($venue);
 
-            $this->latitude = (float) $venue->latitude;
-            $this->longitude = (float) $venue->longitude;
-            $this->locationSet = true;
-            $this->name = $venue->name;
-            $this->slugPreview = $venue->slug;
-            $this->overview = (string) $venue->overview;
-            $this->address = (string) $venue->address;
-            $this->directions = (string) $venue->directions;
-            $this->ticket_type = $venue->ticket_type;
-            $this->day_ticket_info = (string) $venue->day_ticket_info;
-            $this->membership_info = (string) $venue->membership_info;
-            $this->opening_times = (string) $venue->opening_times;
-            $this->season_info = (string) $venue->season_info;
-            $this->tactics_guide = (string) $venue->tactics_guide;
-            $this->is_complex = (bool) $venue->is_complex;
-            $this->is_approved = (bool) $venue->is_approved;
-            $this->manager_verified = (bool) $venue->manager_verified;
-
-            if ($venue->waters->isNotEmpty()) {
-                $this->waters = $venue->waters->map(fn (Water $water) => [
-                    'id' => $water->id,
-                    'name' => $water->name,
-                    'description' => (string) $water->description,
-                    'peg_count' => $water->peg_count,
-                    'depth_info' => (string) $water->depth_info,
-                    'species' => $water->species->pluck('id')->map(fn ($id) => (string) $id)->all(),
-                ])->values()->all();
-            }
+        if ($model) {
+            $this->authorizeEdit($model);
+            $this->venueId = $model->id;
+            $this->fillFromVenue($model);
         } else {
             $this->authorize('create', Venue::class);
         }
+    }
+
+    public function getVenueProperty(): ?Venue
+    {
+        if (! $this->venueId) {
+            return null;
+        }
+
+        return Venue::query()->find($this->venueId);
     }
 
     public function updatedName(string $value): void
@@ -123,7 +107,7 @@ class VenueWizard extends Component
             return;
         }
 
-        $this->slugPreview = Venue::uniqueSlug($value, $this->venue?->id);
+        $this->slugPreview = Venue::uniqueSlug($value, $this->venueId);
     }
 
     public function searchLocation(GeocodingService $geocoding): void
@@ -240,13 +224,16 @@ class VenueWizard extends Component
             $this->validateStep($step);
         }
 
-        if ($this->venue) {
-            $this->authorizeEdit($this->venue);
+        $isUpdate = filled($this->venueId);
+        $existingVenue = $isUpdate ? Venue::query()->findOrFail($this->venueId) : null;
+
+        if ($existingVenue) {
+            $this->authorizeEdit($existingVenue);
         } else {
             $this->authorize('create', Venue::class);
         }
 
-        $venue = DB::transaction(function () {
+        $venue = DB::transaction(function () use ($existingVenue) {
             $payload = [
                 'name' => $this->name,
                 'overview' => $this->overview ?: null,
@@ -268,10 +255,10 @@ class VenueWizard extends Component
                 $payload['manager_verified'] = $this->manager_verified;
             }
 
-            if ($this->venue) {
-                $payload['slug'] = Venue::uniqueSlug($this->name, $this->venue->id);
-                $this->venue->update($payload);
-                $venue = $this->venue->fresh();
+            if ($existingVenue) {
+                $payload['slug'] = Venue::uniqueSlug($this->name, $existingVenue->id);
+                $existingVenue->update($payload);
+                $venue = $existingVenue->fresh();
             } else {
                 $payload['user_id'] = auth()->id();
                 $payload['slug'] = Venue::uniqueSlug($this->name);
@@ -280,6 +267,7 @@ class VenueWizard extends Component
                     $payload['manager_verified'] = false;
                 }
                 $venue = Venue::create($payload);
+                $this->venueId = $venue->id;
             }
 
             $keepIds = [];
@@ -322,14 +310,16 @@ class VenueWizard extends Component
             return $venue;
         });
 
-        $message = $this->venue
+        $message = $isUpdate
             ? 'Venue details updated.'
             : ($this->admin && $this->is_approved
                 ? 'Venue created and approved.'
                 : 'Venue submitted for approval. Thanks for helping map the North East!');
 
         if ($this->admin) {
-            return redirect()->to('/admin/venues/'.$venue->getKey().'/edit')->with('status', $message);
+            return redirect()
+                ->to(VenueResource::getUrl('edit', ['record' => $venue->getKey()]))
+                ->with('status', $message);
         }
 
         return redirect()->route('venues.show', $venue)->with('status', $message);
@@ -408,10 +398,57 @@ class VenueWizard extends Component
 
     private function authorizeEdit(Venue $venue): void
     {
-        if ($this->admin && auth()->user()?->hasRole('super_admin')) {
+        if ($this->admin) {
+            $this->authorize('update', $venue);
+
             return;
         }
 
         $this->authorize('manage', $venue);
+    }
+
+    private function resolveVenueModel(mixed $venue): ?Venue
+    {
+        if ($venue instanceof Venue) {
+            return $venue->loadMissing('waters.species');
+        }
+
+        if (is_numeric($venue)) {
+            return Venue::query()->with('waters.species')->find($venue);
+        }
+
+        return null;
+    }
+
+    private function fillFromVenue(Venue $venue): void
+    {
+        $this->latitude = (float) $venue->latitude;
+        $this->longitude = (float) $venue->longitude;
+        $this->locationSet = true;
+        $this->name = $venue->name;
+        $this->slugPreview = $venue->slug;
+        $this->overview = (string) $venue->overview;
+        $this->address = (string) $venue->address;
+        $this->directions = (string) $venue->directions;
+        $this->ticket_type = $venue->ticket_type;
+        $this->day_ticket_info = (string) $venue->day_ticket_info;
+        $this->membership_info = (string) $venue->membership_info;
+        $this->opening_times = (string) $venue->opening_times;
+        $this->season_info = (string) $venue->season_info;
+        $this->tactics_guide = (string) $venue->tactics_guide;
+        $this->is_complex = (bool) $venue->is_complex;
+        $this->is_approved = (bool) $venue->is_approved;
+        $this->manager_verified = (bool) $venue->manager_verified;
+
+        if ($venue->waters->isNotEmpty()) {
+            $this->waters = $venue->waters->map(fn (Water $water) => [
+                'id' => $water->id,
+                'name' => $water->name,
+                'description' => (string) $water->description,
+                'peg_count' => $water->peg_count,
+                'depth_info' => (string) $water->depth_info,
+                'species' => $water->species->pluck('id')->map(fn ($id) => (string) $id)->all(),
+            ])->values()->all();
+        }
     }
 }

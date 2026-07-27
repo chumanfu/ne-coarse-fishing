@@ -18,6 +18,12 @@ class VenueResource extends Resource
 {
     protected static ?string $model = Venue::class;
 
+    /**
+     * Venue uses slug as its public route key; keep Filament admin URLs on the primary key
+     * so /admin/venues/{id}/edit resolves correctly.
+     */
+    protected static ?string $recordRouteKeyName = 'id';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     public static function form(Schema $schema): Schema

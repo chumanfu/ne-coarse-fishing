@@ -14,12 +14,29 @@ class EditVenue extends Page
 
     protected string $view = 'filament.venues.wizard';
 
-    public Venue $record;
+    public ?int $venueId = null;
 
     public function mount(int|string $record): void
     {
-        $this->record = Venue::query()->findOrFail($record);
-        $this->record->load('waters.species');
+        // Avoid typing a public Venue $record — Livewire implicit binding uses the
+        // model's slug route key and 404s when Filament URLs pass the numeric id.
+        $venue = Venue::query()
+            ->with('waters.species')
+            ->where(function ($query) use ($record): void {
+                $query->whereKey($record)->orWhere('slug', $record);
+            })
+            ->firstOrFail();
+
+        abort_unless(auth()->user()?->can('update', $venue), 403);
+
+        $this->venueId = $venue->id;
+    }
+
+    public function getRecordProperty(): Venue
+    {
+        return Venue::query()
+            ->with('waters.species')
+            ->findOrFail($this->venueId);
     }
 
     public function getTitle(): string|Htmlable
@@ -40,6 +57,7 @@ class EditVenue extends Page
                 ->color('danger')
                 ->requiresConfirmation()
                 ->action(function (): void {
+                    abort_unless(auth()->user()?->can('delete', $this->record), 403);
                     $this->record->delete();
                     $this->redirect(VenueResource::getUrl('index'));
                 }),
