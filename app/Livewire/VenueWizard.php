@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Filament\Resources\Venues\VenueResource;
 use App\Models\Species;
 use App\Models\Venue;
 use App\Models\Water;
@@ -316,7 +317,9 @@ class VenueWizard extends Component
                 : 'Venue submitted for approval. Thanks for helping map the North East!');
 
         if ($this->admin) {
-            return redirect()->to('/admin/venues/'.$venue->getKey().'/edit')->with('status', $message);
+            return redirect()
+                ->to(VenueResource::getUrl('edit', ['record' => $venue->getKey()]))
+                ->with('status', $message);
         }
 
         return redirect()->route('venues.show', $venue)->with('status', $message);

@@ -13,6 +13,8 @@ class CreateVenue extends Page
 
     protected static ?string $title = 'Create venue';
 
+    public ?int $venueId = null;
+
     public function getHeading(): string
     {
         return 'Create venue';
