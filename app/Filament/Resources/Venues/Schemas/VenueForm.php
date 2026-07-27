@@ -32,6 +32,16 @@ class VenueForm
                         TextInput::make('latitude')->numeric()->required(),
                         TextInput::make('longitude')->numeric()->required(),
                         TextInput::make('address')->maxLength(255)->columnSpanFull(),
+                        TextInput::make('url')
+                            ->label('Website URL')
+                            ->url()
+                            ->maxLength(2048)
+                            ->columnSpanFull(),
+                        TextInput::make('what3words')
+                            ->label('what3words')
+                            ->helperText('Three words separated by dots, e.g. filled.count.soap')
+                            ->maxLength(64)
+                            ->columnSpanFull(),
                         Textarea::make('directions')->rows(3)->columnSpanFull(),
                         Select::make('ticket_type')
                             ->options([

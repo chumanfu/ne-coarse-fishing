@@ -23,6 +23,8 @@ class Venue extends Model
         'latitude',
         'longitude',
         'address',
+        'url',
+        'what3words',
         'directions',
         'day_ticket_info',
         'membership_info',
@@ -111,6 +113,51 @@ class Venue extends Model
     public function claims(): HasMany
     {
         return $this->hasMany(VenueClaim::class);
+    }
+
+    public function editRequests(): HasMany
+    {
+        return $this->hasMany(VenueEditRequest::class);
+    }
+
+    public function anglerTactics(): HasMany
+    {
+        return $this->hasMany(VenueTactic::class)->latest('fished_at')->latest('created_at');
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(VenuePhoto::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public static function normalizeWhat3words(?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        $normalized = strtolower(trim($value));
+        $normalized = preg_replace('/^\/+/', '', $normalized) ?? $normalized;
+
+        return $normalized !== '' ? $normalized : null;
+    }
+
+    public function what3wordsLabel(): ?string
+    {
+        if (blank($this->what3words)) {
+            return null;
+        }
+
+        return '///'.$this->what3words;
+    }
+
+    public function what3wordsUrl(): ?string
+    {
+        if (blank($this->what3words)) {
+            return null;
+        }
+
+        return 'https://what3words.com/'.$this->what3words;
     }
 
     public function allSpecies()

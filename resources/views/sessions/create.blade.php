@@ -1,24 +1,44 @@
 <x-app-layout>
+    @php
+        $editing = filled($session ?? null);
+        $selectedVenueId = old('venue_id', $editing ? $session->venue_id : ($venue->id ?? ''));
+        $defaultCatches = old('catches', $editing && $session->catches->isNotEmpty()
+            ? $session->catches->map(fn ($c) => [
+                'species_id' => (string) $c->species_id,
+                'weight_lb' => $c->weight_lb,
+                'bait' => $c->bait,
+                'quantity' => $c->quantity,
+            ])->values()->all()
+            : [['species_id' => '', 'weight_lb' => '', 'bait' => '', 'quantity' => 1]]);
+        $tacticsTip = old('tactics_tip', $editing ? ($session->venueTactic?->body ?? $session->tactics_tip) : '');
+    @endphp
+
     <x-slot name="header">
-        <h1 class="text-2xl font-bold text-slate-900">Log a fishing session</h1>
-        <p class="text-slate-600 mt-1">Capture date, peg, weather, catches and photos.</p>
+        <h1 class="text-2xl font-bold text-slate-900">{{ $editing ? 'Edit fishing session' : 'Log a fishing session' }}</h1>
+        <p class="text-slate-600 mt-1">Capture date, peg, weather, catches, photos and tactics tips for the venue guide.</p>
     </x-slot>
 
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
          x-data="sessionForm({
-            venueId: '{{ old('venue_id', $venue->id ?? '') }}',
+            venueId: '{{ $selectedVenueId }}',
             watersByVenue: @js($watersJson),
-            catches: @js(old('catches', [['species_id' => '', 'weight_lb' => '', 'bait' => '', 'quantity' => 1]]))
+            catches: @js($defaultCatches)
          })">
-        <form method="POST" action="{{ route('sessions.store') }}" enctype="multipart/form-data" class="bg-white border-2 border-slate-300 rounded-xl p-5 space-y-4">
+        <form method="POST"
+              action="{{ $editing ? route('sessions.update', $session) : route('sessions.store') }}"
+              enctype="multipart/form-data"
+              class="bg-white border-2 border-slate-300 rounded-xl p-5 space-y-4">
             @csrf
+            @if ($editing)
+                @method('PATCH')
+            @endif
 
             <div>
                 <label class="block text-sm font-semibold mb-1">Venue</label>
                 <select name="venue_id" x-model="venueId" required class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                     <option value="">Select venue</option>
                     @foreach ($venues as $item)
-                        <option value="{{ $item->id }}">{{ $item->name }}</option>
+                        <option value="{{ $item->id }}" @selected($selectedVenueId == $item->id)>{{ $item->name }}</option>
                     @endforeach
                 </select>
                 @error('venue_id') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
@@ -29,7 +49,7 @@
                 <select name="water_id" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                     <option value="">Whole venue / not sure</option>
                     <template x-for="water in currentWaters" :key="water.id">
-                        <option :value="water.id" x-text="water.name" :selected="water.id == '{{ old('water_id') }}'"></option>
+                        <option :value="water.id" x-text="water.name" :selected="water.id == '{{ old('water_id', $editing ? $session->water_id : '') }}'"></option>
                     </template>
                 </select>
             </div>
@@ -37,25 +57,32 @@
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-semibold mb-1">Date fished</label>
-                    <input type="date" name="fished_at" value="{{ old('fished_at', now()->toDateString()) }}" required class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
+                    <input type="date" name="fished_at" value="{{ old('fished_at', $editing ? $session->fished_at->toDateString() : now()->toDateString()) }}" required class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-1">Duration (hours)</label>
-                    <input type="number" name="duration_hours" value="{{ old('duration_hours') }}" min="1" max="72" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
+                    <input type="number" name="duration_hours" value="{{ old('duration_hours', $editing ? $session->duration_hours : '') }}" min="1" max="72" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-1">Weather</label>
-                    <input name="weather" value="{{ old('weather') }}" placeholder="Overcast, light SW wind" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
+                    <input name="weather" value="{{ old('weather', $editing ? $session->weather : '') }}" placeholder="Overcast, light SW wind" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-1">Peg number</label>
-                    <input name="peg_number" value="{{ old('peg_number') }}" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
+                    <input name="peg_number" value="{{ old('peg_number', $editing ? $session->peg_number : '') }}" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                 </div>
             </div>
 
             <div>
                 <label class="block text-sm font-semibold mb-1">Commentary / write-up</label>
-                <textarea name="commentary" rows="5" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">{{ old('commentary') }}</textarea>
+                <textarea name="commentary" rows="5" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">{{ old('commentary', $editing ? $session->commentary : '') }}</textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold mb-1">Tactics tip for the venue guide</label>
+                <p class="text-sm text-slate-600 mb-2">Share what worked — baits, pegs, conditions. This appears in the venue’s tactics section for other anglers.</p>
+                <textarea name="tactics_tip" rows="4" placeholder="e.g. Margin pole with maggot and caster on peg 12 in a warm south-westerly." class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">{{ $tacticsTip }}</textarea>
+                @error('tactics_tip') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div>
@@ -83,11 +110,14 @@
 
             <div>
                 <label class="block text-sm font-semibold mb-1">Photos (up to 6, mobile friendly)</label>
+                @if ($editing && $session->photos->isNotEmpty())
+                    <p class="text-sm text-slate-600 mb-2">Existing photos are kept unless you delete the session. Add more below.</p>
+                @endif
                 <input type="file" name="photos[]" accept="image/*" capture="environment" multiple class="block w-full text-sm">
                 @error('photos.*') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
-            <button class="px-5 py-3 rounded-md bg-sky-700 text-white font-bold hover:bg-sky-800">Save session</button>
+            <button class="px-5 py-3 rounded-md bg-sky-700 text-white font-bold hover:bg-sky-800">{{ $editing ? 'Save changes' : 'Save session' }}</button>
         </form>
     </div>
 

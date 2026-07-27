@@ -20,9 +20,15 @@
                 @endif
             </div>
             <div class="flex flex-wrap gap-2">
+                @if ($venue->url)
+                    <a href="{{ $venue->url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm">Visit website</a>
+                @endif
                 <a href="{{ route('map.index', ['species' => null]) }}#venue-{{ $venue->id }}" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm">View on map</a>
                 @auth
                     <a href="{{ route('sessions.create', ['venue' => $venue->slug]) }}" class="px-3 py-2 rounded-md bg-sky-700 text-white font-semibold text-sm">Log a session here</a>
+                    @can('suggestEdit', $venue)
+                        <a href="{{ route('venues.suggest-edit', $venue) }}" class="px-3 py-2 rounded-md border-2 border-amber-600 text-amber-950 font-semibold text-sm">Suggest an edit</a>
+                    @endcan
                     @can('manage', $venue)
                         <a href="{{ route('venues.edit', $venue) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm">Edit venue</a>
                         <a href="{{ route('match-reports.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-emerald-700 text-emerald-900 font-semibold text-sm">Match report</a>
@@ -44,6 +50,19 @@
                 <h2 class="text-xl font-bold mb-3">Overview</h2>
                 <p class="text-slate-800 whitespace-pre-line">{{ $venue->overview ?: 'No overview provided yet.' }}</p>
             </section>
+
+            @if ($venue->photos->isNotEmpty())
+                <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
+                    <h2 class="text-xl font-bold mb-4">Photos</h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        @foreach ($venue->photos as $photo)
+                            <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
+                                <img src="{{ $photo->url() }}" alt="{{ $venue->name }} photo" class="rounded-lg object-cover h-40 w-full border border-slate-300 hover:border-sky-700">
+                            </a>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
 
             <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
                 <h2 class="text-xl font-bold mb-4">Waters</h2>
@@ -75,8 +94,67 @@
             </section>
 
             <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
-                <h2 class="text-xl font-bold mb-3">Tactics &amp; local knowledge</h2>
-                <p class="text-slate-800 whitespace-pre-line">{{ $venue->tactics_guide ?: 'No tactics guide yet — share what works on your next session.' }}</p>
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                    <h2 class="text-xl font-bold">Tactics &amp; local knowledge</h2>
+                    @auth
+                        <div class="flex flex-wrap gap-2 shrink-0">
+                            <a href="{{ route('tactics.create', $venue) }}" class="px-3 py-2 rounded-md bg-sky-700 text-white font-semibold text-sm hover:bg-sky-800">
+                                Share a tactic
+                            </a>
+                            <a href="{{ route('sessions.create', ['venue' => $venue->slug]) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm hover:bg-sky-50">
+                                Log a session
+                            </a>
+                        </div>
+                    @else
+                        <a href="{{ route('login') }}" class="shrink-0 px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm hover:bg-sky-50">
+                            Log in to share tactics
+                        </a>
+                    @endauth
+                </div>
+
+                @if ($venue->tactics_guide)
+                    <div class="mb-6">
+                        <h3 class="font-bold text-slate-900 mb-2">Official guide</h3>
+                        <p class="text-slate-800 whitespace-pre-line">{{ $venue->tactics_guide }}</p>
+                    </div>
+                @endif
+
+                @if ($anglerTactics->isNotEmpty())
+                    <div class="@if($venue->tactics_guide) border-t-2 border-slate-200 pt-6 @endif">
+                        <h3 class="font-bold text-slate-900 mb-3">Angler tips</h3>
+                        <div class="space-y-4">
+                            @foreach ($anglerTactics as $tactic)
+                                <article class="border-2 border-slate-200 rounded-lg p-4">
+                                    <p class="text-slate-800 whitespace-pre-line">{{ $tactic->body }}</p>
+                                    <div class="flex flex-wrap items-center justify-between gap-2 mt-2">
+                                        <p class="text-sm text-slate-600">
+                                            {{ $tactic->user->name }}
+                                            @if ($tactic->fished_at)
+                                                · {{ $tactic->fished_at->format('d M Y') }}
+                                            @endif
+                                            @if ($tactic->water)
+                                                · {{ $tactic->water->name }}
+                                            @endif
+                                            @if ($tactic->peg_number)
+                                                · Peg {{ $tactic->peg_number }}
+                                            @endif
+                                            @if ($tactic->fishing_session_id)
+                                                · <span class="text-slate-500">from a session log</span>
+                                            @endif
+                                        </p>
+                                        @auth
+                                            @can('update', $tactic)
+                                                <a href="{{ route('tactics.edit', $tactic) }}" class="text-sm font-semibold text-sky-800 hover:underline">Edit</a>
+                                            @endcan
+                                        @endauth
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    </div>
+                @elseif (! $venue->tactics_guide)
+                    <p class="text-slate-600">No tactics guide yet — share what worked on your visit.</p>
+                @endif
             </section>
 
             <section id="official" class="bg-white border-2 border-slate-300 rounded-xl p-5">
@@ -147,6 +225,19 @@
             <div id="venue-map" class="h-64 rounded-xl border-2 border-slate-400 overflow-hidden"></div>
 
             <section class="bg-white border-2 border-slate-300 rounded-xl p-5 space-y-4 text-sm">
+                @if ($venue->url)
+                    <div>
+                        <h3 class="font-bold text-slate-900 mb-1">Website</h3>
+                        <a href="{{ $venue->url }}" target="_blank" rel="noopener noreferrer" class="text-sky-800 underline break-all">{{ $venue->url }}</a>
+                    </div>
+                @endif
+                @if ($venue->what3words)
+                    <div>
+                        <h3 class="font-bold text-slate-900 mb-1">what3words</h3>
+                        <a href="{{ $venue->what3wordsUrl() }}" target="_blank" rel="noopener noreferrer" class="text-sky-800 font-semibold hover:underline">{{ $venue->what3wordsLabel() }}</a>
+                        <p class="text-xs text-slate-500 mt-1">Opens in the what3words app or website.</p>
+                    </div>
+                @endif
                 <div>
                     <h3 class="font-bold text-slate-900 mb-1">Day tickets</h3>
                     <p class="text-slate-800 whitespace-pre-line">{{ $venue->day_ticket_info ?: 'Not listed.' }}</p>

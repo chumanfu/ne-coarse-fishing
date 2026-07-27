@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\FishingSession;
-use App\Models\SessionCatch;
 use App\Models\SessionPhoto;
 use App\Models\Species;
 use App\Models\Venue;
+use App\Services\VenueTacticService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class FishingSessionController extends Controller
@@ -17,7 +18,7 @@ class FishingSessionController extends Controller
     public function index(Request $request): View
     {
         $sessions = FishingSession::query()
-            ->with(['venue', 'water', 'catches.species', 'photos'])
+            ->with(['venue', 'water', 'catches.species', 'photos', 'venueTactic'])
             ->where('user_id', $request->user()->id)
             ->latest('fished_at')
             ->paginate(10);
@@ -36,6 +37,7 @@ class FishingSessionController extends Controller
 
         return view('sessions.create', [
             'venue' => $venue,
+            'session' => null,
             'venues' => Venue::approved()->orderBy('name')->get(['id', 'name', 'slug']),
             'species' => Species::orderBy('name')->get(),
             'watersJson' => Venue::approved()->with('waters:id,venue_id,name')->get()
@@ -43,24 +45,9 @@ class FishingSessionController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, VenueTacticService $tactics): RedirectResponse
     {
-        $validated = $request->validate([
-            'venue_id' => ['required', 'exists:venues,id'],
-            'water_id' => ['nullable', 'exists:waters,id'],
-            'fished_at' => ['required', 'date', 'before_or_equal:today'],
-            'duration_hours' => ['nullable', 'integer', 'min:1', 'max:72'],
-            'weather' => ['nullable', 'string', 'max:255'],
-            'peg_number' => ['nullable', 'string', 'max:50'],
-            'commentary' => ['nullable', 'string'],
-            'photos' => ['nullable', 'array', 'max:6'],
-            'photos.*' => ['image', 'max:5120'],
-            'catches' => ['nullable', 'array'],
-            'catches.*.species_id' => ['required_with:catches', 'exists:species,id'],
-            'catches.*.weight_lb' => ['nullable', 'numeric', 'min:0', 'max:200'],
-            'catches.*.bait' => ['nullable', 'string', 'max:255'],
-            'catches.*.quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
+        $validated = $this->validatedSession($request);
 
         $venue = Venue::approved()->findOrFail($validated['venue_id']);
 
@@ -68,7 +55,7 @@ class FishingSessionController extends Controller
             abort_unless($venue->waters()->whereKey($validated['water_id'])->exists(), 422);
         }
 
-        $session = DB::transaction(function () use ($validated, $request, $venue) {
+        $session = DB::transaction(function () use ($validated, $request, $venue, $tactics) {
             $session = FishingSession::create([
                 'user_id' => $request->user()->id,
                 'venue_id' => $venue->id,
@@ -78,25 +65,12 @@ class FishingSessionController extends Controller
                 'weather' => $validated['weather'] ?? null,
                 'peg_number' => $validated['peg_number'] ?? null,
                 'commentary' => $validated['commentary'] ?? null,
+                'tactics_tip' => filled($validated['tactics_tip'] ?? null) ? trim($validated['tactics_tip']) : null,
             ]);
 
-            foreach ($validated['catches'] ?? [] as $catch) {
-                if (empty($catch['species_id'])) {
-                    continue;
-                }
-
-                $session->catches()->create([
-                    'species_id' => $catch['species_id'],
-                    'weight_lb' => $catch['weight_lb'] ?? null,
-                    'bait' => $catch['bait'] ?? null,
-                    'quantity' => $catch['quantity'] ?? 1,
-                ]);
-            }
-
-            foreach ($request->file('photos', []) as $photo) {
-                $path = $photo->store('session-photos', 'public');
-                $session->photos()->create(['image_path' => $path]);
-            }
+            $this->syncCatches($session, $validated['catches'] ?? []);
+            $this->storePhotos($request, $session);
+            $tactics->syncFromSession($session, $validated['tactics_tip'] ?? null);
 
             return $session;
         });
@@ -110,17 +84,70 @@ class FishingSessionController extends Controller
     {
         $this->authorizeSession($fishingSession);
 
-        $fishingSession->load(['venue', 'water', 'user', 'catches.species', 'photos']);
+        $fishingSession->load(['venue', 'water', 'user', 'catches.species', 'photos', 'venueTactic']);
 
         return view('sessions.show', ['session' => $fishingSession]);
+    }
+
+    public function edit(FishingSession $fishingSession): View
+    {
+        $this->authorizeSession($fishingSession);
+
+        $fishingSession->load(['venue.waters', 'catches', 'venueTactic', 'photos']);
+
+        return view('sessions.create', [
+            'venue' => $fishingSession->venue,
+            'session' => $fishingSession,
+            'venues' => Venue::approved()->orderBy('name')->get(['id', 'name', 'slug']),
+            'species' => Species::orderBy('name')->get(),
+            'watersJson' => Venue::approved()->with('waters:id,venue_id,name')->get()
+                ->mapWithKeys(fn (Venue $v) => [$v->id => $v->waters->map(fn ($w) => ['id' => $w->id, 'name' => $w->name])]),
+        ]);
+    }
+
+    public function update(Request $request, FishingSession $fishingSession, VenueTacticService $tactics): RedirectResponse
+    {
+        $this->authorizeSession($fishingSession);
+
+        $validated = $this->validatedSession($request, $fishingSession);
+
+        $venue = Venue::approved()->findOrFail($validated['venue_id']);
+
+        if (! empty($validated['water_id'])) {
+            abort_unless($venue->waters()->whereKey($validated['water_id'])->exists(), 422);
+        }
+
+        DB::transaction(function () use ($validated, $request, $fishingSession, $tactics) {
+            $fishingSession->update([
+                'venue_id' => $validated['venue_id'],
+                'water_id' => $validated['water_id'] ?? null,
+                'fished_at' => $validated['fished_at'],
+                'duration_hours' => $validated['duration_hours'] ?? null,
+                'weather' => $validated['weather'] ?? null,
+                'peg_number' => $validated['peg_number'] ?? null,
+                'commentary' => $validated['commentary'] ?? null,
+                'tactics_tip' => filled($validated['tactics_tip'] ?? null) ? trim($validated['tactics_tip']) : null,
+            ]);
+
+            $fishingSession->catches()->delete();
+            $this->syncCatches($fishingSession, $validated['catches'] ?? []);
+            $this->storePhotos($request, $fishingSession);
+            $tactics->syncFromSession($fishingSession->fresh(), $validated['tactics_tip'] ?? null);
+        });
+
+        return redirect()
+            ->route('sessions.show', $fishingSession)
+            ->with('status', 'Session updated.');
     }
 
     public function destroy(FishingSession $fishingSession): RedirectResponse
     {
         $this->authorizeSession($fishingSession);
 
+        $fishingSession->venueTactic?->delete();
+
         $fishingSession->photos->each(function (SessionPhoto $photo) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($photo->image_path);
+            Storage::disk('public')->delete($photo->image_path);
             $photo->delete();
         });
 
@@ -128,6 +155,53 @@ class FishingSessionController extends Controller
         $fishingSession->delete();
 
         return redirect()->route('sessions.index')->with('status', 'Session deleted.');
+    }
+
+    /** @return array<string, mixed> */
+    private function validatedSession(Request $request, ?FishingSession $session = null): array
+    {
+        return $request->validate([
+            'venue_id' => ['required', 'exists:venues,id'],
+            'water_id' => ['nullable', 'exists:waters,id'],
+            'fished_at' => ['required', 'date', 'before_or_equal:today'],
+            'duration_hours' => ['nullable', 'integer', 'min:1', 'max:72'],
+            'weather' => ['nullable', 'string', 'max:255'],
+            'peg_number' => ['nullable', 'string', 'max:50'],
+            'commentary' => ['nullable', 'string'],
+            'tactics_tip' => ['nullable', 'string', 'max:2000'],
+            'photos' => ['nullable', 'array', 'max:6'],
+            'photos.*' => ['image', 'max:5120'],
+            'catches' => ['nullable', 'array'],
+            'catches.*.species_id' => ['required_with:catches', 'exists:species,id'],
+            'catches.*.weight_lb' => ['nullable', 'numeric', 'min:0', 'max:200'],
+            'catches.*.bait' => ['nullable', 'string', 'max:255'],
+            'catches.*.quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+    }
+
+    /** @param  list<array<string, mixed>>  $catches */
+    private function syncCatches(FishingSession $session, array $catches): void
+    {
+        foreach ($catches as $catch) {
+            if (empty($catch['species_id'])) {
+                continue;
+            }
+
+            $session->catches()->create([
+                'species_id' => $catch['species_id'],
+                'weight_lb' => $catch['weight_lb'] ?? null,
+                'bait' => $catch['bait'] ?? null,
+                'quantity' => $catch['quantity'] ?? 1,
+            ]);
+        }
+    }
+
+    private function storePhotos(Request $request, FishingSession $session): void
+    {
+        foreach ($request->file('photos', []) as $photo) {
+            $path = $photo->store('session-photos', 'public');
+            $session->photos()->create(['image_path' => $path]);
+        }
     }
 
     private function authorizeSession(FishingSession $session): void

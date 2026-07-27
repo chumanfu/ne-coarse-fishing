@@ -7,6 +7,8 @@ use App\Http\Controllers\MatchReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VenueClaimController;
 use App\Http\Controllers\VenueController;
+use App\Http\Controllers\VenueEditRequestController;
+use App\Http\Controllers\VenueTacticController;
 use App\Models\Venue;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +43,7 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/venues/create/new', [VenueController::class, 'create'])->name('venues.create');
     Route::get('/venues/{venue:slug}/edit', [VenueController::class, 'edit'])->name('venues.edit');
+    Route::get('/venues/{venue:slug}/suggest-edit', [VenueEditRequestController::class, 'create'])->name('venues.suggest-edit');
     Route::delete('/venues/{venue:slug}', [VenueController::class, 'destroy'])->name('venues.destroy');
 
     Route::post('/venues/{venue:slug}/claim', [VenueClaimController::class, 'store'])->name('venues.claim');
@@ -57,7 +60,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/sessions/create', [FishingSessionController::class, 'create'])->name('sessions.create');
     Route::post('/sessions', [FishingSessionController::class, 'store'])->name('sessions.store');
     Route::get('/sessions/{fishingSession}', [FishingSessionController::class, 'show'])->name('sessions.show');
+    Route::get('/sessions/{fishingSession}/edit', [FishingSessionController::class, 'edit'])->name('sessions.edit');
+    Route::patch('/sessions/{fishingSession}', [FishingSessionController::class, 'update'])->name('sessions.update');
     Route::delete('/sessions/{fishingSession}', [FishingSessionController::class, 'destroy'])->name('sessions.destroy');
+
+    Route::get('/venues/{venue:slug}/tactics/create', [VenueTacticController::class, 'create'])->name('tactics.create');
+    Route::post('/venues/{venue:slug}/tactics', [VenueTacticController::class, 'store'])->name('tactics.store');
+    Route::get('/tactics/{venueTactic}/edit', [VenueTacticController::class, 'edit'])->name('tactics.edit');
+    Route::patch('/tactics/{venueTactic}', [VenueTacticController::class, 'update'])->name('tactics.update');
+    Route::delete('/tactics/{venueTactic}', [VenueTacticController::class, 'destroy'])->name('tactics.destroy');
 });
 
 Route::middleware('auth')->group(function () {

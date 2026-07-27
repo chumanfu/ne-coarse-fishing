@@ -25,6 +25,7 @@ class FishingSessionFactory extends Factory
             'weather' => fake()->randomElement(['Sunny', 'Overcast', 'Light rain', 'Windy']),
             'peg_number' => (string) fake()->numberBetween(1, 30),
             'commentary' => fake()->paragraph(),
+            'tactics_tip' => fake()->optional(0.4)->sentence(),
         ];
     }
 }

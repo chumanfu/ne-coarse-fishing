@@ -114,6 +114,17 @@
                     @error('address') <p class="error">{{ $message }}</p> @enderror
                 </div>
                 <div style="margin-top: 1rem;">
+                    <label>Website URL</label>
+                    <input type="url" wire:model="url" placeholder="https://example.com">
+                    @error('url') <p class="error">{{ $message }}</p> @enderror
+                </div>
+                <div style="margin-top: 1rem;">
+                    <label>what3words</label>
+                    <p class="hint venue-wizard-w3w-hint">Three-word location for the car park or fishery entrance, e.g. <code>filled.count.soap</code></p>
+                    <input type="text" wire:model.blur="what3words" placeholder="filled.count.soap">
+                    @error('what3words') <p class="error">{{ $message }}</p> @enderror
+                </div>
+                <div style="margin-top: 1rem;">
                     <label>Directions / parking</label>
                     <textarea wire:model="directions" rows="5" placeholder="How to find the car park, access tracks, gate codes if appropriate…"></textarea>
                     @error('directions') <p class="error">{{ $message }}</p> @enderror
@@ -121,15 +132,58 @@
                 <button type="button" wire:click="reverseGeocode" class="venue-wizard-btn-link" style="margin-top: 0.75rem;">
                     Refresh address from map pin
                 </button>
+
+                @unless ($editRequest)
+                    <div class="venue-wizard-photos">
+                        <label class="venue-wizard-photos-label">Venue photos</label>
+                        <p class="hint">Upload photos of the lake, car park, pegs or signage (up to 8).</p>
+
+                        @if ($this->existingPhotos->isNotEmpty() || count($newPhotos))
+                            <div class="venue-wizard-photo-grid">
+                                @foreach ($this->existingPhotos as $photo)
+                                    <figure wire:key="existing-photo-{{ $photo->id }}" class="venue-wizard-photo-card">
+                                        <img src="{{ $photo->url() }}" alt="Venue photo">
+                                        <button type="button" wire:click="removeExistingPhoto({{ $photo->id }})" class="venue-wizard-photo-remove">Remove</button>
+                                    </figure>
+                                @endforeach
+                                @foreach ($newPhotos as $index => $photo)
+                                    <figure wire:key="new-photo-{{ $index }}" class="venue-wizard-photo-card is-new">
+                                        <img src="{{ $photo->temporaryUrl() }}" alt="New venue photo">
+                                        <button type="button" wire:click="removeNewPhoto({{ $index }})" class="venue-wizard-photo-remove">Remove</button>
+                                    </figure>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div class="venue-wizard-upload" wire:loading.class="is-loading" wire:target="newPhotos">
+                            <input type="file"
+                                   id="venue-wizard-photo-upload"
+                                   wire:model="newPhotos"
+                                   accept="image/*"
+                                   multiple
+                                   class="venue-wizard-upload-input">
+                            <label for="venue-wizard-photo-upload" class="venue-wizard-upload-label">
+                                <span class="venue-wizard-upload-icon" aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                </span>
+                                <span class="venue-wizard-upload-title">Choose photos or drag here</span>
+                                <span class="venue-wizard-upload-hint">JPG, PNG or WebP · max 5 MB each · up to 8 images</span>
+                            </label>
+                            <p wire:loading wire:target="newPhotos" class="venue-wizard-upload-status">Uploading…</p>
+                        </div>
+                        @error('newPhotos') <p class="error">{{ $message }}</p> @enderror
+                        @error('newPhotos.*') <p class="error">{{ $message }}</p> @enderror
+                    </div>
+                @endunless
             </div>
         @endif
 
         @if ($step === 5)
             <div wire:key="step-details">
-                <h2>Tickets, waters &amp; local knowledge</h2>
-                <p class="hint">Everything else anglers need before they visit.</p>
+                <h2>{{ $editRequest ? 'Venue details & waters' : 'Tickets, waters & local knowledge' }}</h2>
+                <p class="hint">{{ $editRequest ? 'Proposed changes to venue info and waters. Tactics, sessions and match reports are not included.' : 'Everything else anglers need before they visit.' }}</p>
 
-                @if ($admin)
+                @if ($admin && ! $editRequest)
                     <div class="venue-wizard-admin" style="margin-top: 1rem;">
                         <strong>Admin options</strong>
                         <label>
@@ -177,10 +231,20 @@
                     <label>Seasonal restrictions</label>
                     <textarea wire:model="season_info" rows="2"></textarea>
                 </div>
-                <div style="margin-top: 1rem;">
-                    <label>Tactics &amp; local knowledge</label>
-                    <textarea wire:model="tactics_guide" rows="4"></textarea>
-                </div>
+                @unless ($editRequest)
+                    <div style="margin-top: 1rem;">
+                        <label>Tactics &amp; local knowledge</label>
+                        <textarea wire:model="tactics_guide" rows="4"></textarea>
+                    </div>
+                @endunless
+
+                @if ($editRequest)
+                    <div style="margin-top: 1rem;">
+                        <label>Note for reviewers (optional)</label>
+                        <textarea wire:model="editRequestMessage" rows="3" placeholder="Explain what you changed and why…"></textarea>
+                        @error('editRequestMessage') <p class="error">{{ $message }}</p> @enderror
+                    </div>
+                @endif
 
                 <div style="margin-top: 1.25rem;">
                     <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
@@ -251,7 +315,11 @@
                 </button>
             @else
                 <button type="button" wire:click="save" class="venue-wizard-btn venue-wizard-btn-primary">
-                    {{ $venueId ? 'Save changes' : ($admin ? 'Create venue' : 'Submit for approval') }}
+                    @if ($editRequest)
+                        Submit edit for approval
+                    @else
+                        {{ $venueId ? 'Save changes' : ($admin ? 'Create venue' : 'Submit for approval') }}
+                    @endif
                 </button>
             @endif
         </div>

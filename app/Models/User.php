@@ -22,7 +22,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasRole('super_admin');
+        return $this->hasRole('super_admin') || $this->hasRole('fishery_manager');
     }
 
     public function venues(): HasMany
@@ -43,6 +43,16 @@ class User extends Authenticatable implements FilamentUser
     public function venueClaims(): HasMany
     {
         return $this->hasMany(VenueClaim::class);
+    }
+
+    public function venueEditRequests(): HasMany
+    {
+        return $this->hasMany(VenueEditRequest::class);
+    }
+
+    public function venueTactics(): HasMany
+    {
+        return $this->hasMany(VenueTactic::class);
     }
 
     protected function casts(): array

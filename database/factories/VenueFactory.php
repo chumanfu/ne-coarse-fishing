@@ -26,6 +26,7 @@ class VenueFactory extends Factory
             'latitude' => fake()->latitude(54.5, 55.5),
             'longitude' => fake()->longitude(-2.2, -1.2),
             'address' => fake()->address(),
+            'url' => fake()->optional(0.6)->url(),
             'directions' => fake()->sentence(),
             'day_ticket_info' => 'Day tickets on the bank.',
             'membership_info' => null,

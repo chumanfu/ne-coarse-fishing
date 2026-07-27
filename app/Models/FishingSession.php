@@ -22,6 +22,7 @@ class FishingSession extends Model
         'weather',
         'peg_number',
         'commentary',
+        'tactics_tip',
     ];
 
     protected function casts(): array
@@ -54,5 +55,10 @@ class FishingSession extends Model
     public function catches(): HasMany
     {
         return $this->hasMany(SessionCatch::class);
+    }
+
+    public function venueTactic(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(VenueTactic::class);
     }
 }

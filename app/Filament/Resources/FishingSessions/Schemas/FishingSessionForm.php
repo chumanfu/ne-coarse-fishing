@@ -22,6 +22,10 @@ class FishingSessionForm
                 TextInput::make('weather')->maxLength(255),
                 TextInput::make('peg_number')->maxLength(50),
                 Textarea::make('commentary')->rows(5)->columnSpanFull(),
+                Textarea::make('tactics_tip')
+                    ->label('Tactics tip')
+                    ->rows(3)
+                    ->columnSpanFull(),
             ]);
     }
 }

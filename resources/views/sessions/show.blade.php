@@ -5,11 +5,14 @@
                 <h1 class="text-2xl font-bold text-slate-900">{{ $session->venue->name }}</h1>
                 <p class="text-slate-600 mt-1">{{ $session->fished_at->format('d M Y') }} · logged by {{ $session->user->name }}</p>
             </div>
-            <form method="POST" action="{{ route('sessions.destroy', $session) }}" onsubmit="return confirm('Delete this session?')">
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('sessions.edit', $session) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm">Edit</a>
+                <form method="POST" action="{{ route('sessions.destroy', $session) }}" onsubmit="return confirm('Delete this session?')">
                 @csrf
                 @method('DELETE')
                 <button class="px-3 py-2 rounded-md border-2 border-red-700 text-red-800 font-semibold text-sm">Delete</button>
-            </form>
+                </form>
+            </div>
         </div>
     </x-slot>
 
@@ -25,6 +28,21 @@
             <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
                 <h2 class="font-bold text-lg mb-2">Write-up</h2>
                 <p class="whitespace-pre-line text-slate-800">{{ $session->commentary }}</p>
+            </section>
+        @endif
+
+        @if ($session->tactics_tip || $session->venueTactic)
+            <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
+                <div class="flex flex-wrap items-start justify-between gap-3 mb-2">
+                    <h2 class="font-bold text-lg">Tactics tip</h2>
+                    @if ($session->venueTactic)
+                        @can('update', $session->venueTactic)
+                            <a href="{{ route('tactics.edit', $session->venueTactic) }}" class="text-sm font-semibold text-sky-800 hover:underline">Edit tactic</a>
+                        @endcan
+                    @endif
+                </div>
+                <p class="whitespace-pre-line text-slate-800">{{ $session->venueTactic?->body ?? $session->tactics_tip }}</p>
+                <p class="text-sm text-slate-600 mt-2">Shared on the <a href="{{ route('venues.show', $session->venue) }}" class="text-sky-800 font-semibold hover:underline">{{ $session->venue->name }}</a> tactics guide.</p>
             </section>
         @endif
 
