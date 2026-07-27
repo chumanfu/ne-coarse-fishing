@@ -251,7 +251,7 @@
                 </button>
             @else
                 <button type="button" wire:click="save" class="venue-wizard-btn venue-wizard-btn-primary">
-                    {{ $venue ? 'Save changes' : ($admin ? 'Create venue' : 'Submit for approval') }}
+                    {{ $venueId ? 'Save changes' : ($admin ? 'Create venue' : 'Submit for approval') }}
                 </button>
             @endif
         </div>

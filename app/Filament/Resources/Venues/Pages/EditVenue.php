@@ -18,8 +18,9 @@ class EditVenue extends Page
 
     public function mount(int|string $record): void
     {
-        $this->record = Venue::query()->findOrFail($record);
-        $this->record->load('waters.species');
+        $this->record = Venue::query()->with('waters.species')->findOrFail($record);
+
+        abort_unless(auth()->user()?->can('update', $this->record), 403);
     }
 
     public function getTitle(): string|Htmlable
@@ -40,6 +41,7 @@ class EditVenue extends Page
                 ->color('danger')
                 ->requiresConfirmation()
                 ->action(function (): void {
+                    abort_unless(auth()->user()?->can('delete', $this->record), 403);
                     $this->record->delete();
                     $this->redirect(VenueResource::getUrl('index'));
                 }),
