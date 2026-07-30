@@ -37,4 +37,9 @@ class Water extends Model
     {
         return $this->hasMany(FishingSession::class);
     }
+
+    public function pegs(): HasMany
+    {
+        return $this->hasMany(WaterPeg::class)->orderBy('sort_order')->orderBy('id');
+    }
 }

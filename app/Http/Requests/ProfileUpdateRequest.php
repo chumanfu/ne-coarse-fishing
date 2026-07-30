@@ -26,6 +26,8 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'club_ids' => ['nullable', 'array'],
+            'club_ids.*' => ['integer', Rule::exists('clubs', 'id')->where('is_published', true)],
         ];
     }
 }

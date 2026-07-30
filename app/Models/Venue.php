@@ -190,6 +190,24 @@ class Venue extends Model
             return false;
         }
 
-        return $this->manager_id === $user->id || $user->hasRole('super_admin');
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return $this->manager_id === $user->id;
+    }
+
+    public function canManagePegs(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        // Venue manager (typically fishery_manager role after a claim) or original submitter.
+        return $this->manager_id === $user->id || $this->user_id === $user->id;
     }
 }

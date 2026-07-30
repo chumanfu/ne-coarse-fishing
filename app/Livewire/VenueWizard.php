@@ -78,7 +78,7 @@ class VenueWizard extends Component
 
     public bool $manager_verified = false;
 
-    /** @var list<array{id: ?int, name: string, description: string, peg_count: mixed, depth_info: string, species: list<int|string>}> */
+    /** @var list<array{id: ?int, name: string, description: string, peg_count: mixed, depth_info: string, species: list<int|string>, pegs: list<array{id: ?int, name: string, number: string, latitude: mixed, longitude: mixed}>}> */
     public array $waters = [];
 
     /** @var list<int> */
@@ -99,6 +99,7 @@ class VenueWizard extends Component
             'peg_count' => '',
             'depth_info' => '',
             'species' => [],
+            'pegs' => [],
         ]];
 
         $model = $this->resolveVenueModel($venue);
@@ -222,6 +223,10 @@ class VenueWizard extends Component
         if ($this->step === 4 && blank($this->address)) {
             $this->reverseGeocode(app(GeocodingService::class));
         }
+
+        if ($this->step === 5) {
+            $this->dispatch('peg-maps-refresh');
+        }
     }
 
     public function previousStep(): void
@@ -236,6 +241,10 @@ class VenueWizard extends Component
         }
 
         $this->step = $step;
+
+        if ($this->step === 5) {
+            $this->dispatch('peg-maps-refresh');
+        }
     }
 
     public function addWater(): void
@@ -247,8 +256,79 @@ class VenueWizard extends Component
             'peg_count' => '',
             'depth_info' => '',
             'species' => [],
+            'pegs' => [],
         ];
         $this->is_complex = true;
+    }
+
+    public function addPeg(int $waterIndex): void
+    {
+        if (! isset($this->waters[$waterIndex])) {
+            return;
+        }
+
+        $this->waters[$waterIndex]['pegs'][] = [
+            'id' => null,
+            'name' => '',
+            'number' => '',
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
+            'existing_photo_ids' => [],
+            'existing_photos' => [],
+            'new_photos' => [],
+        ];
+
+        $this->dispatch('peg-maps-refresh');
+    }
+
+    public function removePeg(int $waterIndex, int $pegIndex): void
+    {
+        if (! isset($this->waters[$waterIndex]['pegs'][$pegIndex])) {
+            return;
+        }
+
+        unset($this->waters[$waterIndex]['pegs'][$pegIndex]);
+        $this->waters[$waterIndex]['pegs'] = array_values($this->waters[$waterIndex]['pegs']);
+        $this->dispatch('peg-maps-refresh');
+    }
+
+    public function removePegExistingPhoto(int $waterIndex, int $pegIndex, int $photoId): void
+    {
+        if (! isset($this->waters[$waterIndex]['pegs'][$pegIndex])) {
+            return;
+        }
+
+        $peg = &$this->waters[$waterIndex]['pegs'][$pegIndex];
+        $peg['existing_photo_ids'] = array_values(array_filter(
+            $peg['existing_photo_ids'] ?? [],
+            fn ($id): bool => (int) $id !== $photoId
+        ));
+        $peg['existing_photos'] = array_values(array_filter(
+            $peg['existing_photos'] ?? [],
+            fn (array $photo): bool => (int) $photo['id'] !== $photoId
+        ));
+    }
+
+    public function removePegNewPhoto(int $waterIndex, int $pegIndex, int $photoIndex): void
+    {
+        if (! isset($this->waters[$waterIndex]['pegs'][$pegIndex]['new_photos'][$photoIndex])) {
+            return;
+        }
+
+        unset($this->waters[$waterIndex]['pegs'][$pegIndex]['new_photos'][$photoIndex]);
+        $this->waters[$waterIndex]['pegs'][$pegIndex]['new_photos'] = array_values(
+            $this->waters[$waterIndex]['pegs'][$pegIndex]['new_photos']
+        );
+    }
+
+    public function setPegLocation(int $waterIndex, int $pegIndex, float $latitude, float $longitude): void
+    {
+        if (! isset($this->waters[$waterIndex]['pegs'][$pegIndex])) {
+            return;
+        }
+
+        $this->waters[$waterIndex]['pegs'][$pegIndex]['latitude'] = round($latitude, 7);
+        $this->waters[$waterIndex]['pegs'][$pegIndex]['longitude'] = round($longitude, 7);
     }
 
     public function removeWater(int $index): void
@@ -441,6 +521,11 @@ class VenueWizard extends Component
                 ->all();
 
             $water->species()->sync($speciesIds);
+            app(\App\Services\WaterPegService::class)->syncForWater(
+                $water,
+                $waterData['pegs'] ?? [],
+                auth()->user(),
+            );
             $keepIds[] = $water->id;
         }
 
@@ -543,6 +628,15 @@ class VenueWizard extends Component
                 'waters.*.depth_info' => ['nullable', 'string'],
                 'waters.*.species' => ['nullable', 'array'],
                 'waters.*.species.*' => ['integer', 'exists:species,id'],
+                'waters.*.pegs' => ['nullable', 'array'],
+                'waters.*.pegs.*.name' => ['nullable', 'string', 'max:100'],
+                'waters.*.pegs.*.number' => ['nullable', 'string', 'max:50'],
+                'waters.*.pegs.*.latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:waters.*.pegs.*.longitude'],
+                'waters.*.pegs.*.longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:waters.*.pegs.*.latitude'],
+                'waters.*.pegs.*.new_photos' => ['nullable', 'array', 'max:4'],
+                'waters.*.pegs.*.new_photos.*' => ['nullable', 'image', 'max:5120'],
+                'waters.*.pegs.*.existing_photo_ids' => ['nullable', 'array'],
+                'waters.*.pegs.*.existing_photo_ids.*' => ['integer'],
             ])),
             default => null,
         };
@@ -603,6 +697,19 @@ class VenueWizard extends Component
                 'peg_count' => $water->peg_count,
                 'depth_info' => (string) $water->depth_info,
                 'species' => $water->species->pluck('id')->map(fn ($id) => (string) $id)->all(),
+                'pegs' => $water->pegs()->verified()->with('photos')->orderBy('sort_order')->get()->map(fn ($peg) => [
+                    'id' => $peg->id,
+                    'name' => (string) $peg->name,
+                    'number' => (string) $peg->number,
+                    'latitude' => $peg->latitude,
+                    'longitude' => $peg->longitude,
+                    'existing_photo_ids' => $peg->photos->pluck('id')->all(),
+                    'existing_photos' => $peg->photos->map(fn ($photo) => [
+                        'id' => $photo->id,
+                        'url' => $photo->url(),
+                    ])->values()->all(),
+                    'new_photos' => [],
+                ])->values()->all(),
             ])->values()->all();
         }
     }

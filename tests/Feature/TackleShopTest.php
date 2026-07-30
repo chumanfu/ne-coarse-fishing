@@ -1,0 +1,77 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\TackleShop;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class TackleShopTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_home_page_promotes_featured_tackle_shops(): void
+    {
+        TackleShop::query()->update(['is_featured' => false]);
+
+        TackleShop::factory()->featured()->create([
+            'name' => 'Featured NE Tackle',
+            'url' => 'https://featured-ne-tackle.example/',
+            'sort_order' => 1,
+        ]);
+
+        TackleShop::factory()->create([
+            'name' => 'Hidden Shop',
+            'is_featured' => false,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Tackle shops')
+            ->assertSee('Featured NE Tackle')
+            ->assertSee('https://featured-ne-tackle.example/', false)
+            ->assertSee('Latest activity');
+    }
+
+    public function test_index_lists_published_shops_with_website_links(): void
+    {
+        TackleShop::factory()->create([
+            'name' => 'Billy Local Shop',
+            'url' => 'https://billy.example/',
+            'location_type' => 'local',
+            'town' => 'North Shields',
+        ]);
+
+        TackleShop::factory()->unpublished()->create([
+            'name' => 'Draft Shop',
+        ]);
+
+        $this->get(route('tackle-shops.index'))
+            ->assertOk()
+            ->assertSee('Billy Local Shop')
+            ->assertSee('https://billy.example/', false)
+            ->assertDontSee('Draft Shop');
+    }
+
+    public function test_show_page_displays_shop_website(): void
+    {
+        $shop = TackleShop::factory()->create([
+            'name' => 'Fishdeal Demo',
+            'url' => 'https://www.fishdeal.co.uk/',
+            'location_type' => 'online',
+        ]);
+
+        $this->get(route('tackle-shops.show', $shop))
+            ->assertOk()
+            ->assertSee('Fishdeal Demo')
+            ->assertSee('https://www.fishdeal.co.uk/', false)
+            ->assertSee('Visit website');
+    }
+
+    public function test_unpublished_shop_is_not_publicly_viewable(): void
+    {
+        $shop = TackleShop::factory()->unpublished()->create();
+
+        $this->get(route('tackle-shops.show', $shop))->assertNotFound();
+    }
+}

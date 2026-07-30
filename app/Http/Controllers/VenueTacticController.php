@@ -39,6 +39,8 @@ class VenueTacticController extends Controller
 
         $tactic = $tactics->createStandalone($request->user(), $venue, $validated);
 
+        app(\App\Services\ActivityLogger::class)->tacticShared($tactic);
+
         return redirect()
             ->route('venues.show', $venue)
             ->with('status', 'Tactics tip added. Thanks for sharing!');
