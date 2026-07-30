@@ -20,11 +20,18 @@
                 @endif
             </div>
             <div class="flex flex-wrap gap-2">
+                @if ($venue->url)
+                    <a href="{{ $venue->url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm">Visit website</a>
+                @endif
                 <a href="{{ route('map.index', ['species' => null]) }}#venue-{{ $venue->id }}" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm">View on map</a>
                 @auth
                     <a href="{{ route('sessions.create', ['venue' => $venue->slug]) }}" class="px-3 py-2 rounded-md bg-sky-700 text-white font-semibold text-sm">Log a session here</a>
+                    @can('suggestEdit', $venue)
+                        <a href="{{ route('venues.suggest-edit', $venue) }}" class="px-3 py-2 rounded-md border-2 border-amber-600 text-amber-950 font-semibold text-sm">Suggest an edit</a>
+                    @endcan
                     @can('manage', $venue)
                         <a href="{{ route('venues.edit', $venue) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm">Edit venue</a>
+                        <a href="{{ route('pegs.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm">Add peg</a>
                         <a href="{{ route('match-reports.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-emerald-700 text-emerald-900 font-semibold text-sm">Match report</a>
                         <a href="{{ route('announcements.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-emerald-700 text-emerald-900 font-semibold text-sm">Announcement</a>
                     @elsecan('claim', $venue)
@@ -33,6 +40,9 @@
                             <button class="px-3 py-2 rounded-md border-2 border-amber-600 text-amber-950 font-semibold text-sm" onclick="return confirm('Claim management of this venue?')">Claim ownership</button>
                         </form>
                     @endcan
+                    @if (auth()->user() && $venue->canManagePegs(auth()->user()) && ! auth()->user()->can('manage', $venue))
+                        <a href="{{ route('pegs.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm">Add peg</a>
+                    @endif
                 @endauth
             </div>
         </div>
@@ -44,6 +54,19 @@
                 <h2 class="text-xl font-bold mb-3">Overview</h2>
                 <p class="text-slate-800 whitespace-pre-line">{{ $venue->overview ?: 'No overview provided yet.' }}</p>
             </section>
+
+            @if ($venue->photos->isNotEmpty())
+                <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
+                    <h2 class="text-xl font-bold mb-4">Photos</h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        @foreach ($venue->photos as $photo)
+                            <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
+                                <img src="{{ $photo->url() }}" alt="{{ $venue->name }} photo" class="rounded-lg object-cover h-40 w-full border border-slate-300 hover:border-sky-700">
+                            </a>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
 
             <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
                 <h2 class="text-xl font-bold mb-4">Waters</h2>
@@ -75,8 +98,67 @@
             </section>
 
             <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
-                <h2 class="text-xl font-bold mb-3">Tactics &amp; local knowledge</h2>
-                <p class="text-slate-800 whitespace-pre-line">{{ $venue->tactics_guide ?: 'No tactics guide yet — share what works on your next session.' }}</p>
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                    <h2 id="tactics" class="text-xl font-bold">Tactics &amp; local knowledge</h2>
+                    @auth
+                        <div class="flex flex-wrap gap-2 shrink-0">
+                            <a href="{{ route('tactics.create', $venue) }}" class="px-3 py-2 rounded-md bg-sky-700 text-white font-semibold text-sm hover:bg-sky-800">
+                                Share a tactic
+                            </a>
+                            <a href="{{ route('sessions.create', ['venue' => $venue->slug]) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm hover:bg-sky-50">
+                                Log a session
+                            </a>
+                        </div>
+                    @else
+                        <a href="{{ route('login') }}" class="shrink-0 px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm hover:bg-sky-50">
+                            Log in to share tactics
+                        </a>
+                    @endauth
+                </div>
+
+                @if ($venue->tactics_guide)
+                    <div class="mb-6">
+                        <h3 class="font-bold text-slate-900 mb-2">Official guide</h3>
+                        <p class="text-slate-800 whitespace-pre-line">{{ $venue->tactics_guide }}</p>
+                    </div>
+                @endif
+
+                @if ($anglerTactics->isNotEmpty())
+                    <div class="@if($venue->tactics_guide) border-t-2 border-slate-200 pt-6 @endif">
+                        <h3 class="font-bold text-slate-900 mb-3">Angler tips</h3>
+                        <div class="space-y-4">
+                            @foreach ($anglerTactics as $tactic)
+                                <article class="border-2 border-slate-200 rounded-lg p-4">
+                                    <p class="text-slate-800 whitespace-pre-line">{{ $tactic->body }}</p>
+                                    <div class="flex flex-wrap items-center justify-between gap-2 mt-2">
+                                        <p class="text-sm text-slate-600">
+                                            {{ $tactic->user->name }}
+                                            @if ($tactic->fished_at)
+                                                · {{ $tactic->fished_at->format('d M Y') }}
+                                            @endif
+                                            @if ($tactic->water)
+                                                · {{ $tactic->water->name }}
+                                            @endif
+                                            @if ($tactic->peg_number)
+                                                · Peg {{ $tactic->peg_number }}
+                                            @endif
+                                            @if ($tactic->fishing_session_id)
+                                                · <span class="text-slate-500">from a session log</span>
+                                            @endif
+                                        </p>
+                                        @auth
+                                            @can('update', $tactic)
+                                                <a href="{{ route('tactics.edit', $tactic) }}" class="text-sm font-semibold text-sky-800 hover:underline">Edit</a>
+                                            @endcan
+                                        @endauth
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    </div>
+                @elseif (! $venue->tactics_guide)
+                    <p class="text-slate-600">No tactics guide yet — share what worked on your visit.</p>
+                @endif
             </section>
 
             <section id="official" class="bg-white border-2 border-slate-300 rounded-xl p-5">
@@ -101,17 +183,121 @@
                 </div>
             </section>
 
+            @if (auth()->user() && $venue->canManagePegs(auth()->user()))
+                @php
+                    $officialPegs = $venue->waters->flatMap->pegs->where('is_verified', true)->values();
+                    $pendingPegsList = $pendingPegs ?? collect();
+                @endphp
+                <section class="bg-white border-2 border-sky-400 rounded-xl p-5">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                        <div>
+                            <h2 class="text-xl font-bold mb-1">Manage pegs</h2>
+                            <p class="text-sm text-slate-600">Verify angler suggestions or add official pegs for this fishery.</p>
+                        </div>
+                        <a href="{{ route('pegs.create', $venue) }}" class="shrink-0 px-3 py-2 rounded-md bg-sky-700 text-white text-sm font-semibold hover:bg-sky-800">Add peg</a>
+                    </div>
+
+                    @if ($pendingPegsList->isNotEmpty())
+                        <h3 class="font-bold text-amber-950 mb-2">Awaiting verification</h3>
+                        <div class="space-y-3 mb-6">
+                            @foreach ($pendingPegsList as $peg)
+                                <div class="flex flex-col gap-3 border-2 border-amber-300 rounded-lg p-3 bg-amber-50/50">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                        <div>
+                                            <p class="font-semibold text-slate-900">{{ $peg->label() }} <span class="text-slate-500 font-normal">on {{ $peg->water?->name }}</span></p>
+                                            <p class="text-xs text-slate-500">{{ number_format($peg->latitude, 5) }}, {{ number_format($peg->longitude, 5) }}</p>
+                                        </div>
+                                        <div class="flex flex-wrap gap-2">
+                                            <form method="POST" action="{{ route('pegs.verify', [$venue, $peg]) }}">
+                                                @csrf
+                                                <button class="px-3 py-2 rounded-md bg-sky-700 text-white text-sm font-semibold hover:bg-sky-800">Verify</button>
+                                            </form>
+                                            <form method="POST" action="{{ route('pegs.destroy', [$venue, $peg]) }}" onsubmit="return confirm('Remove this suggested peg?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="px-3 py-2 rounded-md border-2 border-slate-400 text-sm font-semibold">Reject</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    @if ($peg->photos->isNotEmpty())
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                            @foreach ($peg->photos as $photo)
+                                                <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
+                                                    <img src="{{ $photo->url() }}" alt="{{ $peg->label() }} photo" class="rounded-md object-cover h-24 w-full border border-slate-300">
+                                                </a>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-slate-600 mb-6">No pegs waiting for verification.</p>
+                    @endif
+
+                    <h3 class="font-bold text-slate-900 mb-2">Official pegs</h3>
+                    @if ($officialPegs->isNotEmpty())
+                        <div class="space-y-2">
+                            @foreach ($officialPegs as $peg)
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-2 border-slate-200 rounded-lg px-3 py-2">
+                                    <div>
+                                        <p class="font-semibold text-slate-900">{{ $peg->label() }} <span class="text-slate-500 font-normal">· {{ $peg->water?->name }}</span></p>
+                                        <p class="text-xs text-slate-500">{{ number_format($peg->latitude, 5) }}, {{ number_format($peg->longitude, 5) }}@if($peg->photos->isNotEmpty()) · {{ $peg->photos->count() }} photo{{ $peg->photos->count() === 1 ? '' : 's' }}@endif</p>
+                                    </div>
+                                    <form method="POST" action="{{ route('pegs.destroy', [$venue, $peg]) }}" onsubmit="return confirm('Remove this official peg?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="text-sm font-semibold text-red-800 hover:underline">Remove</button>
+                                    </form>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-slate-600">No official pegs yet. <a href="{{ route('pegs.create', $venue) }}" class="text-sky-800 font-semibold hover:underline">Add the first one</a>.</p>
+                    @endif
+                </section>
+            @endif
+
+            @php
+                $verifiedPegs = $venue->waters->flatMap->pegs->where('is_verified', true)->filter(fn ($peg) => $peg->photos->isNotEmpty())->values();
+            @endphp
+            @if ($verifiedPegs->isNotEmpty())
+                <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
+                    <h2 class="text-xl font-bold mb-1">Peg photos</h2>
+                    <p class="text-sm text-slate-600 mb-4">Official peg photos verified by the venue owner.</p>
+                    <div class="space-y-4">
+                        @foreach ($verifiedPegs as $peg)
+                            <div>
+                                <p class="font-semibold text-slate-900 mb-2">{{ $peg->label() }} <span class="text-slate-500 font-normal">· {{ $peg->water?->name }}</span></p>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    @foreach ($peg->photos as $photo)
+                                        <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
+                                            <img src="{{ $photo->url() }}" alt="{{ $peg->label() }} photo" class="rounded-md object-cover h-28 w-full border border-slate-300 hover:border-sky-700">
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
             <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-bold">Recent sessions</h2>
                 </div>
                 <div class="space-y-4">
                     @forelse ($venue->fishingSessions as $session)
-                        <div class="border-2 border-slate-200 rounded-lg p-4">
+                        <a href="{{ route('sessions.show', $session) }}" class="block border-2 border-slate-200 rounded-lg p-4 hover:border-sky-700 transition">
                             <div class="flex flex-wrap justify-between gap-2">
                                 <p class="font-semibold text-slate-900">{{ $session->user->name }} · {{ $session->fished_at->format('d M Y') }}</p>
-                                @if ($session->water)
-                                    <p class="text-sm text-slate-600">{{ $session->water->name }}@if($session->peg_number) · Peg {{ $session->peg_number }}@endif</p>
+                                @if ($session->water || $session->pegLabel())
+                                    <p class="text-sm text-slate-600">
+                                        {{ $session->water?->name }}
+                                        @if ($session->pegLabel())
+                                            @if ($session->water) · @endif Peg {{ $session->pegLabel() }}
+                                        @endif
+                                    </p>
                                 @endif
                             </div>
                             @if ($session->commentary)
@@ -119,25 +305,18 @@
                             @endif
                             @if ($session->catches->isNotEmpty())
                                 <div class="mt-2 flex flex-wrap gap-2">
-                                    @foreach ($session->catches as $catch)
+                                    @foreach ($session->catches->take(4) as $catch)
                                         <span class="text-xs font-semibold bg-slate-100 border border-slate-300 px-2 py-1 rounded">
                                             {{ $catch->species->name }}
                                             @if ($catch->weight_lb) · {{ $catch->weight_lb }}lb @endif
-                                            @if ($catch->bait) · {{ $catch->bait }} @endif
                                         </span>
                                     @endforeach
                                 </div>
                             @endif
-                            @if ($session->photos->isNotEmpty())
-                                <div class="mt-3 grid grid-cols-3 gap-2">
-                                    @foreach ($session->photos->take(3) as $photo)
-                                        <img src="{{ $photo->url() }}" alt="Session photo" class="rounded-md object-cover h-24 w-full border border-slate-300">
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
+                            <p class="mt-3 text-sm font-semibold text-sky-800">View session →</p>
+                        </a>
                     @empty
-                        <p class="text-slate-600">No public sessions logged here yet.</p>
+                        <p class="text-slate-600">No sessions logged here yet.</p>
                     @endforelse
                 </div>
             </section>
@@ -147,6 +326,19 @@
             <div id="venue-map" class="h-64 rounded-xl border-2 border-slate-400 overflow-hidden"></div>
 
             <section class="bg-white border-2 border-slate-300 rounded-xl p-5 space-y-4 text-sm">
+                @if ($venue->url)
+                    <div>
+                        <h3 class="font-bold text-slate-900 mb-1">Website</h3>
+                        <a href="{{ $venue->url }}" target="_blank" rel="noopener noreferrer" class="text-sky-800 underline break-all">{{ $venue->url }}</a>
+                    </div>
+                @endif
+                @if ($venue->what3words)
+                    <div>
+                        <h3 class="font-bold text-slate-900 mb-1">what3words</h3>
+                        <a href="{{ $venue->what3wordsUrl() }}" target="_blank" rel="noopener noreferrer" class="text-sky-800 font-semibold hover:underline">{{ $venue->what3wordsLabel() }}</a>
+                        <p class="text-xs text-slate-500 mt-1">Opens in the what3words app or website.</p>
+                    </div>
+                @endif
                 <div>
                     <h3 class="font-bold text-slate-900 mb-1">Day tickets</h3>
                     <p class="text-slate-800 whitespace-pre-line">{{ $venue->day_ticket_info ?: 'Not listed.' }}</p>

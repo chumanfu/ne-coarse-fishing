@@ -14,7 +14,7 @@ class VenueController extends Controller
     {
         $venues = Venue::query()
             ->approved()
-            ->with(['waters.species', 'manager'])
+            ->with(['waters.species', 'manager', 'photos'])
             ->when($request->filled('species'), function ($query) use ($request) {
                 $query->whereHas('waters.species', fn ($q) => $q->where('species.slug', $request->string('species')));
             })
@@ -53,15 +53,20 @@ class VenueController extends Controller
 
         $venue->load([
             'waters.species',
+            'waters.pegs' => fn ($q) => $q->with('photos')->orderBy('sort_order')->orderBy('id'),
             'manager',
+            'photos',
             'matchReports' => fn ($q) => $q->whereNotNull('published_at')->latest('published_at')->limit(10),
             'announcements' => fn ($q) => $q->whereNotNull('published_at')->latest('published_at')->limit(10),
-            'fishingSessions' => fn ($q) => $q->with(['user', 'catches.species', 'photos'])->latest('fished_at')->limit(8),
+            'fishingSessions' => fn ($q) => $q->with(['user', 'water', 'waterPeg', 'catches.species', 'photos'])->latest('fished_at')->limit(8),
+            'anglerTactics' => fn ($q) => $q->with(['user', 'water'])->limit(20),
         ]);
 
         return view('venues.show', [
             'venue' => $venue,
             'speciesList' => $venue->allSpecies(),
+            'anglerTactics' => $venue->anglerTactics,
+            'pendingPegs' => $venue->waters->flatMap->pegs->where('is_verified', false)->values(),
         ]);
     }
 

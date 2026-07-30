@@ -8,6 +8,7 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -22,7 +23,12 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasRole('super_admin');
+        return $this->hasRole('super_admin') || $this->hasRole('fishery_manager');
+    }
+
+    public function clubs(): BelongsToMany
+    {
+        return $this->belongsToMany(Club::class)->withTimestamps();
     }
 
     public function venues(): HasMany
@@ -43,6 +49,16 @@ class User extends Authenticatable implements FilamentUser
     public function venueClaims(): HasMany
     {
         return $this->hasMany(VenueClaim::class);
+    }
+
+    public function venueEditRequests(): HasMany
+    {
+        return $this->hasMany(VenueEditRequest::class);
+    }
+
+    public function venueTactics(): HasMany
+    {
+        return $this->hasMany(VenueTactic::class);
     }
 
     protected function casts(): array

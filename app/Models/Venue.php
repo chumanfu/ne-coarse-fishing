@@ -23,6 +23,8 @@ class Venue extends Model
         'latitude',
         'longitude',
         'address',
+        'url',
+        'what3words',
         'directions',
         'day_ticket_info',
         'membership_info',
@@ -113,6 +115,51 @@ class Venue extends Model
         return $this->hasMany(VenueClaim::class);
     }
 
+    public function editRequests(): HasMany
+    {
+        return $this->hasMany(VenueEditRequest::class);
+    }
+
+    public function anglerTactics(): HasMany
+    {
+        return $this->hasMany(VenueTactic::class)->latest('fished_at')->latest('created_at');
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(VenuePhoto::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public static function normalizeWhat3words(?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        $normalized = strtolower(trim($value));
+        $normalized = preg_replace('/^\/+/', '', $normalized) ?? $normalized;
+
+        return $normalized !== '' ? $normalized : null;
+    }
+
+    public function what3wordsLabel(): ?string
+    {
+        if (blank($this->what3words)) {
+            return null;
+        }
+
+        return '///'.$this->what3words;
+    }
+
+    public function what3wordsUrl(): ?string
+    {
+        if (blank($this->what3words)) {
+            return null;
+        }
+
+        return 'https://what3words.com/'.$this->what3words;
+    }
+
     public function allSpecies()
     {
         return Species::query()
@@ -143,6 +190,24 @@ class Venue extends Model
             return false;
         }
 
-        return $this->manager_id === $user->id || $user->hasRole('super_admin');
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        return $this->manager_id === $user->id;
+    }
+
+    public function canManagePegs(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        // Venue manager (typically fishery_manager role after a claim) or original submitter.
+        return $this->manager_id === $user->id || $this->user_id === $user->id;
     }
 }

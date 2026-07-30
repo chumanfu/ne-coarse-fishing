@@ -114,6 +114,17 @@
                     @error('address') <p class="error">{{ $message }}</p> @enderror
                 </div>
                 <div style="margin-top: 1rem;">
+                    <label>Website URL</label>
+                    <input type="url" wire:model="url" placeholder="https://example.com">
+                    @error('url') <p class="error">{{ $message }}</p> @enderror
+                </div>
+                <div style="margin-top: 1rem;">
+                    <label>what3words</label>
+                    <p class="hint venue-wizard-w3w-hint">Three-word location for the car park or fishery entrance, e.g. <code>filled.count.soap</code></p>
+                    <input type="text" wire:model.blur="what3words" placeholder="filled.count.soap">
+                    @error('what3words') <p class="error">{{ $message }}</p> @enderror
+                </div>
+                <div style="margin-top: 1rem;">
                     <label>Directions / parking</label>
                     <textarea wire:model="directions" rows="5" placeholder="How to find the car park, access tracks, gate codes if appropriate…"></textarea>
                     @error('directions') <p class="error">{{ $message }}</p> @enderror
@@ -121,15 +132,58 @@
                 <button type="button" wire:click="reverseGeocode" class="venue-wizard-btn-link" style="margin-top: 0.75rem;">
                     Refresh address from map pin
                 </button>
+
+                @unless ($editRequest)
+                    <div class="venue-wizard-photos">
+                        <label class="venue-wizard-photos-label">Venue photos</label>
+                        <p class="hint">Upload photos of the lake, car park, pegs or signage (up to 8).</p>
+
+                        @if ($this->existingPhotos->isNotEmpty() || count($newPhotos))
+                            <div class="venue-wizard-photo-grid">
+                                @foreach ($this->existingPhotos as $photo)
+                                    <figure wire:key="existing-photo-{{ $photo->id }}" class="venue-wizard-photo-card">
+                                        <img src="{{ $photo->url() }}" alt="Venue photo">
+                                        <button type="button" wire:click="removeExistingPhoto({{ $photo->id }})" class="venue-wizard-photo-remove">Remove</button>
+                                    </figure>
+                                @endforeach
+                                @foreach ($newPhotos as $index => $photo)
+                                    <figure wire:key="new-photo-{{ $index }}" class="venue-wizard-photo-card is-new">
+                                        <img src="{{ $photo->temporaryUrl() }}" alt="New venue photo">
+                                        <button type="button" wire:click="removeNewPhoto({{ $index }})" class="venue-wizard-photo-remove">Remove</button>
+                                    </figure>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div class="venue-wizard-upload" wire:loading.class="is-loading" wire:target="newPhotos">
+                            <input type="file"
+                                   id="venue-wizard-photo-upload"
+                                   wire:model="newPhotos"
+                                   accept="image/*"
+                                   multiple
+                                   class="venue-wizard-upload-input">
+                            <label for="venue-wizard-photo-upload" class="venue-wizard-upload-label">
+                                <span class="venue-wizard-upload-icon" aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                </span>
+                                <span class="venue-wizard-upload-title">Choose photos or drag here</span>
+                                <span class="venue-wizard-upload-hint">JPG, PNG or WebP · max 5 MB each · up to 8 images</span>
+                            </label>
+                            <p wire:loading wire:target="newPhotos" class="venue-wizard-upload-status">Uploading…</p>
+                        </div>
+                        @error('newPhotos') <p class="error">{{ $message }}</p> @enderror
+                        @error('newPhotos.*') <p class="error">{{ $message }}</p> @enderror
+                    </div>
+                @endunless
             </div>
         @endif
 
         @if ($step === 5)
             <div wire:key="step-details">
-                <h2>Tickets, waters &amp; local knowledge</h2>
-                <p class="hint">Everything else anglers need before they visit.</p>
+                <h2>{{ $editRequest ? 'Venue details & waters' : 'Tickets, waters & local knowledge' }}</h2>
+                <p class="hint">{{ $editRequest ? 'Proposed changes to venue info and waters. Tactics, sessions and match reports are not included.' : 'Everything else anglers need before they visit.' }}</p>
 
-                @if ($admin)
+                @if ($admin && ! $editRequest)
                     <div class="venue-wizard-admin" style="margin-top: 1rem;">
                         <strong>Admin options</strong>
                         <label>
@@ -177,10 +231,20 @@
                     <label>Seasonal restrictions</label>
                     <textarea wire:model="season_info" rows="2"></textarea>
                 </div>
-                <div style="margin-top: 1rem;">
-                    <label>Tactics &amp; local knowledge</label>
-                    <textarea wire:model="tactics_guide" rows="4"></textarea>
-                </div>
+                @unless ($editRequest)
+                    <div style="margin-top: 1rem;">
+                        <label>Tactics &amp; local knowledge</label>
+                        <textarea wire:model="tactics_guide" rows="4"></textarea>
+                    </div>
+                @endunless
+
+                @if ($editRequest)
+                    <div style="margin-top: 1rem;">
+                        <label>Note for reviewers (optional)</label>
+                        <textarea wire:model="editRequestMessage" rows="3" placeholder="Explain what you changed and why…"></textarea>
+                        @error('editRequestMessage') <p class="error">{{ $message }}</p> @enderror
+                    </div>
+                @endif
 
                 <div style="margin-top: 1.25rem;">
                     <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
@@ -228,6 +292,83 @@
                                     @endforeach
                                 </div>
                             </div>
+
+                            <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--vw-border);">
+                                <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                    <strong>Pegs</strong>
+                                    <button type="button" wire:click="addPeg({{ $index }})" class="venue-wizard-btn venue-wizard-btn-outline">Add peg</button>
+                                </div>
+                                <p class="hint">Give each peg a number and/or name, then set its pin on the map below.</p>
+
+                                @foreach (($water['pegs'] ?? []) as $pegIndex => $peg)
+                                    <div class="venue-wizard-water" style="margin-top: 0.75rem; background: var(--vw-bg);" wire:key="water-{{ $index }}-peg-{{ $pegIndex }}">
+                                        <div class="row" style="justify-content: space-between; align-items: center;">
+                                            <strong>Peg {{ $pegIndex + 1 }}</strong>
+                                            <button type="button" wire:click="removePeg({{ $index }}, {{ $pegIndex }})" class="venue-wizard-btn-danger">Remove</button>
+                                        </div>
+                                        <div class="grid-2" style="margin-top: 0.5rem;">
+                                            <div>
+                                                <label>Number</label>
+                                                <input type="text" wire:model="waters.{{ $index }}.pegs.{{ $pegIndex }}.number" placeholder="12">
+                                            </div>
+                                            <div>
+                                                <label>Name</label>
+                                                <input type="text" wire:model="waters.{{ $index }}.pegs.{{ $pegIndex }}.name" placeholder="Island">
+                                            </div>
+                                        </div>
+                                        <div class="grid-2" style="margin-top: 0.5rem;">
+                                            <div>
+                                                <label>Latitude</label>
+                                                <input type="number" step="any" wire:model.blur="waters.{{ $index }}.pegs.{{ $pegIndex }}.latitude">
+                                            </div>
+                                            <div>
+                                                <label>Longitude</label>
+                                                <input type="number" step="any" wire:model.blur="waters.{{ $index }}.pegs.{{ $pegIndex }}.longitude">
+                                            </div>
+                                        </div>
+                                        <div class="venue-wizard-peg-map-host"
+                                             style="margin-top: 0.75rem;"
+                                             wire:ignore
+                                             data-peg-map
+                                             data-lat="{{ (float) ($peg['latitude'] ?? $latitude ?? 54.7767) }}"
+                                             data-lng="{{ (float) ($peg['longitude'] ?? $longitude ?? -1.5753) }}"
+                                             data-water-index="{{ $index }}"
+                                             data-peg-index="{{ $pegIndex }}"
+                                             data-map-id="peg-map-{{ $index }}-{{ $pegIndex }}">
+                                            <div id="peg-map-{{ $index }}-{{ $pegIndex }}"
+                                                 class="venue-wizard-peg-map"
+                                                 style="height: 12rem; min-height: 12rem; width: 100%; border: 2px solid var(--vw-border); border-radius: 0.5rem; background: #e2e8f0;"></div>
+                                            <p class="hint" style="margin-top: 0.35rem;">Click map or drag marker to set this peg.</p>
+                                        </div>
+                                        <div style="margin-top: 0.75rem;">
+                                            <label>Peg photos</label>
+                                            <p class="hint">Optional. Up to 4 photos of this peg.</p>
+                                            @if (! empty($peg['existing_photos']))
+                                                <div class="check-grid" style="margin-bottom: 0.5rem;">
+                                                    @foreach ($peg['existing_photos'] as $existingPhoto)
+                                                        <div style="position: relative;">
+                                                            <img src="{{ $existingPhoto['url'] }}" alt="" style="width: 100%; height: 5rem; object-fit: cover; border-radius: 0.4rem; border: 1px solid var(--vw-border);">
+                                                            <button type="button"
+                                                                    wire:click="removePegExistingPhoto({{ $index }}, {{ $pegIndex }}, {{ $existingPhoto['id'] }})"
+                                                                    class="venue-wizard-btn-danger"
+                                                                    style="margin-top: 0.25rem; width: 100%;">
+                                                                Remove
+                                                            </button>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                            <input type="file"
+                                                   wire:model="waters.{{ $index }}.pegs.{{ $pegIndex }}.new_photos"
+                                                   accept="image/*"
+                                                   multiple>
+                                            <div wire:loading wire:target="waters.{{ $index }}.pegs.{{ $pegIndex }}.new_photos" class="hint">Uploading…</div>
+                                            @error('waters.'.$index.'.pegs.'.$pegIndex.'.new_photos.*') <p class="error">{{ $message }}</p> @enderror
+                                            @error('waters.'.$index.'.pegs.'.$pegIndex.'.new_photos') <p class="error">{{ $message }}</p> @enderror
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     @endforeach
                     @error('waters') <p class="error">{{ $message }}</p> @enderror
@@ -251,7 +392,11 @@
                 </button>
             @else
                 <button type="button" wire:click="save" class="venue-wizard-btn venue-wizard-btn-primary">
-                    {{ $venueId ? 'Save changes' : ($admin ? 'Create venue' : 'Submit for approval') }}
+                    @if ($editRequest)
+                        Submit edit for approval
+                    @else
+                        {{ $venueId ? 'Save changes' : ($admin ? 'Create venue' : 'Submit for approval') }}
+                    @endif
                 </button>
             @endif
         </div>
@@ -308,5 +453,133 @@
             setTimeout(() => this.map.invalidateSize(), 50);
         }
     }));
+
+    const pegMaps = window.__venueWizardPegMaps || (window.__venueWizardPegMaps = {});
+
+    const findLivewireComponent = (el) => {
+        const root = el.closest('[wire\\:id]');
+        if (! root || typeof Livewire === 'undefined') {
+            return null;
+        }
+
+        return Livewire.find(root.getAttribute('wire:id'));
+    };
+
+    const initPegMapHost = (host) => {
+        if (! host || typeof L === 'undefined') {
+            return;
+        }
+
+        const mapId = host.dataset.mapId;
+        const el = document.getElementById(mapId);
+        if (! mapId || ! el) {
+            return;
+        }
+
+        // Already initialised on this host element.
+        if (host.dataset.pegMapReady === '1' && pegMaps[mapId] && el._leaflet_id) {
+            pegMaps[mapId].invalidateSize();
+            return;
+        }
+
+        if (pegMaps[mapId]) {
+            try {
+                pegMaps[mapId].remove();
+            } catch (e) {}
+            delete pegMaps[mapId];
+        }
+
+        // Leaflet leaves a marker on the node; clear before re-init.
+        if (el._leaflet_id) {
+            el._leaflet_id = null;
+            el.innerHTML = '';
+        }
+
+        const lat = Number(host.dataset.lat || 54.7767);
+        const lng = Number(host.dataset.lng || -1.5753);
+        const waterIndex = Number(host.dataset.waterIndex);
+        const pegIndex = Number(host.dataset.pegIndex);
+        const center = [lat, lng];
+
+        const map = L.map(el, { scrollWheelZoom: false }).setView(center, 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        const marker = L.marker(center, { draggable: true }).addTo(map);
+        const save = (la, ln) => {
+            host.dataset.lat = String(la);
+            host.dataset.lng = String(ln);
+            const component = findLivewireComponent(host);
+            component?.call('setPegLocation', waterIndex, pegIndex, la, ln);
+        };
+
+        marker.on('dragend', () => {
+            const pos = marker.getLatLng();
+            save(Number(pos.lat.toFixed(7)), Number(pos.lng.toFixed(7)));
+        });
+        map.on('click', (e) => {
+            marker.setLatLng(e.latlng);
+            save(Number(e.latlng.lat.toFixed(7)), Number(e.latlng.lng.toFixed(7)));
+        });
+
+        pegMaps[mapId] = map;
+        host.dataset.pegMapReady = '1';
+
+        requestAnimationFrame(() => map.invalidateSize());
+        setTimeout(() => map.invalidateSize(), 100);
+        setTimeout(() => map.invalidateSize(), 300);
+        setTimeout(() => map.invalidateSize(), 700);
+    };
+
+    const initAllPegMaps = (root = document) => {
+        if (! root) {
+            return;
+        }
+        if (root.querySelectorAll) {
+            root.querySelectorAll('[data-peg-map]').forEach((host) => initPegMapHost(host));
+        }
+        if (root.matches?.('[data-peg-map]')) {
+            initPegMapHost(root);
+        }
+    };
+
+    const waitForLeafletThenInit = (attempt = 0) => {
+        if (typeof L !== 'undefined') {
+            initAllPegMaps(document);
+            return;
+        }
+        if (attempt > 50) {
+            console.error('Leaflet failed to load for venue wizard peg maps.');
+            return;
+        }
+        setTimeout(() => waitForLeafletThenInit(attempt + 1), 100);
+    };
+
+    waitForLeafletThenInit();
+
+    $wire.on('peg-maps-refresh', () => {
+        setTimeout(() => waitForLeafletThenInit(), 50);
+        setTimeout(() => waitForLeafletThenInit(), 250);
+        setTimeout(() => waitForLeafletThenInit(), 600);
+    });
+
+    if (! window.__venueWizardPegMapHooksBound) {
+        window.__venueWizardPegMapHooksBound = true;
+
+        document.addEventListener('livewire:navigated', () => waitForLeafletThenInit());
+
+        Livewire.hook('morph.updated', ({ el }) => {
+            setTimeout(() => initAllPegMaps(el), 30);
+        });
+
+        Livewire.hook('commit', ({ succeed }) => {
+            succeed(() => {
+                setTimeout(() => waitForLeafletThenInit(), 30);
+                setTimeout(() => waitForLeafletThenInit(), 200);
+            });
+        });
+    }
 </script>
 @endscript

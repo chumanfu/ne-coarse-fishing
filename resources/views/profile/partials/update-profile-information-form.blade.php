@@ -25,6 +25,14 @@
             <x-input-error class="mt-2" :messages="$errors->get('email')" />
         </div>
 
+        <div>
+            <x-club-membership-checkboxes
+                :clubs="$clubs"
+                :selected="old('club_ids', $user->clubs->pluck('id')->all())"
+                hint="Select the clubs you are a member of."
+            />
+        </div>
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 

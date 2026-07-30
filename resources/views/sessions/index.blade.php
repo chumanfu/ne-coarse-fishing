@@ -11,9 +11,9 @@
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-4">
         @forelse ($sessions as $session)
-            <a href="{{ route('sessions.show', $session) }}" class="block bg-white border-2 border-slate-300 rounded-xl p-5 hover:border-sky-700">
+            <div class="bg-white border-2 border-slate-300 rounded-xl p-5">
                 <div class="flex flex-wrap justify-between gap-2">
-                    <h2 class="font-bold text-lg text-slate-900">{{ $session->venue->name }}</h2>
+                    <a href="{{ route('sessions.show', $session) }}" class="font-bold text-lg text-slate-900 hover:underline">{{ $session->venue->name }}</a>
                     <p class="text-sm font-semibold text-slate-700">{{ $session->fished_at->format('d M Y') }}</p>
                 </div>
                 <p class="text-sm text-slate-600 mt-1">
@@ -24,7 +24,11 @@
                 @if ($session->commentary)
                     <p class="text-sm text-slate-800 mt-2">{{ Str::limit($session->commentary, 160) }}</p>
                 @endif
-            </a>
+                <div class="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
+                    <a href="{{ route('sessions.show', $session) }}" class="text-sky-800 hover:underline">View</a>
+                    <a href="{{ route('sessions.edit', $session) }}" class="text-sky-800 hover:underline">Edit</a>
+                </div>
+            </div>
         @empty
             <p class="text-slate-600">No sessions yet. Log your next trip from the bank.</p>
         @endforelse

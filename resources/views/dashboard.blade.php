@@ -46,6 +46,8 @@
                     <li>
                         <a href="{{ route('venues.show', $venue) }}" class="font-semibold text-slate-900 hover:underline">{{ $venue->name }}</a>
                         <div class="text-slate-600">
+                            <a href="{{ route('pegs.create', $venue) }}" class="text-sky-800 font-semibold">Manage pegs</a>
+                            ·
                             <a href="{{ route('match-reports.create', $venue) }}" class="text-emerald-800 font-semibold">Match report</a>
                             ·
                             <a href="{{ route('announcements.create', $venue) }}" class="text-emerald-800 font-semibold">Announcement</a>

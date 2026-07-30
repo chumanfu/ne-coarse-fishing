@@ -20,8 +20,14 @@ class FishingSessionForm
                 DatePicker::make('fished_at')->required(),
                 TextInput::make('duration_hours')->numeric(),
                 TextInput::make('weather')->maxLength(255),
-                TextInput::make('peg_number')->maxLength(50),
+                TextInput::make('peg_number')->label('Peg name or number')->maxLength(50),
+                TextInput::make('peg_latitude')->numeric()->step(0.0000001),
+                TextInput::make('peg_longitude')->numeric()->step(0.0000001),
                 Textarea::make('commentary')->rows(5)->columnSpanFull(),
+                Textarea::make('tactics_tip')
+                    ->label('Tactics tip')
+                    ->rows(3)
+                    ->columnSpanFull(),
             ]);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Club;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,8 +17,12 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        $user = $request->user();
+        $user->load('clubs');
+
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
+            'clubs' => Club::query()->published()->ordered()->get(['id', 'name', 'town']),
         ]);
     }
 
@@ -26,8 +31,14 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
-        $request->user()->save();
+        $user = $request->user();
+        $validated = $request->validated();
+        $clubIds = $validated['club_ids'] ?? [];
+        unset($validated['club_ids']);
+
+        $user->fill($validated);
+        $user->save();
+        $user->clubs()->sync($clubIds);
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }

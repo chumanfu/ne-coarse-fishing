@@ -43,4 +43,16 @@ class VenuePolicy
             && $venue->manager_id !== $user->id
             && ! $venue->claims()->where('user_id', $user->id)->where('status', 'pending')->exists();
     }
+
+    public function suggestEdit(User $user, Venue $venue): bool
+    {
+        if (! $venue->is_approved || $venue->isManagedBy($user) || $user->hasRole('super_admin')) {
+            return false;
+        }
+
+        return ! $venue->editRequests()
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->exists();
+    }
 }

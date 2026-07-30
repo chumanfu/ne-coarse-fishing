@@ -9,6 +9,8 @@
 
                 <div class="hidden space-x-6 sm:flex">
                     <x-nav-link :href="route('venues.index')" :active="request()->routeIs('venues.*')">Venues</x-nav-link>
+                    <x-nav-link :href="route('clubs.index')" :active="request()->routeIs('clubs.*')">Clubs</x-nav-link>
+                    <x-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-nav-link>
                     <x-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-nav-link>
                     @auth
                         <x-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">My Sessions</x-nav-link>
@@ -69,6 +71,8 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden border-t border-slate-200">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('venues.index')" :active="request()->routeIs('venues.*')">Venues</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('clubs.index')" :active="request()->routeIs('clubs.*')">Clubs</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-responsive-nav-link>
             @auth
                 <x-responsive-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">My Sessions</x-responsive-nav-link>

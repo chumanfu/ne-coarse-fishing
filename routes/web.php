@@ -7,25 +7,81 @@ use App\Http\Controllers\MatchReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VenueClaimController;
 use App\Http\Controllers\VenueController;
+use App\Http\Controllers\VenueEditRequestController;
+use App\Http\Controllers\ClubController;
+use App\Http\Controllers\TackleShopController;
+use App\Http\Controllers\VenueTacticController;
+use App\Models\Activity;
+use App\Models\Club;
+use App\Models\TackleShop;
 use App\Models\Venue;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     $featured = Venue::query()
         ->approved()
-        ->with(['waters.species', 'manager'])
+        ->with(['waters.species', 'manager', 'photos'])
         ->latest()
         ->take(6)
         ->get();
 
+    $featuredShops = TackleShop::query()
+        ->published()
+        ->featured()
+        ->ordered()
+        ->take(6)
+        ->get();
+
+    $featuredClubs = Club::query()
+        ->published()
+        ->featured()
+        ->ordered()
+        ->take(6)
+        ->get();
+
+    $activities = Activity::query()
+        ->with('user')
+        ->latest()
+        ->take(12)
+        ->get();
+
+    $mapVenues = Venue::query()
+        ->approved()
+        ->with(['waters.species'])
+        ->whereNotNull('latitude')
+        ->whereNotNull('longitude')
+        ->orderBy('name')
+        ->get();
+
+    $mapMarkers = $mapVenues->map(fn (Venue $venue) => [
+        'id' => $venue->id,
+        'name' => $venue->name,
+        'lat' => $venue->latitude,
+        'lng' => $venue->longitude,
+        'ticket_type' => $venue->ticketTypeLabel(),
+        'address' => $venue->address,
+        'verified' => $venue->manager_verified,
+        'url' => route('venues.show', $venue),
+        'overview' => str($venue->overview)->limit(120)->toString(),
+        'species' => $venue->allSpecies()->take(4)->pluck('name')->values(),
+    ]);
+
     return view('home', [
         'featured' => $featured,
+        'featuredShops' => $featuredShops,
+        'featuredClubs' => $featuredClubs,
+        'activities' => $activities,
+        'mapMarkers' => $mapMarkers,
         'venueCount' => Venue::approved()->count(),
     ]);
 })->name('home');
 
 Route::get('/venues', [VenueController::class, 'index'])->name('venues.index');
 Route::get('/venues/{venue:slug}', [VenueController::class, 'show'])->name('venues.show');
+Route::get('/tackle-shops', [TackleShopController::class, 'index'])->name('tackle-shops.index');
+Route::get('/tackle-shops/{tackleShop:slug}', [TackleShopController::class, 'show'])->name('tackle-shops.show');
+Route::get('/clubs', [ClubController::class, 'index'])->name('clubs.index');
+Route::get('/clubs/{club:slug}', [ClubController::class, 'show'])->name('clubs.show');
 Route::get('/map', [MapController::class, 'index'])->name('map.index');
 
 Route::get('/dashboard', function () {
@@ -41,9 +97,14 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/venues/create/new', [VenueController::class, 'create'])->name('venues.create');
     Route::get('/venues/{venue:slug}/edit', [VenueController::class, 'edit'])->name('venues.edit');
+    Route::get('/venues/{venue:slug}/suggest-edit', [VenueEditRequestController::class, 'create'])->name('venues.suggest-edit');
     Route::delete('/venues/{venue:slug}', [VenueController::class, 'destroy'])->name('venues.destroy');
 
     Route::post('/venues/{venue:slug}/claim', [VenueClaimController::class, 'store'])->name('venues.claim');
+    Route::get('/venues/{venue:slug}/pegs/create', [\App\Http\Controllers\WaterPegController::class, 'create'])->name('pegs.create');
+    Route::post('/venues/{venue:slug}/pegs', [\App\Http\Controllers\WaterPegController::class, 'store'])->name('pegs.store');
+    Route::post('/venues/{venue:slug}/pegs/{waterPeg}/verify', [\App\Http\Controllers\WaterPegController::class, 'verify'])->name('pegs.verify');
+    Route::delete('/venues/{venue:slug}/pegs/{waterPeg}', [\App\Http\Controllers\WaterPegController::class, 'destroy'])->name('pegs.destroy');
 
     Route::get('/venues/{venue:slug}/match-reports/create', [MatchReportController::class, 'create'])->name('match-reports.create');
     Route::post('/venues/{venue:slug}/match-reports', [MatchReportController::class, 'store'])->name('match-reports.store');
@@ -56,9 +117,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/sessions', [FishingSessionController::class, 'index'])->name('sessions.index');
     Route::get('/sessions/create', [FishingSessionController::class, 'create'])->name('sessions.create');
     Route::post('/sessions', [FishingSessionController::class, 'store'])->name('sessions.store');
-    Route::get('/sessions/{fishingSession}', [FishingSessionController::class, 'show'])->name('sessions.show');
+    Route::get('/sessions/{fishingSession}/edit', [FishingSessionController::class, 'edit'])->name('sessions.edit');
+    Route::patch('/sessions/{fishingSession}', [FishingSessionController::class, 'update'])->name('sessions.update');
     Route::delete('/sessions/{fishingSession}', [FishingSessionController::class, 'destroy'])->name('sessions.destroy');
+
+    Route::get('/venues/{venue:slug}/tactics/create', [VenueTacticController::class, 'create'])->name('tactics.create');
+    Route::post('/venues/{venue:slug}/tactics', [VenueTacticController::class, 'store'])->name('tactics.store');
+    Route::get('/tactics/{venueTactic}/edit', [VenueTacticController::class, 'edit'])->name('tactics.edit');
+    Route::patch('/tactics/{venueTactic}', [VenueTacticController::class, 'update'])->name('tactics.update');
+    Route::delete('/tactics/{venueTactic}', [VenueTacticController::class, 'destroy'])->name('tactics.destroy');
 });
+
+Route::get('/sessions/{fishingSession}', [FishingSessionController::class, 'show'])->name('sessions.show');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

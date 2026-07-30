@@ -17,18 +17,52 @@ class FishingSession extends Model
         'user_id',
         'venue_id',
         'water_id',
+        'water_peg_id',
         'fished_at',
         'duration_hours',
         'weather',
         'peg_number',
+        'peg_latitude',
+        'peg_longitude',
         'commentary',
+        'tactics_tip',
     ];
 
     protected function casts(): array
     {
         return [
             'fished_at' => 'date',
+            'peg_latitude' => 'float',
+            'peg_longitude' => 'float',
         ];
+    }
+
+    public function hasPegLocation(): bool
+    {
+        if ($this->water_peg_id) {
+            return true;
+        }
+
+        return $this->peg_latitude !== null && $this->peg_longitude !== null;
+    }
+
+    public function pegLabel(): ?string
+    {
+        if ($this->waterPeg) {
+            return $this->waterPeg->label();
+        }
+
+        return $this->peg_number;
+    }
+
+    public function pegMapLatitude(): ?float
+    {
+        return $this->waterPeg?->latitude ?? $this->peg_latitude;
+    }
+
+    public function pegMapLongitude(): ?float
+    {
+        return $this->waterPeg?->longitude ?? $this->peg_longitude;
     }
 
     public function user(): BelongsTo
@@ -46,6 +80,11 @@ class FishingSession extends Model
         return $this->belongsTo(Water::class);
     }
 
+    public function waterPeg(): BelongsTo
+    {
+        return $this->belongsTo(WaterPeg::class);
+    }
+
     public function photos(): HasMany
     {
         return $this->hasMany(SessionPhoto::class);
@@ -54,5 +93,10 @@ class FishingSession extends Model
     public function catches(): HasMany
     {
         return $this->hasMany(SessionCatch::class);
+    }
+
+    public function venueTactic(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(VenueTactic::class);
     }
 }
