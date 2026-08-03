@@ -55,6 +55,21 @@
                 <p class="text-slate-800 whitespace-pre-line">{{ $venue->overview ?: 'No overview provided yet.' }}</p>
             </section>
 
+            @if ($venue->clubs->isNotEmpty())
+                <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
+                    <h2 class="text-xl font-bold mb-3">Managed by / club access</h2>
+                    <ul class="flex flex-wrap gap-2">
+                        @foreach ($venue->clubs as $club)
+                            <li>
+                                <a href="{{ route('clubs.show', $club) }}" class="inline-flex text-sm font-semibold bg-sky-50 border border-sky-300 text-sky-900 px-3 py-1.5 rounded hover:bg-sky-100">
+                                    {{ $club->name }}
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
+
             @if ($venue->photos->isNotEmpty())
                 <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
                     <h2 class="text-xl font-bold mb-4">Photos</h2>

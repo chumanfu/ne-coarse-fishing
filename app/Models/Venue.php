@@ -6,6 +6,7 @@ use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -128,6 +129,11 @@ class Venue extends Model
     public function photos(): HasMany
     {
         return $this->hasMany(VenuePhoto::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function clubs(): BelongsToMany
+    {
+        return $this->belongsToMany(Club::class)->withTimestamps();
     }
 
     public static function normalizeWhat3words(?string $value): ?string

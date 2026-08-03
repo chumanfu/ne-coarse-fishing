@@ -32,7 +32,7 @@
         </div>
     </x-slot>
 
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div class="bg-white border-2 border-slate-300 rounded-xl p-6">
             @if ($club->websiteHost())
                 <div class="flex flex-wrap gap-2 mb-4">
@@ -71,6 +71,18 @@
                 @endif
             </dl>
         </div>
+
+        @if ($club->venues->isNotEmpty())
+            <div class="bg-white border-2 border-slate-300 rounded-xl p-6">
+                <h2 class="text-lg font-bold text-slate-900 mb-1">Club waters</h2>
+                <p class="text-sm text-slate-600 mb-4">Venues managed by or available to this club.</p>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    @foreach ($club->venues as $venue)
+                        <x-venue-card :venue="$venue" />
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         <a href="{{ route('clubs.index') }}" class="inline-flex text-sky-800 font-semibold hover:underline">&larr; All clubs</a>
     </div>

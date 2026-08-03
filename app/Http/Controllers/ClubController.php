@@ -34,6 +34,13 @@ class ClubController extends Controller
     {
         abort_unless($club->is_published, 404);
 
+        $club->load([
+            'venues' => fn ($query) => $query
+                ->approved()
+                ->with(['photos', 'waters.species'])
+                ->orderBy('name'),
+        ]);
+
         return view('clubs.show', [
             'club' => $club,
         ]);

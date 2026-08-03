@@ -110,4 +110,40 @@ class ClubTest extends TestCase
             ->assertSee('Logo Club')
             ->assertSee('images/clubs/tyne-anglers-alliance.png', false);
     }
+
+    public function test_club_show_lists_linked_venues(): void
+    {
+        $club = Club::factory()->create([
+            'name' => 'Waters Club',
+            'slug' => 'waters-club',
+            'is_published' => true,
+        ]);
+
+        $venue = \App\Models\Venue::factory()->create([
+            'name' => 'Club Mere',
+            'slug' => 'club-mere',
+            'is_approved' => true,
+        ]);
+
+        $club->venues()->attach($venue);
+
+        $this->get(route('clubs.show', $club))
+            ->assertOk()
+            ->assertSee('Club waters')
+            ->assertSee('Club Mere');
+    }
+
+    public function test_seeded_directory_includes_key_north_east_clubs_and_waters(): void
+    {
+        $this->assertDatabaseHas('clubs', ['slug' => 'hetton-lyons-angling-club']);
+        $this->assertDatabaseHas('clubs', ['slug' => 'darlington-anglers-club']);
+        $this->assertDatabaseHas('clubs', ['slug' => 'northumbrian-anglers-federation']);
+        $this->assertDatabaseHas('venues', ['slug' => 'brasside-lakes']);
+        $this->assertDatabaseHas('venues', ['slug' => 'silksworth-lakes']);
+        $this->assertDatabaseHas('venues', ['slug' => 'stephensons-lake']);
+
+        $durham = Club::query()->where('slug', 'durham-city-angling-club')->first();
+        $this->assertNotNull($durham);
+        $this->assertTrue($durham->venues()->where('slug', 'brasside-lakes')->exists());
+    }
 }

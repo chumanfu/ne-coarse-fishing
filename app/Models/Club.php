@@ -75,6 +75,11 @@ class Club extends Model
         return $this->belongsToMany(User::class)->withTimestamps();
     }
 
+    public function venues(): BelongsToMany
+    {
+        return $this->belongsToMany(Venue::class)->withTimestamps();
+    }
+
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('is_published', true);
