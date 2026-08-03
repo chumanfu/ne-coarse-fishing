@@ -75,6 +75,7 @@ class DatabaseSeeder extends Seeder
                 'latitude' => 54.7912,
                 'longitude' => -1.6208,
                 'address' => 'Aldin Grange Farm, Bearpark, Durham DH7 7AR',
+                'url' => 'https://aldingrangelakes.co.uk/',
                 'directions' => "From Durham follow the A691 towards Consett, then local signs for Bearpark / Aldin Grange. Car park is gravel and can be soft after heavy rain — stick to the marked bays.",
                 'day_ticket_info' => "Adult day tickets from the bailiff on the bank.\nJuniors and OAPs discounted.\nNight fishing by prior arrangement only.",
                 'membership_info' => 'No waiting list currently. Annual club tickets available from the on-site cabin.',
@@ -129,6 +130,7 @@ class DatabaseSeeder extends Seeder
                 'latitude' => 54.8605,
                 'longitude' => -1.9784,
                 'address' => 'Derwent Reservoir, near Edmundbyers, DH8 9TT',
+                'url' => 'https://www.watersideparksuk.com/park/derwent/fishing/',
                 'directions' => 'Use the main visitor centre car parks. Walk the marked paths to the fishing banks — do not block estate access tracks.',
                 'day_ticket_info' => 'Day tickets from the visitor centre / online where advertised.',
                 'membership_info' => null,
@@ -157,26 +159,6 @@ class DatabaseSeeder extends Seeder
             $species['Roach']->id,
             $species['Carp']->id,
         ]);
-
-        $pending = Venue::query()->updateOrCreate(
-            ['slug' => 'beamish-park-lake'],
-            [
-                'user_id' => $angler->id,
-                'name' => 'Beamish Park Lake',
-                'overview' => 'Small park lake submission awaiting moderation.',
-                'latitude' => 54.8821,
-                'longitude' => -1.6564,
-                'address' => 'Beamish, County Durham',
-                'ticket_type' => 'day_ticket',
-                'is_complex' => false,
-                'is_approved' => false,
-                'manager_verified' => false,
-            ]
-        );
-        Water::query()->updateOrCreate(
-            ['venue_id' => $pending->id, 'name' => 'Park Lake'],
-            ['description' => 'Single pleasure lake.', 'peg_count' => 12, 'sort_order' => 1]
-        );
 
         MatchReport::query()->updateOrCreate(
             ['venue_id' => $aldin->id, 'title' => 'Sunday open — Match Lake'],

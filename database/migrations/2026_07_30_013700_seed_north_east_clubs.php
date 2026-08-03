@@ -67,7 +67,7 @@ return new class extends Migration
             [
                 'name' => 'Hexham Angling Association',
                 'slug' => 'hexham-angling-association',
-                'url' => null,
+                'url' => 'https://thetaa.co.uk/',
                 'overview' => 'Manages Wydon Burn / Wydon Water near Hexham. Advance booking required for Tyne Anglers Alliance complimentary tickets.',
                 'town' => 'Hexham',
                 'address' => null,
@@ -79,7 +79,7 @@ return new class extends Migration
             [
                 'name' => 'Ryton and District Angling Club',
                 'slug' => 'ryton-and-district-angling-club',
-                'url' => null,
+                'url' => 'https://www.gateshead.gov.uk/article/4505/Angling-permits-and-fishing-licence',
                 'overview' => 'Gateshead-area club with Stargate and Tilcon Ponds plus Tyne Anglers Alliance waters on the Tyne corridor.',
                 'town' => 'Ryton',
                 'address' => null,
@@ -91,7 +91,7 @@ return new class extends Migration
             [
                 'name' => 'Blyth Freshwater Angling Club',
                 'slug' => 'blyth-freshwater-angling-club',
-                'url' => null,
+                'url' => 'https://bfac.forumotion.com/',
                 'overview' => 'Blyth FAC looks after Meggies Burn Reservoir in South Newsham Country Park and caters for local freshwater anglers.',
                 'town' => 'Blyth',
                 'address' => null,
@@ -139,7 +139,7 @@ return new class extends Migration
             [
                 'name' => 'Leazes Park Angling Club',
                 'slug' => 'leazes-park-angling-club',
-                'url' => null,
+                'url' => 'https://leazesangling.com/',
                 'overview' => 'City-centre Newcastle club fishing Leazes Park lake (roach, tench, bream and carp) and affiliated Tyne Anglers Alliance waters.',
                 'town' => 'Newcastle upon Tyne',
                 'address' => null,
@@ -151,7 +151,7 @@ return new class extends Migration
             [
                 'name' => 'Tunstall Fly Fishers',
                 'slug' => 'tunstall-fly-fishers',
-                'url' => null,
+                'url' => 'https://www.fisheryguide.co.uk/tunstall-reservoir-fishing/',
                 'overview' => 'Fly club associated with Tunstall Reservoir near Wolsingham in Weardale for trout fishing.',
                 'town' => 'Wolsingham',
                 'address' => null,
@@ -163,7 +163,7 @@ return new class extends Migration
             [
                 'name' => 'Batleys Fishing Club CIC',
                 'slug' => 'batleys-fishing-club',
-                'url' => null,
+                'url' => 'https://find-and-update.company-information.service.gov.uk/company/13183929',
                 'overview' => 'Community interest club running Batley\'s Pond near Durham — a mixed fishery with carp, silvers and good access.',
                 'town' => 'Durham',
                 'address' => null,
@@ -175,7 +175,7 @@ return new class extends Migration
             [
                 'name' => 'Felling Fly Fishing Club',
                 'slug' => 'felling-fly-fishing-club',
-                'url' => null,
+                'url' => 'https://www.fellingflyfishers.co.uk/',
                 'overview' => 'North East fly club with extensive river beats on the North Tyne, Coquet, Wear and Till, plus stocked stillwaters.',
                 'town' => 'Gateshead',
                 'address' => null,

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TackleShops\Schemas;
 
 use App\Models\TackleShop;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -22,6 +23,14 @@ class TackleShopForm
                     ->url()
                     ->required()
                     ->maxLength(255),
+                FileUpload::make('logo_path')
+                    ->label('Logo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('tackle-shop-logos')
+                    ->visibility('public')
+                    ->imagePreviewHeight('120')
+                    ->columnSpanFull(),
                 Select::make('location_type')
                     ->options(TackleShop::LOCATION_TYPES)
                     ->required()

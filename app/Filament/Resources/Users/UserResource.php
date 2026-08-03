@@ -20,6 +20,10 @@ class UserResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Users';
+
+    protected static ?int $navigationSort = 50;
+
     public static function canAccess(): bool
     {
         return auth()->user()?->hasRole('super_admin') ?? false;

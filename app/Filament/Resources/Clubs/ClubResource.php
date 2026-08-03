@@ -20,6 +20,8 @@ class ClubResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Directory';
+
     protected static ?string $navigationLabel = 'Clubs';
 
     protected static ?string $modelLabel = 'club';

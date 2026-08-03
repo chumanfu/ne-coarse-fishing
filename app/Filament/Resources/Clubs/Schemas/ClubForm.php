@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Clubs\Schemas;
 
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -19,6 +20,14 @@ class ClubForm
                     ->label('Website URL')
                     ->url()
                     ->maxLength(255),
+                FileUpload::make('logo_path')
+                    ->label('Logo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('club-logos')
+                    ->visibility('public')
+                    ->imagePreviewHeight('120')
+                    ->columnSpanFull(),
                 TextInput::make('town')->maxLength(255),
                 TextInput::make('address')->maxLength(255)->columnSpanFull(),
                 TextInput::make('phone')->tel()->maxLength(50),

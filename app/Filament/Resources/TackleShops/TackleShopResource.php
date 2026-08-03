@@ -20,6 +20,8 @@ class TackleShopResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShoppingBag;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Directory';
+
     protected static ?string $navigationLabel = 'Tackle shops';
 
     protected static ?string $modelLabel = 'tackle shop';

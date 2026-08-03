@@ -1,12 +1,25 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-                <p class="text-sm font-semibold text-sky-800 uppercase tracking-wide mb-1">Tackle shop</p>
-                <h1 class="text-2xl font-bold text-slate-900">{{ $shop->name }}</h1>
-                @if ($shop->town)
-                    <p class="text-slate-600 mt-1">{{ $shop->town }}</p>
+            <div class="flex items-start gap-4 min-w-0">
+                @if ($shop->logoUrl())
+                    <div class="tackle-shop-logo tackle-shop-logo--lg rounded-xl border-2 border-slate-300 bg-white p-2">
+                        <img
+                            src="{{ $shop->logoUrl() }}"
+                            alt="{{ $shop->name }} logo"
+                            width="72"
+                            height="72"
+                            class="tackle-shop-logo__img"
+                        >
+                    </div>
                 @endif
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-sky-800 uppercase tracking-wide mb-1">Tackle shop</p>
+                    <h1 class="text-2xl font-bold text-slate-900">{{ $shop->name }}</h1>
+                    @if ($shop->town)
+                        <p class="text-slate-600 mt-1">{{ $shop->town }}</p>
+                    @endif
+                </div>
             </div>
             <a href="{{ $shop->url }}"
                target="_blank"
