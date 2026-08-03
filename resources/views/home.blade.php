@@ -37,7 +37,7 @@
 
         <div class="home-hero__status">
             <span class="home-hero__status-icon" aria-hidden="true"></span>
-            <p>Live map status: <strong>{{ count($mapMarkers) }} venues ready</strong></p>
+            <p>Live map status: <strong>{{ count($mapMarkers) }} places ready</strong></p>
         </div>
     </section>
 
@@ -78,19 +78,30 @@
             <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
                 <div>
                     <h2 class="text-2xl font-bold text-slate-900">Explore the map</h2>
-                    <p class="text-slate-600 mt-1">Search by name or click a pin for a quick look at any approved venue.</p>
+                    <p class="text-slate-600 mt-1">Search venues and tackle shops, or click a pin for a quick look.</p>
                 </div>
                 <a href="{{ route('map.index') }}" class="text-sky-800 font-semibold hover:underline shrink-0">Full map &amp; filters</a>
             </div>
 
+            <div class="flex flex-wrap items-center gap-4 mb-4 text-sm font-semibold text-slate-700">
+                <span class="inline-flex items-center gap-2">
+                    <span class="inline-block h-3 w-3 rounded-full bg-blue-600 border-2 border-white shadow" aria-hidden="true"></span>
+                    Venues
+                </span>
+                <span class="inline-flex items-center gap-2">
+                    <span class="inline-block h-3 w-3 rounded-full bg-red-600 border-2 border-white shadow" aria-hidden="true"></span>
+                    Tackle shops
+                </span>
+            </div>
+
             <div class="relative mb-4 max-w-md">
-                <label for="home-venue-search" class="block text-sm font-semibold text-slate-800 mb-1">Search venues</label>
+                <label for="home-venue-search" class="block text-sm font-semibold text-slate-800 mb-1">Search map</label>
                 <input
                     id="home-venue-search"
                     type="search"
                     x-model="query"
                     @keydown.escape="query = ''"
-                    placeholder="Type a venue name…"
+                    placeholder="Type a venue or shop name…"
                     class="w-full rounded-md border-2 border-slate-400 bg-white px-3 py-2 focus:border-sky-700 focus:ring-sky-700"
                     autocomplete="off"
                 >
@@ -106,18 +117,18 @@
                             @click="focusVenue(venue)"
                         >
                             <span class="font-semibold text-slate-900" x-text="venue.name"></span>
-                            <span class="block text-xs text-slate-600" x-text="venue.ticket_type"></span>
+                            <span class="block text-xs text-slate-600" x-text="venue.type === 'tackle_shop' ? ('Tackle shop · ' + venue.ticket_type) : venue.ticket_type"></span>
                         </button>
                     </template>
                 </div>
-                <p x-show="query.trim() && !filtered.length" x-cloak class="mt-2 text-sm text-slate-600">No venues match that name.</p>
+                <p x-show="query.trim() && !filtered.length" x-cloak class="mt-2 text-sm text-slate-600">No venues or shops match that name.</p>
             </div>
 
             <div id="home-venue-map"
                  class="w-full rounded-xl border-2 border-slate-400 overflow-hidden bg-slate-200"
                  style="height: 28rem; min-height: 28rem;"></div>
             <p class="mt-3 text-sm text-slate-600">
-                <span x-text="filtered.length"></span> of {{ count($mapMarkers) }} venues shown
+                <span x-text="filtered.length"></span> of {{ count($mapMarkers) }} places shown
             </p>
         </div>
     </div>
@@ -200,7 +211,20 @@
     </div>
 
     <x-slot name="scripts">
-        <style>[x-cloak]{display:none!important}</style>
+        <style>
+            [x-cloak]{display:none!important}
+            .leaflet-div-icon.map-pin { background: transparent; border: none; }
+            .map-pin__dot {
+                display: block;
+                width: 18px;
+                height: 18px;
+                border-radius: 999px;
+                border: 2px solid #fff;
+                box-shadow: 0 1px 4px rgba(15, 23, 42, 0.45);
+            }
+            .map-pin--venue .map-pin__dot { background: #2563eb; }
+            .map-pin--shop .map-pin__dot { background: #dc2626; }
+        </style>
         <script>
             function homeVenueMap(markers) {
                 const escapeHtml = (value) => String(value ?? '')
@@ -208,6 +232,14 @@
                     .replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;');
+
+                const pinIcon = (type) => L.divIcon({
+                    className: `leaflet-div-icon map-pin map-pin--${type === 'tackle_shop' ? 'shop' : 'venue'}`,
+                    html: '<span class="map-pin__dot"></span>',
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9],
+                    popupAnchor: [0, -10],
+                });
 
                 return {
                     markers,
@@ -248,22 +280,30 @@
                         });
                     },
                     popupHtml(marker) {
+                        const isShop = marker.type === 'tackle_shop';
                         const species = (marker.species || [])
                             .map((name) => `<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 6px;border:1px solid #7dd3fc;background:#f0f9ff;border-radius:4px;font-size:11px;font-weight:600;color:#0c4a6e;">${escapeHtml(name)}</span>`)
                             .join('');
 
-                        const verified = marker.verified
+                        const verified = !isShop && marker.verified
                             ? '<span style="display:inline-block;margin-left:6px;padding:2px 6px;border:1px solid #059669;background:#d1fae5;border-radius:4px;font-size:10px;font-weight:700;color:#064e3b;text-transform:uppercase;">Verified</span>'
                             : '';
 
+                        const badge = isShop
+                            ? '<span style="display:inline-block;margin-left:6px;padding:2px 6px;border:1px solid #dc2626;background:#fef2f2;border-radius:4px;font-size:10px;font-weight:700;color:#7f1d1d;text-transform:uppercase;">Shop</span>'
+                            : verified;
+
+                        const ctaLabel = isShop ? 'View shop' : 'View venue';
+                        const ctaColor = isShop ? '#dc2626' : '#0369a1';
+
                         return `
                             <div style="min-width:200px;max-width:260px;font-family:inherit;">
-                                <strong style="font-size:15px;color:#0f172a;">${escapeHtml(marker.name)}</strong>${verified}
+                                <strong style="font-size:15px;color:#0f172a;">${escapeHtml(marker.name)}</strong>${badge}
                                 <p style="margin:6px 0 0;font-size:12px;color:#475569;">${escapeHtml(marker.address || 'Address not listed')}</p>
                                 <p style="margin:6px 0 0;font-size:12px;font-weight:600;color:#0f172a;">${escapeHtml(marker.ticket_type)}</p>
                                 <p style="margin:8px 0 0;font-size:12px;color:#334155;line-height:1.4;">${escapeHtml(marker.overview || 'No summary yet.')}</p>
                                 <div style="margin-top:8px;">${species}</div>
-                                <a href="${escapeHtml(marker.url)}" style="display:inline-block;margin-top:10px;padding:8px 12px;background:#0369a1;color:#fff;border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;">View venue</a>
+                                <a href="${escapeHtml(marker.url)}" style="display:inline-block;margin-top:10px;padding:8px 12px;background:${ctaColor};color:#fff;border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;">${ctaLabel}</a>
                             </div>
                         `;
                     },
@@ -277,7 +317,9 @@
                                 return;
                             }
 
-                            const pin = L.marker([marker.lat, marker.lng]);
+                            const pin = L.marker([marker.lat, marker.lng], {
+                                icon: pinIcon(marker.type),
+                            });
                             pin.bindPopup(this.popupHtml(marker));
                             pin.addTo(this.layerGroup);
                             this.pinById[marker.id] = pin;

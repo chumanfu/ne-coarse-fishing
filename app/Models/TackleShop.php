@@ -28,6 +28,8 @@ class TackleShop extends Model
         'overview',
         'town',
         'address',
+        'latitude',
+        'longitude',
         'phone',
         'location_type',
         'is_featured',
@@ -38,10 +40,24 @@ class TackleShop extends Model
     protected function casts(): array
     {
         return [
+            'latitude' => 'float',
+            'longitude' => 'float',
             'is_featured' => 'boolean',
             'is_published' => 'boolean',
             'sort_order' => 'integer',
         ];
+    }
+
+    public function scopeMappable(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude');
+    }
+
+    public function hasMapCoordinates(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
     }
 
     protected static function booted(): void

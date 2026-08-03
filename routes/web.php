@@ -53,8 +53,9 @@ Route::get('/', function () {
         ->orderBy('name')
         ->get();
 
-    $mapMarkers = $mapVenues->map(fn (Venue $venue) => [
-        'id' => $venue->id,
+    $venueMarkers = $mapVenues->map(fn (Venue $venue) => [
+        'id' => 'venue-'.$venue->id,
+        'type' => 'venue',
         'name' => $venue->name,
         'lat' => $venue->latitude,
         'lng' => $venue->longitude,
@@ -65,6 +66,27 @@ Route::get('/', function () {
         'overview' => str($venue->overview)->limit(120)->toString(),
         'species' => $venue->allSpecies()->take(4)->pluck('name')->values(),
     ]);
+
+    $shopMarkers = TackleShop::query()
+        ->published()
+        ->mappable()
+        ->ordered()
+        ->get()
+        ->map(fn (TackleShop $shop) => [
+            'id' => 'shop-'.$shop->id,
+            'type' => 'tackle_shop',
+            'name' => $shop->name,
+            'lat' => $shop->latitude,
+            'lng' => $shop->longitude,
+            'ticket_type' => $shop->locationTypeLabel(),
+            'address' => $shop->address ?: $shop->town,
+            'verified' => false,
+            'url' => route('tackle-shops.show', $shop),
+            'overview' => str($shop->overview)->limit(120)->toString(),
+            'species' => [],
+        ]);
+
+    $mapMarkers = $venueMarkers->concat($shopMarkers)->values();
 
     return view('home', [
         'featured' => $featured,

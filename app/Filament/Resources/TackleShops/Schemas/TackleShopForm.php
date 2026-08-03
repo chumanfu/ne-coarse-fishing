@@ -37,6 +37,8 @@ class TackleShopForm
                     ->native(false),
                 TextInput::make('town')->maxLength(255),
                 TextInput::make('address')->maxLength(255)->columnSpanFull(),
+                TextInput::make('latitude')->numeric()->step(0.0000001),
+                TextInput::make('longitude')->numeric()->step(0.0000001),
                 TextInput::make('phone')->tel()->maxLength(50),
                 TextInput::make('sort_order')->numeric()->default(0)->required(),
                 Textarea::make('overview')->rows(4)->columnSpanFull(),

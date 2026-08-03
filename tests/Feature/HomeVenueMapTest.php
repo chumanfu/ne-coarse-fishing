@@ -30,7 +30,7 @@ class HomeVenueMapTest extends TestCase
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('Explore the map')
-            ->assertSee('Search venues')
+            ->assertSee('Search map')
             ->assertSee('home-venue-map', false)
             ->assertSee('Home Map Mere')
             ->assertSee('View venue')
