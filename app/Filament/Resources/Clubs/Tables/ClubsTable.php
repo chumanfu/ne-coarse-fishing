@@ -7,6 +7,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -18,6 +19,10 @@ class ClubsTable
         return $table
             ->defaultSort('sort_order')
             ->columns([
+                ImageColumn::make('logo_path')
+                    ->label('Logo')
+                    ->getStateUsing(fn (Club $record): ?string => $record->logoUrl())
+                    ->height(40),
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('town')->placeholder('—')->searchable()->toggleable(),
                 TextColumn::make('url')

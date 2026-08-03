@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Club extends Model
@@ -18,6 +19,7 @@ class Club extends Model
         'name',
         'slug',
         'url',
+        'logo_path',
         'overview',
         'town',
         'address',
@@ -97,5 +99,18 @@ class Club extends Model
         $host = parse_url($this->url, PHP_URL_HOST);
 
         return $host ? Str::of($host)->after('www.')->toString() : null;
+    }
+
+    public function logoUrl(): ?string
+    {
+        if (blank($this->logo_path)) {
+            return null;
+        }
+
+        if (str_starts_with($this->logo_path, 'images/')) {
+            return asset($this->logo_path);
+        }
+
+        return Storage::disk('public')->url($this->logo_path);
     }
 }

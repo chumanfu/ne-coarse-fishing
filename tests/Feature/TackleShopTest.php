@@ -59,13 +59,38 @@ class TackleShopTest extends TestCase
             'name' => 'Fishdeal Demo',
             'url' => 'https://www.fishdeal.co.uk/',
             'location_type' => 'online',
+            'logo_path' => 'images/tackle-shops/fishdeal.png',
         ]);
 
         $this->get(route('tackle-shops.show', $shop))
             ->assertOk()
             ->assertSee('Fishdeal Demo')
             ->assertSee('https://www.fishdeal.co.uk/', false)
+            ->assertSee('images/tackle-shops/fishdeal.png', false)
             ->assertSee('Visit website');
+    }
+
+    public function test_index_shows_shop_logos(): void
+    {
+        TackleShop::factory()->create([
+            'name' => 'Logo Shop',
+            'logo_path' => 'images/tackle-shops/ad-tackle.png',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('tackle-shops.index'))
+            ->assertOk()
+            ->assertSee('Logo Shop')
+            ->assertSee('images/tackle-shops/ad-tackle.png', false);
+    }
+
+    public function test_seeded_shops_have_logos_linked(): void
+    {
+        $shop = TackleShop::query()->where('slug', 'billys-fishing-tackle')->first();
+
+        $this->assertNotNull($shop);
+        $this->assertSame('images/tackle-shops/billys-fishing-tackle.svg', $shop->logo_path);
+        $this->assertStringContainsString('/images/tackle-shops/billys-fishing-tackle.svg', (string) $shop->logoUrl());
     }
 
     public function test_unpublished_shop_is_not_publicly_viewable(): void

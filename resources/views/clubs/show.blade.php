@@ -1,12 +1,25 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-                <p class="text-sm font-semibold text-sky-800 uppercase tracking-wide mb-1">Angling club</p>
-                <h1 class="text-2xl font-bold text-slate-900">{{ $club->name }}</h1>
-                @if ($club->town)
-                    <p class="text-slate-600 mt-1">{{ $club->town }}</p>
+            <div class="flex items-start gap-4 min-w-0">
+                @if ($club->logoUrl())
+                    <div class="directory-logo directory-logo--lg rounded-xl border-2 border-slate-300 bg-white p-2">
+                        <img
+                            src="{{ $club->logoUrl() }}"
+                            alt="{{ $club->name }} logo"
+                            width="72"
+                            height="72"
+                            class="directory-logo__img"
+                        >
+                    </div>
                 @endif
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-sky-800 uppercase tracking-wide mb-1">Angling club</p>
+                    <h1 class="text-2xl font-bold text-slate-900">{{ $club->name }}</h1>
+                    @if ($club->town)
+                        <p class="text-slate-600 mt-1">{{ $club->town }}</p>
+                    @endif
+                </div>
             </div>
             @if ($club->url)
                 <a href="{{ $club->url }}"

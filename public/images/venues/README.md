@@ -1,4 +1,6 @@
-# Venue placeholder images
+# Venue images
 
-Stock landscape photos used as provisional venue gallery images.
-Downloaded from [Unsplash](https://unsplash.com/) (free license) for directory visuals until venue-specific photos are uploaded.
+Location photos for North East venues in the directory gallery.
+
+Sources include Geograph Britain and Ireland (CC BY-SA), Wikimedia Commons,
+and official fishery websites. Prefer uploading venue-manager photos when available.

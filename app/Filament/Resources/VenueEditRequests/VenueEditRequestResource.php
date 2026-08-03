@@ -19,6 +19,10 @@ class VenueEditRequestResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPencilSquare;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Moderation';
+
+    protected static ?int $navigationSort = 41;
+
     protected static ?string $navigationLabel = 'Venue edit requests';
 
     public static function canAccess(): bool

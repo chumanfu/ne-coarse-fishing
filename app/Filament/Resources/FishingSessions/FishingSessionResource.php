@@ -20,6 +20,10 @@ class FishingSessionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Content';
+
+    protected static ?int $navigationSort = 20;
+
     public static function canAccess(): bool
     {
         return auth()->user()?->hasRole('super_admin') ?? false;

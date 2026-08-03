@@ -87,4 +87,27 @@ class ClubTest extends TestCase
 
         $this->assertEqualsCanonicalizing([$keep->id, $add->id], $user->fresh()->clubs()->pluck('clubs.id')->all());
     }
+
+    public function test_seeded_clubs_have_logos_linked(): void
+    {
+        $club = Club::query()->where('slug', 'tyne-anglers-alliance')->first();
+
+        $this->assertNotNull($club);
+        $this->assertNotNull($club->logo_path);
+        $this->assertStringContainsString('/images/clubs/', (string) $club->logoUrl());
+    }
+
+    public function test_index_shows_club_logos(): void
+    {
+        Club::factory()->create([
+            'name' => 'Logo Club',
+            'logo_path' => 'images/clubs/tyne-anglers-alliance.png',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('clubs.index'))
+            ->assertOk()
+            ->assertSee('Logo Club')
+            ->assertSee('images/clubs/tyne-anglers-alliance.png', false);
+    }
 }

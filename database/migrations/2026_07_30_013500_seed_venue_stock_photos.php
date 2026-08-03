@@ -69,6 +69,7 @@ return new class extends Migration
             'tunstall-reservoir',
             'aldin-grange',
             'batleys-pond',
+            'leazes-park-lake',
         ];
     }
 };

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" role="img" aria-label="Fishing Tackle and Bait">
+  <rect width="320" height="80" rx="12" fill="#0f4c81"/>
+  <text x="160" y="36" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="22" font-weight="700" fill="#ffffff">Fishing Tackle</text>
+  <text x="160" y="60" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#c8e1f5">&amp; Bait</text>
+</svg>
