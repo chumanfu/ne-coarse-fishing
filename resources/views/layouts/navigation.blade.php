@@ -1,10 +1,10 @@
-<nav x-data="{ open: false }" class="bg-white border-b-2 border-slate-800">
+<nav x-data="{ open: false }" class="bg-white border-b border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex items-center gap-8">
-                <a href="{{ route('home') }}" class="flex items-center gap-2">
-                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-sky-700 text-white font-bold text-sm">NE</span>
-                    <span class="font-bold text-slate-900 tracking-tight hidden sm:inline">{{ config('app.name') }}</span>
+                <a href="{{ route('home') }}" class="flex items-center gap-2.5">
+                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-sky-800 text-white font-bold text-sm tracking-tight">NE</span>
+                    <span class="font-bold text-slate-900 tracking-tight hidden sm:inline text-[15px]">{{ config('app.name') }}</span>
                 </a>
 
                 <div class="hidden space-x-6 sm:flex">
@@ -21,10 +21,10 @@
 
             <div class="hidden sm:flex sm:items-center sm:gap-3">
                 @auth
-                    <a href="{{ route('venues.create') }}" class="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-md bg-sky-700 text-white hover:bg-sky-800">
+                    <a href="{{ route('venues.create') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-semibold rounded-lg bg-sky-800 text-white hover:bg-sky-900">
                         Add Venue
                     </a>
-                    <a href="{{ route('sessions.create') }}" class="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-md border-2 border-slate-800 text-slate-900 hover:bg-slate-50">
+                    <a href="{{ route('sessions.create') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-semibold rounded-lg border border-slate-300 text-slate-800 hover:bg-slate-50">
                         Log Session
                     </a>
                     <x-dropdown align="right" width="48">
@@ -52,8 +52,8 @@
                         </x-slot>
                     </x-dropdown>
                 @else
-                    <a href="{{ route('login') }}" class="text-sm font-semibold text-slate-800 hover:text-sky-800">Log in</a>
-                    <a href="{{ route('register') }}" class="inline-flex items-center px-3 py-2 text-sm font-semibold rounded-md bg-sky-700 text-white hover:bg-sky-800">Register</a>
+                    <a href="{{ route('login') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-semibold rounded-lg border border-sky-800 text-sky-900 hover:bg-sky-50">Log in</a>
+                    <a href="{{ route('register') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-semibold rounded-lg bg-sky-800 text-white hover:bg-sky-900">Register</a>
                 @endauth
             </div>
 

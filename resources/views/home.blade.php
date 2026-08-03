@@ -1,25 +1,47 @@
 <x-app-layout>
-    <div class="relative overflow-hidden bg-gradient-to-br from-sky-900 via-slate-900 to-emerald-900 text-white">
-        <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 20% 20%, #38bdf8 0, transparent 35%), radial-gradient(circle at 80% 0%, #34d399 0, transparent 30%);"></div>
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-            <p class="text-sky-200 font-semibold tracking-wide uppercase text-sm mb-3">North East · Coarse Angling</p>
-            <h1 class="text-4xl sm:text-5xl font-bold tracking-tight max-w-3xl leading-tight">
+    <section class="home-hero" aria-label="Welcome">
+        <div class="home-hero__media" aria-hidden="true">
+            <img
+                src="{{ asset('images/home/hero-tyne.jpg') }}"
+                alt=""
+                class="home-hero__image"
+                width="1574"
+                height="686"
+                fetchpriority="high"
+            >
+            <div class="home-hero__shade"></div>
+            <div class="home-hero__sparkle"></div>
+        </div>
+
+        <div class="home-hero__content">
+            <p class="home-hero__eyebrow">North East · Coarse Angling</p>
+            <h1 class="home-hero__title">
                 Find the best waters from the Tyne to the Tees
             </h1>
-            <p class="mt-4 text-lg text-slate-200 max-w-2xl">
+            <p class="home-hero__lead">
                 Discover day-ticket lakes, club complexes and canal stretches. Read local tactics, log your sessions, and follow official match reports.
             </p>
-            <div class="mt-8 flex flex-wrap gap-3">
-                <a href="{{ route('map.index') }}" class="inline-flex items-center px-5 py-3 rounded-md bg-white text-slate-900 font-bold hover:bg-sky-50">Open the map</a>
-                <a href="{{ route('venues.index') }}" class="inline-flex items-center px-5 py-3 rounded-md border-2 border-white text-white font-bold hover:bg-white/10">Browse venues</a>
-                <a href="{{ route('clubs.index') }}" class="inline-flex items-center px-5 py-3 rounded-md border-2 border-sky-200 text-sky-100 font-bold hover:bg-white/10">Clubs</a>
-                <a href="{{ route('tackle-shops.index') }}" class="inline-flex items-center px-5 py-3 rounded-md border-2 border-sky-200 text-sky-100 font-bold hover:bg-white/10">Tackle shops</a>
-            </div>
-            <p class="mt-6 text-sm text-sky-100 font-medium">{{ $venueCount }} approved venues on the portal</p>
-        </div>
-    </div>
 
-    <div class="border-t-2 border-slate-200 bg-white">
+            <div class="home-hero__actions">
+                <a href="{{ route('map.index') }}" class="home-hero__btn home-hero__btn--primary">Open the map</a>
+                <a href="{{ route('venues.index') }}" class="home-hero__btn home-hero__btn--ghost">Browse venues</a>
+                <a href="{{ route('clubs.index') }}" class="home-hero__btn home-hero__btn--ghost">Clubs</a>
+                <a href="{{ route('tackle-shops.index') }}" class="home-hero__btn home-hero__btn--ghost">Tackle shops</a>
+            </div>
+
+            <p class="home-hero__stat">
+                <span class="home-hero__stat-icon" aria-hidden="true"></span>
+                <em>{{ $venueCount }} approved venues on the portal</em>
+            </p>
+        </div>
+
+        <div class="home-hero__status">
+            <span class="home-hero__status-icon" aria-hidden="true"></span>
+            <p>Live map status: <strong>{{ count($mapMarkers) }} venues ready</strong></p>
+        </div>
+    </section>
+
+    <div class="border-t border-slate-200 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="mb-6">
                 <h2 class="text-2xl font-bold text-slate-900">Latest activity</h2>
@@ -51,6 +73,7 @@
 
     <div class="border-t-2 border-slate-200 bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
+             id="home-map"
              x-data="homeVenueMap(@js($mapMarkers))">
             <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
                 <div>
