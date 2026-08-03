@@ -43,27 +43,17 @@
 
     <div class="border-t border-slate-200 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold text-slate-900">Latest activity</h2>
-                <p class="text-slate-600 mt-1">New venues, sessions, tactics, clubs and tackle shops from around the region.</p>
+            <div class="flex items-end justify-between gap-4 mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Latest activity</h2>
+                    <p class="text-slate-600 mt-1">New venues, sessions, tactics, clubs and tackle shops from around the region.</p>
+                </div>
+                <a href="{{ route('activity.index') }}" class="text-sky-800 font-semibold hover:underline shrink-0">View all</a>
             </div>
 
             <div class="space-y-3">
                 @forelse ($activities as $activity)
-                    <a href="{{ url($activity->url) }}" class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 hover:border-sky-700 transition">
-                        <span class="shrink-0 text-xs font-bold uppercase tracking-wide bg-sky-50 border border-sky-300 text-sky-900 px-2 py-1 rounded w-fit">
-                            {{ $activity->typeLabel() }}
-                        </span>
-                        <div class="min-w-0 flex-1">
-                            <p class="font-semibold text-slate-900">{{ $activity->title }}</p>
-                            @if ($activity->summary)
-                                <p class="text-sm text-slate-600 truncate">{{ $activity->summary }}</p>
-                            @endif
-                        </div>
-                        <time class="shrink-0 text-xs font-semibold text-slate-500" datetime="{{ $activity->created_at->toIso8601String() }}">
-                            {{ $activity->created_at->diffForHumans() }}
-                        </time>
-                    </a>
+                    <x-activity-row :activity="$activity" />
                 @empty
                     <p class="text-slate-600">No activity yet — log a session or add a venue to get things started.</p>
                 @endforelse

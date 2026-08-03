@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\FishingSessionController;
 use App\Http\Controllers\MapController;
@@ -42,7 +43,7 @@ Route::get('/', function () {
     $activities = Activity::query()
         ->with('user')
         ->latest()
-        ->take(12)
+        ->take(5)
         ->get();
 
     $mapVenues = Venue::query()
@@ -98,6 +99,7 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
+Route::get('/activity', [ActivityController::class, 'index'])->name('activity.index');
 Route::get('/venues', [VenueController::class, 'index'])->name('venues.index');
 Route::get('/venues/{venue:slug}', [VenueController::class, 'show'])->name('venues.show');
 Route::get('/tackle-shops', [TackleShopController::class, 'index'])->name('tackle-shops.index');
