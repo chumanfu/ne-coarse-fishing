@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
+use App\Support\Uploads;
 
 class WaterPegPhoto extends Model
 {
@@ -24,11 +24,7 @@ class WaterPegPhoto extends Model
     protected static function booted(): void
     {
         static::deleting(function (WaterPegPhoto $photo): void {
-            if (str_starts_with($photo->image_path, 'images/')) {
-                return;
-            }
-
-            Storage::disk('public')->delete($photo->image_path);
+            Uploads::delete($photo->image_path);
         });
     }
 
@@ -39,10 +35,6 @@ class WaterPegPhoto extends Model
 
     public function url(): string
     {
-        if (str_starts_with($this->image_path, 'images/')) {
-            return asset($this->image_path);
-        }
-
-        return Storage::disk('public')->url($this->image_path);
+        return Uploads::url($this->image_path);
     }
 }

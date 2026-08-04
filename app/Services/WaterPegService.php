@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Water;
 use App\Models\WaterPeg;
 use App\Models\WaterPegPhoto;
+use App\Support\Uploads;
 use Illuminate\Http\UploadedFile;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -129,7 +130,7 @@ class WaterPegService
                 continue;
             }
 
-            $path = $photo->store('peg-photos', 'public');
+            $path = $photo->store('peg-photos', Uploads::diskName());
             $order++;
 
             $peg->photos()->create([

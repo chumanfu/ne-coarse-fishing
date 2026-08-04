@@ -23,9 +23,9 @@ class ClubForm
                 FileUpload::make('logo_path')
                     ->label('Logo')
                     ->image()
-                    ->disk('public')
+                    ->disk(config('filesystems.uploads'))
                     ->directory('club-logos')
-                    ->visibility('public')
+                    ->visibility(config('filesystems.uploads') === 'public' ? 'public' : 'private')
                     ->imagePreviewHeight('120')
                     ->columnSpanFull(),
                 TextInput::make('town')->maxLength(255),

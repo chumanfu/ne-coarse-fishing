@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Support\Uploads;
 
 class Club extends Model
 {
@@ -116,6 +116,6 @@ class Club extends Model
             return asset($this->logo_path);
         }
 
-        return Storage::disk('public')->url($this->logo_path);
+        return Uploads::url($this->logo_path);
     }
 }

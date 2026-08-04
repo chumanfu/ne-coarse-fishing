@@ -11,10 +11,10 @@ use App\Models\WaterPeg;
 use App\Services\ActivityLogger;
 use App\Services\VenueTacticService;
 use App\Services\WaterPegService;
+use App\Support\Uploads;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -153,7 +153,7 @@ class FishingSessionController extends Controller
         $fishingSession->venueTactic?->delete();
 
         $fishingSession->photos->each(function (SessionPhoto $photo) {
-            Storage::disk('public')->delete($photo->image_path);
+            Uploads::delete($photo->image_path);
             $photo->delete();
         });
 
@@ -323,7 +323,7 @@ class FishingSessionController extends Controller
     private function storePhotos(Request $request, FishingSession $session): void
     {
         foreach ($request->file('photos', []) as $photo) {
-            $path = $photo->store('session-photos', 'public');
+            $path = $photo->store('session-photos', Uploads::diskName());
             $session->photos()->create(['image_path' => $path]);
         }
     }

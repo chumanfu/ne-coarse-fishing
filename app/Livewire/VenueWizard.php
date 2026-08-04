@@ -10,10 +10,10 @@ use App\Models\VenuePhoto;
 use App\Models\Water;
 use App\Services\GeocodingService;
 use App\Services\VenuePersistenceService;
+use App\Support\Uploads;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -541,14 +541,14 @@ class VenueWizard extends Component
             ->whereNotIn('id', $this->existingPhotoIds)
             ->get()
             ->each(function (VenuePhoto $photo) {
-                Storage::disk('public')->delete($photo->image_path);
+                Uploads::delete($photo->image_path);
                 $photo->delete();
             });
 
         $sortOrder = count($this->existingPhotoIds);
 
         foreach ($this->newPhotos as $photo) {
-            $path = $photo->store('venue-photos', 'public');
+            $path = $photo->store('venue-photos', Uploads::diskName());
             $venue->photos()->create([
                 'image_path' => $path,
                 'sort_order' => $sortOrder++,

@@ -6,7 +6,7 @@ use Database\Factories\SessionPhotoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
+use App\Support\Uploads;
 
 class SessionPhoto extends Model
 {
@@ -25,6 +25,6 @@ class SessionPhoto extends Model
 
     public function url(): string
     {
-        return Storage::disk('public')->url($this->image_path);
+        return Uploads::url($this->image_path);
     }
 }

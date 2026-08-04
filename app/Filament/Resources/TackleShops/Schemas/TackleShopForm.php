@@ -26,9 +26,9 @@ class TackleShopForm
                 FileUpload::make('logo_path')
                     ->label('Logo')
                     ->image()
-                    ->disk('public')
+                    ->disk(config('filesystems.uploads'))
                     ->directory('tackle-shop-logos')
-                    ->visibility('public')
+                    ->visibility(config('filesystems.uploads') === 'public' ? 'public' : 'private')
                     ->imagePreviewHeight('120')
                     ->columnSpanFull(),
                 Select::make('location_type')

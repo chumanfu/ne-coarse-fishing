@@ -6,8 +6,8 @@ use Database\Factories\TackleShopFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Support\Uploads;
 
 class TackleShop extends Model
 {
@@ -129,6 +129,6 @@ class TackleShop extends Model
             return asset($this->logo_path);
         }
 
-        return Storage::disk('public')->url($this->logo_path);
+        return Uploads::url($this->logo_path);
     }
 }

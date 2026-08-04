@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
+use App\Support\Uploads;
 
 class VenuePhoto extends Model
 {
@@ -21,10 +21,6 @@ class VenuePhoto extends Model
 
     public function url(): string
     {
-        if (str_starts_with($this->image_path, 'images/')) {
-            return asset($this->image_path);
-        }
-
-        return Storage::disk('public')->url($this->image_path);
+        return Uploads::url($this->image_path);
     }
 }

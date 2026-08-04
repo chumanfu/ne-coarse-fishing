@@ -18,9 +18,9 @@ class VenuePhotoForm
                     ->required(),
                 FileUpload::make('image_path')
                     ->image()
-                    ->disk('public')
+                    ->disk(config('filesystems.uploads'))
                     ->directory('venue-photos')
-                    ->visibility('public')
+                    ->visibility(config('filesystems.uploads') === 'public' ? 'public' : 'private')
                     ->required(),
                 TextInput::make('sort_order')
                     ->required()
