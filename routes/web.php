@@ -2,15 +2,16 @@
 
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\ClubController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\FishingSessionController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\MatchReportController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TackleShopController;
 use App\Http\Controllers\VenueClaimController;
 use App\Http\Controllers\VenueController;
 use App\Http\Controllers\VenueEditRequestController;
-use App\Http\Controllers\ClubController;
-use App\Http\Controllers\TackleShopController;
 use App\Http\Controllers\VenueTacticController;
 use App\Models\Activity;
 use App\Models\Club;
@@ -107,6 +108,10 @@ Route::get('/tackle-shops/{tackleShop:slug}', [TackleShopController::class, 'sho
 Route::get('/clubs', [ClubController::class, 'index'])->name('clubs.index');
 Route::get('/clubs/{club:slug}', [ClubController::class, 'show'])->name('clubs.show');
 Route::get('/map', [MapController::class, 'index'])->name('map.index');
+Route::get('/contact', [ContactController::class, 'create'])->name('contact.create');
+Route::post('/contact', [ContactController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('contact.store');
 
 Route::get('/dashboard', function () {
     $user = auth()->user();

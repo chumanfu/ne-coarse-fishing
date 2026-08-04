@@ -12,6 +12,7 @@
                     <x-nav-link :href="route('clubs.index')" :active="request()->routeIs('clubs.*')">Clubs</x-nav-link>
                     <x-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-nav-link>
                     <x-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-nav-link>
+                    <x-nav-link :href="route('contact.create')" :active="request()->routeIs('contact.*')">Contact</x-nav-link>
                     @auth
                         <x-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">My Sessions</x-nav-link>
                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Dashboard</x-nav-link>
@@ -74,6 +75,7 @@
             <x-responsive-nav-link :href="route('clubs.index')" :active="request()->routeIs('clubs.*')">Clubs</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('contact.create')" :active="request()->routeIs('contact.*')">Contact</x-responsive-nav-link>
             @auth
                 <x-responsive-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">My Sessions</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Dashboard</x-responsive-nav-link>
