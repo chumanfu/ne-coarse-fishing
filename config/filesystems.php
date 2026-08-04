@@ -21,14 +21,16 @@ return [
     |--------------------------------------------------------------------------
     |
     | Session, venue, and peg photos are stored on this disk. Locally this is
-    | usually "public"; on Laravel Cloud set it to your attached object-storage
-    | disk (often "s3") so uploads persist across deploys.
+    | usually "public". On Laravel Cloud, attach an object-storage bucket and
+    | set UPLOADS_DISK to that disk name (often "s3") so uploads persist.
     |
     */
 
-    'uploads' => filled(env('AWS_BUCKET'))
-        ? env('UPLOADS_DISK', 's3')
-        : env('UPLOADS_DISK', 'public'),
+    'uploads' => env('UPLOADS_DISK') ?: (
+        filled(env('AWS_BUCKET')) || isset($_SERVER['LARAVEL_CLOUD_DISK_CONFIG'])
+            ? 's3'
+            : 'public'
+    ),
 
     /*
     |--------------------------------------------------------------------------
@@ -71,8 +73,9 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
-            'report' => false,
+            'visibility' => 'public',
+            'throw' => true,
+            'report' => true,
         ],
 
     ],
