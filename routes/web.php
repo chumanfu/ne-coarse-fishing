@@ -116,7 +116,7 @@ Route::get('/dashboard', function () {
         'myVenues' => $user->venues()->latest()->take(5)->get(),
         'managedVenues' => $user->managedVenues()->latest()->take(5)->get(),
     ]);
-})->middleware(['auth'])->name('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/venues/create/new', [VenueController::class, 'create'])->name('venues.create');

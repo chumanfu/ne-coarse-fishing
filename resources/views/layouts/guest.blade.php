@@ -17,8 +17,9 @@
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
             <div>
-                <a href="/">
-                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
+                <a href="{{ url('/') }}" class="flex items-center gap-2.5">
+                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-sky-800 text-white font-bold text-sm tracking-tight">NE</span>
+                    <span class="font-bold text-slate-900 tracking-tight text-[15px]">{{ config('app.name', 'NE Coarse Fishing') }}</span>
                 </a>
             </div>
 

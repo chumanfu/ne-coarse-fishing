@@ -19,6 +19,7 @@ class WaterPeg extends Model
         'created_by',
         'name',
         'number',
+        'description',
         'latitude',
         'longitude',
         'is_verified',

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\WaterPegs\Schemas;
 
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
@@ -26,6 +27,7 @@ class WaterPegForm
                     ->preload(),
                 TextInput::make('name')->maxLength(255),
                 TextInput::make('number')->maxLength(50),
+                Textarea::make('description')->rows(4)->columnSpanFull(),
                 TextInput::make('latitude')->required()->numeric(),
                 TextInput::make('longitude')->required()->numeric(),
                 Toggle::make('is_verified')->default(false),

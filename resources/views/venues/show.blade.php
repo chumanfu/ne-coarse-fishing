@@ -254,10 +254,13 @@
                     @if ($officialPegs->isNotEmpty())
                         <div class="space-y-2">
                             @foreach ($officialPegs as $peg)
-                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-2 border-slate-200 rounded-lg px-3 py-2">
+                                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 border-2 border-slate-200 rounded-lg px-3 py-2">
                                     <div>
                                         <p class="font-semibold text-slate-900">{{ $peg->label() }} <span class="text-slate-500 font-normal">· {{ $peg->water?->name }}</span></p>
                                         <p class="text-xs text-slate-500">{{ number_format($peg->latitude, 5) }}, {{ number_format($peg->longitude, 5) }}@if($peg->photos->isNotEmpty()) · {{ $peg->photos->count() }} photo{{ $peg->photos->count() === 1 ? '' : 's' }}@endif</p>
+                                        @if ($peg->description)
+                                            <p class="text-sm text-slate-700 mt-2 whitespace-pre-line">{{ Str::limit($peg->description, 280) }}</p>
+                                        @endif
                                     </div>
                                     <form method="POST" action="{{ route('pegs.destroy', [$venue, $peg]) }}" onsubmit="return confirm('Remove this official peg?')">
                                         @csrf
@@ -274,23 +277,30 @@
             @endif
 
             @php
-                $verifiedPegs = $venue->waters->flatMap->pegs->where('is_verified', true)->filter(fn ($peg) => $peg->photos->isNotEmpty())->values();
+                $verifiedPegs = $venue->waters->flatMap->pegs->where('is_verified', true)
+                    ->filter(fn ($peg) => $peg->photos->isNotEmpty() || filled($peg->description))
+                    ->values();
             @endphp
             @if ($verifiedPegs->isNotEmpty())
                 <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
-                    <h2 class="text-xl font-bold mb-1">Peg photos</h2>
-                    <p class="text-sm text-slate-600 mb-4">Official peg photos verified by the venue owner.</p>
-                    <div class="space-y-4">
+                    <h2 class="text-xl font-bold mb-1">Pegs</h2>
+                    <p class="text-sm text-slate-600 mb-4">Official peg write-ups and photos.</p>
+                    <div class="space-y-6">
                         @foreach ($verifiedPegs as $peg)
-                            <div>
-                                <p class="font-semibold text-slate-900 mb-2">{{ $peg->label() }} <span class="text-slate-500 font-normal">· {{ $peg->water?->name }}</span></p>
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                    @foreach ($peg->photos as $photo)
-                                        <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
-                                            <img src="{{ $photo->url() }}" alt="{{ $peg->label() }} photo" class="rounded-md object-cover h-28 w-full border border-slate-300 hover:border-sky-700">
-                                        </a>
-                                    @endforeach
-                                </div>
+                            <div class="border-2 border-slate-200 rounded-lg p-4">
+                                <p class="font-semibold text-slate-900 mb-1">{{ $peg->label() }} <span class="text-slate-500 font-normal">· {{ $peg->water?->name }}</span></p>
+                                @if ($peg->description)
+                                    <p class="text-sm text-slate-700 whitespace-pre-line mb-3">{{ $peg->description }}</p>
+                                @endif
+                                @if ($peg->photos->isNotEmpty())
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        @foreach ($peg->photos as $photo)
+                                            <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
+                                                <img src="{{ $photo->url() }}" alt="{{ $peg->label() }} photo" class="rounded-md object-cover h-28 w-full border border-slate-300 hover:border-sky-700">
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>
