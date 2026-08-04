@@ -254,7 +254,8 @@ class SessionActivityAndPegTest extends TestCase
             ->get(route('sessions.edit', $session))
             ->assertOk()
             ->assertSee("waterId: '{$water->id}'", false)
-            ->assertSee("waterPegId: '{$peg->id}'", false);
+            ->assertSee("waterPegId: '{$peg->id}'", false)
+            ->assertSee('Dam wall', false);
 
         $sessionWithoutWater = FishingSession::factory()->for($user)->for($venue)->create([
             'water_id' => null,
@@ -264,7 +265,37 @@ class SessionActivityAndPegTest extends TestCase
         $this->actingAs($user)
             ->get(route('sessions.edit', $sessionWithoutWater))
             ->assertOk()
-            ->assertSee("waterId: '{$water->id}'", false);
+            ->assertSee("waterId: '{$water->id}'", false)
+            ->assertSee("waterPegId: '{$peg->id}'", false);
+    }
+
+    public function test_edit_session_includes_linked_peg_not_normally_visible(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+        $water = Water::factory()->for($venue)->create();
+        $peg = WaterPeg::factory()->for($water)->create([
+            'number' => '9',
+            'name' => 'Hidden corner',
+            'is_verified' => false,
+            'created_by' => $other->id,
+            'latitude' => 55.03304,
+            'longitude' => -1.57723,
+        ]);
+
+        $session = FishingSession::factory()->for($owner)->for($venue)->create([
+            'water_id' => $water->id,
+            'water_peg_id' => $peg->id,
+            'peg_latitude' => 55.03304,
+            'peg_longitude' => -1.57723,
+        ]);
+
+        $this->actingAs($owner)
+            ->get(route('sessions.edit', $session))
+            ->assertOk()
+            ->assertSee("waterPegId: '{$peg->id}'", false)
+            ->assertSee('Hidden corner', false);
     }
 
     public function test_user_can_remove_session_photos_when_editing(): void

@@ -107,8 +107,8 @@
                 <div x-show="pegMode === 'existing'" x-cloak>
                     <select name="water_peg_id" x-model="waterPegId" @change="selectExistingPeg()" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                         <option value="">Select peg</option>
-                        <template x-for="peg in currentPegs" :key="peg.id">
-                            <option :value="String(peg.id)" x-text="peg.label + (peg.verified ? '' : ' (your pending peg)')"></option>
+                        <template x-for="peg in currentPegs" :key="'peg-' + peg.id">
+                            <option :value="String(peg.id)" :selected="String(waterPegId) === String(peg.id)" x-text="peg.label + (peg.verified ? '' : ' (your pending peg)')"></option>
                         </template>
                     </select>
                     <p class="text-xs text-slate-500 mt-2" x-show="!venueId">Select a venue first to see its pegs.</p>
@@ -287,6 +287,7 @@
                     init() {
                         const desiredWaterId = this.waterId ? String(this.waterId) : 'all';
                         const desiredPegId = this.waterPegId ? String(this.waterPegId) : '';
+                        this._syncingSelects = true;
 
                         if (! desiredWaterId || desiredWaterId === 'all') {
                             const inferred = this.waterIdForPeg(desiredPegId);
@@ -295,16 +296,24 @@
                             this.waterId = desiredWaterId;
                         }
 
-                        // Alpine x-for options mount after init; re-apply so the select shows the saved water.
+                        // Alpine x-for options mount after init; re-apply so selects show saved values.
                         this.$nextTick(() => {
                             const waterId = this.waterId;
                             this.waterId = 'all';
                             this.$nextTick(() => {
                                 this.waterId = waterId;
-                                if (desiredPegId) {
-                                    this.waterPegId = desiredPegId;
-                                    this.selectExistingPeg();
-                                }
+                                this.$nextTick(() => {
+                                    if (desiredPegId) {
+                                        this.waterPegId = '';
+                                        this.$nextTick(() => {
+                                            this.waterPegId = desiredPegId;
+                                            this.selectExistingPeg();
+                                            this._syncingSelects = false;
+                                        });
+                                    } else {
+                                        this._syncingSelects = false;
+                                    }
+                                });
                             });
                         });
 
@@ -426,6 +435,9 @@
                         });
                     },
                     onVenueChange() {
+                        if (this._syncingSelects) {
+                            return;
+                        }
                         this.waterId = 'all';
                         this.waterPegId = '';
                         this.pegLat = null;
@@ -437,6 +449,9 @@
                         }
                     },
                     onWaterChange() {
+                        if (this._syncingSelects) {
+                            return;
+                        }
                         this.waterPegId = '';
                         if (this.pegMode === 'existing') {
                             this.pegLat = null;

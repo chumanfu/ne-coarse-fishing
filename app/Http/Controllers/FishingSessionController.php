@@ -186,6 +186,32 @@ class FishingSessionController extends Controller
             })
             ->all();
 
+        // Always include the session's linked peg so edit can recall it even if it
+        // would otherwise be filtered out of the visible peg list.
+        if ($session?->waterPeg) {
+            $peg = $session->waterPeg;
+            $venueKey = (string) $session->venue_id;
+            $waterKey = (string) $peg->water_id;
+            $pegsJson[$venueKey] ??= [];
+            $pegsJson[$venueKey][$waterKey] ??= [];
+
+            $alreadyListed = collect($pegsJson[$venueKey][$waterKey])
+                ->contains(fn (array $item) => (int) $item['id'] === (int) $peg->id);
+
+            if (! $alreadyListed) {
+                $pegsJson[$venueKey][$waterKey][] = [
+                    'id' => $peg->id,
+                    'water_id' => $peg->water_id,
+                    'label' => $peg->label(),
+                    'name' => $peg->name,
+                    'number' => $peg->number,
+                    'lat' => $peg->latitude ?? $session->peg_latitude,
+                    'lng' => $peg->longitude ?? $session->peg_longitude,
+                    'verified' => $peg->is_verified,
+                ];
+            }
+        }
+
         return [
             'venue' => $venue,
             'session' => $session,
