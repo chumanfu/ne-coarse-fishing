@@ -101,7 +101,7 @@ class FishingSessionController extends Controller
     {
         $this->authorizeManage($fishingSession);
 
-        $fishingSession->load(['venue.waters', 'waterPeg', 'catches', 'venueTactic', 'photos']);
+        $fishingSession->load(['venue.waters', 'water', 'waterPeg', 'catches', 'venueTactic', 'photos']);
 
         return view('sessions.create', $this->formData($fishingSession->venue, $fishingSession, request()->user()));
     }
@@ -137,6 +137,7 @@ class FishingSessionController extends Controller
 
             $fishingSession->catches()->delete();
             $this->syncCatches($fishingSession, $validated['catches'] ?? []);
+            $this->removePhotos($request, $fishingSession);
             $this->storePhotos($request, $fishingSession);
             $tactics->syncFromSession($fishingSession->fresh(), $validated['tactics_tip'] ?? null);
         });
@@ -173,6 +174,7 @@ class FishingSessionController extends Controller
                 return [(string) $v->id => $v->waters->mapWithKeys(function (Water $water) {
                     return [(string) $water->id => $water->pegs->map(fn (WaterPeg $peg) => [
                         'id' => $peg->id,
+                        'water_id' => $water->id,
                         'label' => $peg->label(),
                         'name' => $peg->name,
                         'number' => $peg->number,
@@ -228,6 +230,15 @@ class FishingSessionController extends Controller
             'tactics_tip' => ['nullable', 'string', 'max:2000'],
             'photos' => ['nullable', 'array', 'max:6'],
             'photos.*' => ['image', 'max:5120'],
+            'remove_photo_ids' => ['nullable', 'array'],
+            'remove_photo_ids.*' => [
+                'integer',
+                Rule::exists('session_photos', 'id')->where(
+                    fn ($query) => $session
+                        ? $query->where('fishing_session_id', $session->id)
+                        : $query->whereRaw('0 = 1')
+                ),
+            ],
             'catches' => ['nullable', 'array'],
             'catches.*.species_id' => ['required_with:catches', 'exists:species,id'],
             'catches.*.weight_lb' => ['nullable', 'numeric', 'min:0', 'max:200'],
@@ -318,6 +329,28 @@ class FishingSessionController extends Controller
                 'quantity' => $catch['quantity'] ?? 1,
             ]);
         }
+    }
+
+    private function removePhotos(Request $request, FishingSession $session): void
+    {
+        $ids = collect($request->input('remove_photo_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            return;
+        }
+
+        $session->photos()
+            ->whereIn('id', $ids)
+            ->get()
+            ->each(function (SessionPhoto $photo) {
+                Uploads::delete($photo->image_path);
+                $photo->delete();
+            });
     }
 
     private function storePhotos(Request $request, FishingSession $session): void

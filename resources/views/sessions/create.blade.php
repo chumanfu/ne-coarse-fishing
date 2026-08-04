@@ -13,9 +13,14 @@
         $tacticsTip = old('tactics_tip', $editing ? ($session->venueTactic?->body ?? $session->tactics_tip) : '');
         $initialPegLat = old('peg_latitude', $editing ? $session->peg_latitude : null);
         $initialPegLng = old('peg_longitude', $editing ? $session->peg_longitude : null);
-        $initialWaterId = old('water_id', $editing ? ($session->water_id ?? null) : null);
+        $initialWaterId = old(
+            'water_id',
+            $editing ? ($session->water_id ?? $session->waterPeg?->water_id ?? null) : null,
+        );
         if ($initialWaterId === null || $initialWaterId === '') {
             $initialWaterId = 'all';
+        } else {
+            $initialWaterId = (string) $initialWaterId;
         }
     @endphp
 
@@ -61,8 +66,8 @@
                 <label class="block text-sm font-semibold mb-1">Water / lake</label>
                 <select name="water_id" x-model="waterId" @change="onWaterChange()" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                     <option value="all">Whole venue / not sure</option>
-                    <template x-for="water in currentWaters" :key="water.id">
-                        <option :value="String(water.id)" x-text="water.name"></option>
+                    <template x-for="water in currentWaters" :key="'water-' + water.id">
+                        <option :value="String(water.id)" :selected="String(waterId) === String(water.id)" x-text="water.name"></option>
                     </template>
                 </select>
             </div>
@@ -198,10 +203,41 @@
             <div>
                 <label class="block text-sm font-semibold mb-1">Photos (up to 6, mobile friendly)</label>
                 @if ($editing && $session->photos->isNotEmpty())
-                    <p class="text-sm text-slate-600 mb-2">Existing photos are kept unless you delete the session. Add more below.</p>
+                    <div class="mb-3"
+                         x-data="{
+                            removed: @js(collect(old('remove_photo_ids', []))->map(fn ($id) => (int) $id)->values()->all()),
+                            toggle(id) {
+                                if (this.removed.includes(id)) {
+                                    this.removed = this.removed.filter((item) => item !== id);
+                                } else {
+                                    this.removed.push(id);
+                                }
+                            },
+                         }">
+                        <p class="text-sm text-slate-600 mb-2">Mark any to remove, then save. You can also add more below.</p>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            @foreach ($session->photos as $photo)
+                                <figure class="relative rounded-lg border-2 overflow-hidden bg-slate-100"
+                                        :class="removed.includes({{ $photo->id }}) ? 'border-red-400 opacity-50' : 'border-slate-300'">
+                                    <img src="{{ $photo->url() }}" alt="Session photo" class="object-cover h-28 w-full">
+                                    <button type="button"
+                                            @click="toggle({{ $photo->id }})"
+                                            class="absolute inset-x-0 bottom-0 text-white text-sm font-semibold py-1.5"
+                                            :class="removed.includes({{ $photo->id }}) ? 'bg-sky-800 hover:bg-sky-900' : 'bg-slate-900/75 hover:bg-red-800'"
+                                            x-text="removed.includes({{ $photo->id }}) ? 'Keep' : 'Remove'">
+                                    </button>
+                                </figure>
+                            @endforeach
+                        </div>
+                        <template x-for="id in removed" :key="'remove-photo-' + id">
+                            <input type="hidden" name="remove_photo_ids[]" :value="id">
+                        </template>
+                    </div>
                 @endif
                 <input type="file" name="photos[]" accept="image/*" capture="environment" multiple class="block w-full text-sm">
                 @error('photos.*') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
+                @error('remove_photo_ids') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
+                @error('remove_photo_ids.*') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             <button class="px-5 py-3 rounded-md bg-sky-700 text-white font-bold hover:bg-sky-800">{{ $editing ? 'Save changes' : 'Save session' }}</button>
@@ -249,11 +285,46 @@
                         return byWater[this.waterId] || byWater[String(this.waterId)] || [];
                     },
                     init() {
-                        if (! this.waterId) {
-                            this.waterId = 'all';
+                        const desiredWaterId = this.waterId ? String(this.waterId) : 'all';
+                        const desiredPegId = this.waterPegId ? String(this.waterPegId) : '';
+
+                        if (! desiredWaterId || desiredWaterId === 'all') {
+                            const inferred = this.waterIdForPeg(desiredPegId);
+                            this.waterId = inferred || 'all';
+                        } else {
+                            this.waterId = desiredWaterId;
                         }
+
+                        // Alpine x-for options mount after init; re-apply so the select shows the saved water.
+                        this.$nextTick(() => {
+                            const waterId = this.waterId;
+                            this.waterId = 'all';
+                            this.$nextTick(() => {
+                                this.waterId = waterId;
+                                if (desiredPegId) {
+                                    this.waterPegId = desiredPegId;
+                                    this.selectExistingPeg();
+                                }
+                            });
+                        });
+
                         this.$watch('pegMode', () => this.$nextTick(() => this.ensureMap()));
                         this.$nextTick(() => this.ensureMap());
+                    },
+                    waterIdForPeg(pegId) {
+                        if (! pegId || ! this.venueId) {
+                            return null;
+                        }
+
+                        const byWater = this.pegsByVenue[this.venueId] || this.pegsByVenue[String(this.venueId)] || {};
+
+                        for (const [waterKey, pegs] of Object.entries(byWater)) {
+                            if ((pegs || []).some((peg) => String(peg.id) === String(pegId))) {
+                                return String(waterKey);
+                            }
+                        }
+
+                        return null;
                     },
                     ensureMap() {
                         if (this.pegMode === 'none') return;
@@ -337,6 +408,11 @@
                     selectExistingPeg() {
                         const peg = this.currentPegs.find(p => String(p.id) === String(this.waterPegId));
                         if (!peg) return;
+
+                        if (this.isWholeVenue && peg.water_id) {
+                            this.waterId = String(peg.water_id);
+                        }
+
                         this.pegLat = peg.lat;
                         this.pegLng = peg.lng;
                         this.$nextTick(() => {

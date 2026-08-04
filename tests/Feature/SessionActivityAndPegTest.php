@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\Water;
 use App\Models\WaterPeg;
+use App\Support\Uploads;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -231,5 +232,98 @@ class SessionActivityAndPegTest extends TestCase
         $session = FishingSession::query()->first();
         $this->assertSame($peg->id, $session->water_peg_id);
         $this->assertSame('7 · Point', $session->peg_number);
+    }
+
+    public function test_edit_session_recalls_saved_water(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+        $water = Water::factory()->for($venue)->create(['name' => 'Match Lake']);
+        $peg = WaterPeg::factory()->for($water)->create([
+            'number' => '3',
+            'name' => 'Dam wall',
+            'is_verified' => true,
+        ]);
+
+        $session = FishingSession::factory()->for($user)->for($venue)->create([
+            'water_id' => $water->id,
+            'water_peg_id' => $peg->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('sessions.edit', $session))
+            ->assertOk()
+            ->assertSee("waterId: '{$water->id}'", false)
+            ->assertSee("waterPegId: '{$peg->id}'", false);
+
+        $sessionWithoutWater = FishingSession::factory()->for($user)->for($venue)->create([
+            'water_id' => null,
+            'water_peg_id' => $peg->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('sessions.edit', $sessionWithoutWater))
+            ->assertOk()
+            ->assertSee("waterId: '{$water->id}'", false);
+    }
+
+    public function test_user_can_remove_session_photos_when_editing(): void
+    {
+        Storage::fake(Uploads::diskName());
+
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+        $session = FishingSession::factory()->for($user)->for($venue)->create();
+
+        $disk = Uploads::diskName();
+        $keep = $session->photos()->create(['image_path' => 'session-photos/keep.jpg']);
+        $remove = $session->photos()->create(['image_path' => 'session-photos/remove.jpg']);
+        Storage::disk($disk)->put('session-photos/keep.jpg', 'keep');
+        Storage::disk($disk)->put('session-photos/remove.jpg', 'remove');
+
+        $this->actingAs($user)
+            ->get(route('sessions.edit', $session))
+            ->assertOk()
+            ->assertSee('remove_photo_ids[]', false)
+            ->assertSee($keep->url(), false);
+
+        $this->actingAs($user)
+            ->patch(route('sessions.update', $session), [
+                'venue_id' => $venue->id,
+                'fished_at' => $session->fished_at->toDateString(),
+                'peg_mode' => 'none',
+                'remove_photo_ids' => [$remove->id],
+            ])
+            ->assertRedirect(route('sessions.show', $session));
+
+        $this->assertDatabaseHas('session_photos', ['id' => $keep->id]);
+        $this->assertDatabaseMissing('session_photos', ['id' => $remove->id]);
+        Storage::disk($disk)->assertExists('session-photos/keep.jpg');
+        Storage::disk($disk)->assertMissing('session-photos/remove.jpg');
+    }
+
+    public function test_user_cannot_remove_another_sessions_photos(): void
+    {
+        Storage::fake(Uploads::diskName());
+
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+        $session = FishingSession::factory()->for($user)->for($venue)->create();
+        $otherSession = FishingSession::factory()->for($other)->for($venue)->create();
+        $foreignPhoto = $otherSession->photos()->create(['image_path' => 'session-photos/foreign.jpg']);
+
+        $this->actingAs($user)
+            ->from(route('sessions.edit', $session))
+            ->patch(route('sessions.update', $session), [
+                'venue_id' => $venue->id,
+                'fished_at' => $session->fished_at->toDateString(),
+                'peg_mode' => 'none',
+                'remove_photo_ids' => [$foreignPhoto->id],
+            ])
+            ->assertRedirect(route('sessions.edit', $session))
+            ->assertSessionHasErrors('remove_photo_ids.0');
+
+        $this->assertDatabaseHas('session_photos', ['id' => $foreignPhoto->id]);
     }
 }
