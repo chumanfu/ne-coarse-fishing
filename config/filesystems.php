@@ -26,10 +26,9 @@ return [
     |
     */
 
-    'uploads' => env(
-        'UPLOADS_DISK',
-        filled(env('AWS_BUCKET')) ? 's3' : 'public',
-    ),
+    'uploads' => filled(env('AWS_BUCKET'))
+        ? env('UPLOADS_DISK', 's3')
+        : env('UPLOADS_DISK', 'public'),
 
     /*
     |--------------------------------------------------------------------------
