@@ -19,7 +19,12 @@
                 @if ($thread->latestMessage)
                     <p class="text-sm text-slate-700 mt-2 line-clamp-2">{{ $thread->latestMessage->body }}</p>
                 @endif
-                <p class="text-xs text-slate-500 mt-2 capitalize">{{ $thread->status }}@if ($thread->isUnreadForParticipant()) · New reply@endif</p>
+                <p class="text-xs text-slate-500 mt-2 capitalize">
+                    {{ $thread->status }}
+                    @if ($thread->isUnreadForParticipant())
+                        · New reply
+                    @endif
+                </p>
             </a>
         @empty
             <p class="text-slate-600">No messages yet. Use the contact form if you need to get in touch.</p>

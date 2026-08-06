@@ -181,4 +181,24 @@ class MessagingTest extends TestCase
             ->get(route('messages.show', $thread))
             ->assertForbidden();
     }
+
+    public function test_messages_index_renders_for_participant(): void
+    {
+        Role::findOrCreate('angler');
+
+        $user = User::factory()->create();
+        $user->assignRole('angler');
+
+        MessageThread::factory()->forUser($user)->create([
+            'subject' => 'Inbox smoke test',
+            'last_message_at' => now(),
+            'participant_last_read_at' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('messages.index'))
+            ->assertOk()
+            ->assertSee('Inbox smoke test')
+            ->assertSee('New reply');
+    }
 }
