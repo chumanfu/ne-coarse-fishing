@@ -35,13 +35,15 @@ class ClubEditRequestController extends Controller
             'message' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        ClubEditRequest::query()->create([
+        $editRequest = ClubEditRequest::query()->create([
             'club_id' => $club->id,
             'user_id' => $request->user()->id,
             'message' => $validated['message'] ?? null,
             'proposed_data' => $persistence->proposedFromInput($validated),
             'status' => 'pending',
         ]);
+
+        app(\App\Services\ActivityLogger::class)->clubEditSuggested($editRequest);
 
         return redirect()
             ->route('clubs.show', $club)

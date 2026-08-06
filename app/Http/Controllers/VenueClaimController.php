@@ -17,12 +17,14 @@ class VenueClaimController extends Controller
             'message' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        VenueClaim::create([
+        $claim = VenueClaim::create([
             'venue_id' => $venue->id,
             'user_id' => $request->user()->id,
             'message' => $validated['message'] ?? null,
             'status' => 'pending',
         ]);
+
+        app(\App\Services\ActivityLogger::class)->venueClaimed($claim);
 
         return redirect()
             ->route('venues.show', $venue)

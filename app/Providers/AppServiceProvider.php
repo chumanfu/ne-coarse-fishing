@@ -46,7 +46,17 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Venue::saved(function (Venue $venue): void {
-            if (! Schema::hasTable('activities') || ! $venue->is_approved) {
+            if (! Schema::hasTable('activities')) {
+                return;
+            }
+
+            if ($venue->wasRecentlyCreated && ! $venue->is_approved) {
+                app(ActivityLogger::class)->venueSubmitted($venue);
+
+                return;
+            }
+
+            if (! $venue->is_approved) {
                 return;
             }
 

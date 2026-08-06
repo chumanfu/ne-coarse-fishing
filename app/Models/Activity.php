@@ -10,6 +10,8 @@ class Activity extends Model
 {
     public const TYPE_VENUE = 'venue_added';
 
+    public const TYPE_VENUE_SUBMITTED = 'venue_submitted';
+
     public const TYPE_SESSION = 'session_logged';
 
     public const TYPE_TACTIC = 'tactic_shared';
@@ -17,6 +19,30 @@ class Activity extends Model
     public const TYPE_CLUB = 'club_added';
 
     public const TYPE_TACKLE_SHOP = 'tackle_shop_added';
+
+    public const TYPE_USER_REGISTERED = 'user_registered';
+
+    public const TYPE_VENUE_CLAIM = 'venue_claim';
+
+    public const TYPE_VENUE_EDIT_REQUEST = 'venue_edit_request';
+
+    public const TYPE_CLUB_CLAIM = 'club_claim';
+
+    public const TYPE_CLUB_EDIT_REQUEST = 'club_edit_request';
+
+    public const TYPE_SHOP_CLAIM = 'tackle_shop_claim';
+
+    public const TYPE_SHOP_EDIT_REQUEST = 'tackle_shop_edit_request';
+
+    public const TYPE_PEG = 'peg_added';
+
+    public const TYPE_MATCH_REPORT = 'match_report';
+
+    public const TYPE_ANNOUNCEMENT = 'announcement';
+
+    public const TYPE_TACKLE_REVIEW = 'tackle_review';
+
+    public const TYPE_MESSAGE = 'message';
 
     protected $fillable = [
         'type',
@@ -49,11 +75,24 @@ class Activity extends Model
     public static function typeOptions(): array
     {
         return [
-            self::TYPE_VENUE => 'Venue',
+            self::TYPE_USER_REGISTERED => 'Sign-up',
+            self::TYPE_VENUE_SUBMITTED => 'Venue submitted',
+            self::TYPE_VENUE => 'Venue approved',
             self::TYPE_SESSION => 'Session',
             self::TYPE_TACTIC => 'Tactic',
+            self::TYPE_PEG => 'Peg',
+            self::TYPE_VENUE_CLAIM => 'Venue claim',
+            self::TYPE_VENUE_EDIT_REQUEST => 'Venue edit suggestion',
             self::TYPE_CLUB => 'Club',
+            self::TYPE_CLUB_CLAIM => 'Club claim',
+            self::TYPE_CLUB_EDIT_REQUEST => 'Club edit suggestion',
             self::TYPE_TACKLE_SHOP => 'Tackle shop',
+            self::TYPE_SHOP_CLAIM => 'Shop claim',
+            self::TYPE_SHOP_EDIT_REQUEST => 'Shop edit suggestion',
+            self::TYPE_MATCH_REPORT => 'Match report',
+            self::TYPE_ANNOUNCEMENT => 'Announcement',
+            self::TYPE_TACKLE_REVIEW => 'Tackle review',
+            self::TYPE_MESSAGE => 'Message',
         ];
     }
 }

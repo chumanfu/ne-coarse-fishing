@@ -25,11 +25,14 @@ class ActivitiesTable
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => Activity::typeOptions()[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) {
-                        Activity::TYPE_VENUE => 'success',
+                        Activity::TYPE_VENUE, Activity::TYPE_VENUE_SUBMITTED => 'success',
                         Activity::TYPE_SESSION => 'info',
-                        Activity::TYPE_TACTIC => 'warning',
-                        Activity::TYPE_CLUB => 'primary',
-                        Activity::TYPE_TACKLE_SHOP => 'gray',
+                        Activity::TYPE_TACTIC, Activity::TYPE_PEG => 'warning',
+                        Activity::TYPE_CLUB, Activity::TYPE_CLUB_CLAIM, Activity::TYPE_CLUB_EDIT_REQUEST => 'primary',
+                        Activity::TYPE_USER_REGISTERED, Activity::TYPE_MESSAGE => 'gray',
+                        Activity::TYPE_VENUE_CLAIM, Activity::TYPE_VENUE_EDIT_REQUEST,
+                        Activity::TYPE_SHOP_CLAIM, Activity::TYPE_SHOP_EDIT_REQUEST => 'danger',
+                        Activity::TYPE_MATCH_REPORT, Activity::TYPE_ANNOUNCEMENT, Activity::TYPE_TACKLE_REVIEW => 'info',
                         default => 'gray',
                     }),
                 TextColumn::make('title')

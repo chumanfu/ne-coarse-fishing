@@ -3,10 +3,13 @@
 namespace Tests\Feature\Auth;
 
 use App\Mail\MessageReplyNotification;
+use App\Models\Activity;
 use App\Models\Message;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -73,5 +76,46 @@ class RegistrationTest extends TestCase
                 && $mail->forAdmin === false
                 && $mail->thread->subject === 'Welcome to NE Coarse Fishing';
         });
+    }
+
+    public function test_registration_and_claims_appear_in_activity_feed_for_other_users(): void
+    {
+        Mail::fake();
+        Role::findOrCreate('super_admin');
+        Role::findOrCreate('angler');
+
+        $admin = User::factory()->create(['email' => 'welcome-admin@example.com']);
+        $admin->assignRole('super_admin');
+
+        $this->post('/register', [
+            'name' => 'Other Angler',
+            'email' => 'other-angler@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertRedirect(route('dashboard', absolute: false));
+
+        $other = User::query()->where('email', 'other-angler@example.com')->firstOrFail();
+
+        $this->assertDatabaseHas('activities', [
+            'type' => Activity::TYPE_USER_REGISTERED,
+            'user_id' => $other->id,
+            'title' => 'Other Angler joined NE Coarse Fishing',
+        ]);
+
+        $venue = Venue::factory()->create(['is_approved' => true, 'manager_id' => null]);
+
+        $this->actingAs($other)
+            ->post(route('venues.claim', $venue), ['message' => 'I run this lake'])
+            ->assertRedirect(route('venues.show', $venue));
+
+        $this->assertDatabaseHas('activities', [
+            'type' => Activity::TYPE_VENUE_CLAIM,
+            'user_id' => $other->id,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(\App\Filament\Widgets\LatestActivityTable::class)
+            ->assertSee('Other Angler joined NE Coarse Fishing')
+            ->assertSee('Other Angler claimed '.$venue->name);
     }
 }

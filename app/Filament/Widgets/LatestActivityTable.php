@@ -31,7 +31,7 @@ class LatestActivityTable extends TableWidget
             $table
                 ->query(fn (): Builder => Activity::query()->with('user'))
                 ->heading('Site activity')
-                ->description('Search and filter everything happening across the site.')
+                ->description('All site activity from every angler — search and filter by type, user, or date.')
                 ->paginationMode(PaginationMode::Default)
         );
     }

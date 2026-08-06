@@ -33,13 +33,15 @@ class MatchReportController extends Controller
             abort_unless($venue->waters()->whereKey($validated['water_id'])->exists(), 422);
         }
 
-        $venue->matchReports()->create([
+        $report = $venue->matchReports()->create([
             'user_id' => $request->user()->id,
             'water_id' => $validated['water_id'] ?? null,
             'title' => $validated['title'],
             'body' => $validated['body'],
             'published_at' => $validated['published_at'] ?? now(),
         ]);
+
+        app(\App\Services\ActivityLogger::class)->matchReportPublished($report);
 
         return redirect()
             ->route('venues.show', $venue)
