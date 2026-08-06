@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Mail\ContactMessage;
+use App\Models\MessageThread;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -35,12 +36,18 @@ class ContactPageTest extends TestCase
             ->assertRedirect(route('contact.create'))
             ->assertSessionHas('status');
 
+        $this->assertDatabaseHas('message_threads', [
+            'subject' => 'Missing venue',
+            'contact_email' => 'chris@example.com',
+        ]);
+
         Mail::assertSent(ContactMessage::class, function (ContactMessage $mail) {
             return $mail->hasTo('admin@example.com')
                 && $mail->name === 'Chris Angler'
                 && $mail->email === 'chris@example.com'
                 && $mail->subjectLine === 'Missing venue'
-                && str_contains($mail->messageBody, 'Wellfield');
+                && str_contains($mail->messageBody, 'Wellfield')
+                && $mail->thread instanceof MessageThread;
         });
     }
 
@@ -62,6 +69,7 @@ class ContactPageTest extends TestCase
             ->assertSessionHasErrors('website');
 
         Mail::assertNothingSent();
+        $this->assertDatabaseCount('message_threads', 0);
     }
 
     public function test_contact_form_requires_fields(): void

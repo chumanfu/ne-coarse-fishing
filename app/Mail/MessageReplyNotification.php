@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\Message;
 use App\Models\MessageThread;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -10,32 +11,32 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class ContactMessage extends Mailable
+class MessageReplyNotification extends Mailable
 {
     use Queueable, SerializesModels;
 
     public function __construct(
-        public string $name,
-        public string $email,
-        public string $subjectLine,
-        public string $messageBody,
-        public ?MessageThread $thread = null,
+        public MessageThread $thread,
+        public Message $message,
+        public bool $forAdmin = false,
     ) {}
 
     public function envelope(): Envelope
     {
+        $prefix = $this->forAdmin ? '[Messages]' : '['.config('app.name').']';
+
         return new Envelope(
-            replyTo: [
-                new Address($this->email, $this->name),
-            ],
-            subject: '[Contact] '.$this->subjectLine,
+            replyTo: $this->forAdmin
+                ? [new Address($this->thread->contact_email, $this->thread->contact_name)]
+                : [],
+            subject: $prefix.' Re: '.$this->thread->subject,
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            markdown: 'emails.contact-message',
+            markdown: 'emails.message-reply',
         );
     }
 }

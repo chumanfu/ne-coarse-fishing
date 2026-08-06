@@ -7,6 +7,28 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
         <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
             <div class="flex items-center justify-between mb-3">
+                <h2 class="font-bold text-lg">Messages</h2>
+                <a href="{{ route('messages.index') }}" class="text-sm font-semibold text-sky-800">Inbox</a>
+            </div>
+            <ul class="space-y-3 text-sm">
+                @forelse ($myMessages as $thread)
+                    <li>
+                        <a href="{{ route('messages.show', $thread) }}" class="font-semibold text-slate-900 hover:underline">
+                            {{ $thread->subject }}
+                            @if ($thread->isUnreadForParticipant())
+                                <span class="text-amber-700">· new</span>
+                            @endif
+                        </a>
+                        <div class="text-slate-600">{{ $thread->last_message_at?->format('d M Y') }}</div>
+                    </li>
+                @empty
+                    <li class="text-slate-600">No messages yet. <a href="{{ route('contact.create') }}" class="text-sky-800 font-semibold">Contact us</a></li>
+                @endforelse
+            </ul>
+        </section>
+
+        <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
+            <div class="flex items-center justify-between mb-3">
                 <h2 class="font-bold text-lg">Recent sessions</h2>
                 <a href="{{ route('sessions.create') }}" class="text-sm font-semibold text-sky-800">Log one</a>
             </div>

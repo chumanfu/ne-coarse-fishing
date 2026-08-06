@@ -8,6 +8,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\FishingSessionController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\MatchReportController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReferFriendController;
 use App\Http\Controllers\TackleReviewController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\VenueFavouriteController;
 use App\Http\Controllers\VenueTacticController;
 use App\Models\Activity;
 use App\Models\Club;
+use App\Models\MessageThread;
 use App\Models\TackleReview;
 use App\Models\TackleShop;
 use App\Models\Venue;
@@ -146,6 +148,11 @@ Route::get('/dashboard', function () {
         'myVenues' => $user->venues()->latest()->take(5)->get(),
         'managedVenues' => $user->managedVenues()->latest()->take(5)->get(),
         'favouriteVenues' => $user->favouriteVenues()->approved()->orderBy('name')->take(5)->get(),
+        'myMessages' => MessageThread::query()
+            ->forParticipant($user)
+            ->latest('last_message_at')
+            ->take(5)
+            ->get(),
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -190,6 +197,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tackle-reviews/{tackleReview}/edit', [TackleReviewController::class, 'edit'])->name('tackle-reviews.edit');
     Route::patch('/tackle-reviews/{tackleReview}', [TackleReviewController::class, 'update'])->name('tackle-reviews.update');
     Route::delete('/tackle-reviews/{tackleReview}', [TackleReviewController::class, 'destroy'])->name('tackle-reviews.destroy');
+
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+    Route::get('/messages/{messageThread}', [MessageController::class, 'show'])->name('messages.show');
+    Route::post('/messages/{messageThread}/reply', [MessageController::class, 'reply'])->name('messages.reply');
 });
 
 Route::get('/tackle-reviews/{tackleReview}', [TackleReviewController::class, 'show'])

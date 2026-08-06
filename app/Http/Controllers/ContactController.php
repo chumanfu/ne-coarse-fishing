@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\ContactMessage;
+use App\Services\MessagingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 class ContactController extends Controller
@@ -18,7 +17,7 @@ class ContactController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, MessagingService $messaging): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -30,23 +29,24 @@ class ContactController extends Controller
             'website.max' => 'Unable to send your message.',
         ]);
 
-        $to = config('mail.contact_to');
-
-        if (! filled($to)) {
+        if (! filled(config('mail.contact_to'))) {
             return back()
                 ->withInput($request->except('website'))
                 ->withErrors(['email' => 'Contact email is not configured yet. Please try again later.']);
         }
 
-        Mail::to($to)->send(new ContactMessage(
+        $thread = $messaging->createFromContact(
             name: $validated['name'],
             email: $validated['email'],
-            subjectLine: $validated['subject'],
-            messageBody: $validated['message'],
-        ));
+            subject: $validated['subject'],
+            body: $validated['message'],
+            user: $request->user(),
+        );
 
-        return redirect()
-            ->route('contact.create')
-            ->with('status', 'Thanks — your message has been sent. We will get back to you soon.');
+        $redirect = $request->user()
+            ? redirect()->route('messages.show', $thread)
+            : redirect()->route('contact.create');
+
+        return $redirect->with('status', 'Thanks — your message has been sent. We will get back to you soon.');
     }
 }

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\Announcements\AnnouncementResource;
 use App\Filament\Resources\MatchReports\MatchReportResource;
+use App\Filament\Resources\MessageThreads\MessageThreadResource;
 use App\Filament\Resources\SiteAnnouncements\SiteAnnouncementResource;
 use App\Filament\Resources\TackleReviews\TackleReviewResource;
 use App\Filament\Resources\VenuePhotos\VenuePhotoResource;
@@ -35,6 +36,7 @@ class AdminFilamentResourcesTest extends TestCase
             MatchReportResource::class,
             AnnouncementResource::class,
             SiteAnnouncementResource::class,
+            MessageThreadResource::class,
             VenueTacticResource::class,
             VenuePhotoResource::class,
             TackleReviewResource::class,
