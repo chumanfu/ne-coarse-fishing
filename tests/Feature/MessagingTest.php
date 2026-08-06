@@ -123,6 +123,49 @@ class MessagingTest extends TestCase
         });
     }
 
+    public function test_admin_can_broadcast_inbox_message_to_all_users(): void
+    {
+        Mail::fake();
+        Role::findOrCreate('super_admin');
+        Role::findOrCreate('angler');
+
+        $admin = User::factory()->create(['email' => 'admin@example.com']);
+        $admin->assignRole('super_admin');
+
+        $a = User::factory()->create(['email' => 'a@example.com']);
+        $b = User::factory()->create(['email' => 'b@example.com']);
+        $a->assignRole('angler');
+        $b->assignRole('angler');
+
+        $expected = User::query()->whereKeyNot($admin->id)->count();
+
+        $count = app(MessagingService::class)->broadcastToAllUsers(
+            $admin,
+            'Site update',
+            'Please check the new venue maps.',
+        );
+
+        $this->assertSame($expected, $count);
+        $this->assertGreaterThanOrEqual(2, $count);
+        $this->assertDatabaseCount('message_threads', $expected);
+        $this->assertDatabaseHas('message_threads', [
+            'user_id' => $a->id,
+            'subject' => 'Site update',
+            'source' => 'admin',
+        ]);
+        $this->assertDatabaseHas('message_threads', [
+            'user_id' => $b->id,
+            'subject' => 'Site update',
+            'source' => 'admin',
+        ]);
+        $this->assertDatabaseMissing('message_threads', [
+            'user_id' => $admin->id,
+            'subject' => 'Site update',
+        ]);
+
+        Mail::assertQueued(MessageReplyNotification::class, $expected);
+    }
+
     public function test_angler_cannot_view_another_users_thread(): void
     {
         Role::findOrCreate('angler');
