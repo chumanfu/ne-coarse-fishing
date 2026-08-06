@@ -20,6 +20,19 @@
                 @endif
             </div>
             <div class="flex flex-wrap gap-2">
+                @auth
+                    <form method="POST" action="{{ $isFavourited ? route('venues.favourite.destroy', $venue) : route('venues.favourite.store', $venue) }}">
+                        @csrf
+                        @if ($isFavourited)
+                            @method('DELETE')
+                        @endif
+                        <button type="submit" class="px-3 py-2 rounded-md border-2 font-semibold text-sm {{ $isFavourited ? 'border-amber-600 bg-amber-50 text-amber-950' : 'border-slate-800' }}">
+                            {{ $isFavourited ? '★ Favourited' : '☆ Favourite' }}
+                        </button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm">☆ Favourite</a>
+                @endauth
                 @if ($venue->url)
                     <a href="{{ $venue->url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm">Visit website</a>
                 @endif
@@ -72,7 +85,12 @@
 
             @if ($venue->photos->isNotEmpty())
                 <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
-                    <h2 class="text-xl font-bold mb-4">Photos</h2>
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <h2 class="text-xl font-bold">Photos</h2>
+                        @can('manage', $venue)
+                            <a href="{{ route('venues.edit', $venue) }}" class="text-sm font-semibold text-sky-800 hover:underline">Manage photos</a>
+                        @endcan
+                    </div>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         @foreach ($venue->photos as $photo)
                             <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
@@ -80,6 +98,12 @@
                             </a>
                         @endforeach
                     </div>
+                </section>
+            @elseif (auth()->user()?->can('manage', $venue))
+                <section class="bg-white border-2 border-dashed border-slate-300 rounded-xl p-5">
+                    <h2 class="text-xl font-bold mb-2">Photos</h2>
+                    <p class="text-slate-600 text-sm mb-3">Add multiple venue photos (car park, lakes, facilities) from the venue editor.</p>
+                    <a href="{{ route('venues.edit', $venue) }}" class="inline-flex text-sm font-semibold text-sky-800 hover:underline">Upload photos</a>
                 </section>
             @endif
 

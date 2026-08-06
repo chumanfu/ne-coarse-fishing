@@ -548,7 +548,7 @@ class VenueWizard extends Component
         $sortOrder = count($this->existingPhotoIds);
 
         foreach ($this->newPhotos as $photo) {
-            $path = $photo->store('venue-photos', Uploads::diskName());
+            $path = Uploads::store($photo, 'venue-photos');
             $venue->photos()->create([
                 'image_path' => $path,
                 'sort_order' => $sortOrder++,

@@ -69,7 +69,7 @@ class SessionActivityAndPegTest extends TestCase
 
     public function test_new_peg_from_session_is_pending_for_non_managers(): void
     {
-        Storage::fake('public');
+        Storage::fake(Uploads::diskName());
 
         $user = User::factory()->create();
         $venue = Venue::factory()->create(['is_approved' => true, 'manager_id' => null]);
@@ -90,7 +90,7 @@ class SessionActivityAndPegTest extends TestCase
             ],
         ])->assertRedirect();
 
-        $peg = WaterPeg::query()->first();
+        $peg = WaterPeg::query()->where('water_id', $water->id)->where('number', '14')->first();
         $this->assertNotNull($peg);
         $this->assertFalse($peg->is_verified);
         $this->assertSame($user->id, $peg->created_by);
@@ -122,8 +122,8 @@ class SessionActivityAndPegTest extends TestCase
         $this->actingAs($other)
             ->get(route('venues.show', $venue))
             ->assertOk()
-            ->assertSee('Peg photos')
-            ->assertSee('14 · Island');
+            ->assertSee('14 · Island')
+            ->assertSee($peg->fresh()->photos->first()->url(), false);
     }
 
     public function test_manager_can_verify_pending_peg(): void
@@ -150,7 +150,7 @@ class SessionActivityAndPegTest extends TestCase
 
     public function test_fishery_manager_can_add_official_peg(): void
     {
-        Storage::fake('public');
+        Storage::fake(Uploads::diskName());
         Role::findOrCreate('fishery_manager');
         $manager = User::factory()->create();
         $manager->assignRole('fishery_manager');
@@ -178,7 +178,7 @@ class SessionActivityAndPegTest extends TestCase
             ])
             ->assertRedirect(route('venues.show', $venue));
 
-        $peg = WaterPeg::query()->first();
+        $peg = WaterPeg::query()->where('water_id', $water->id)->where('number', '9')->first();
         $this->assertNotNull($peg);
         $this->assertTrue($peg->is_verified);
         $this->assertSame('9', $peg->number);

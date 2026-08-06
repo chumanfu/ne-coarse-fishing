@@ -62,6 +62,20 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return $this->hasMany(VenueTactic::class);
     }
 
+    public function favouriteVenues(): BelongsToMany
+    {
+        return $this->belongsToMany(Venue::class, 'favourite_venues')->withTimestamps();
+    }
+
+    public function hasFavourited(Venue $venue): bool
+    {
+        if ($this->relationLoaded('favouriteVenues')) {
+            return $this->favouriteVenues->contains($venue);
+        }
+
+        return $this->favouriteVenues()->whereKey($venue->id)->exists();
+    }
+
     protected function casts(): array
     {
         return [

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\WaterPegs\Schemas;
 
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -38,6 +39,18 @@ class WaterPegForm
                     ->preload(),
                 DateTimePicker::make('verified_at'),
                 TextInput::make('sort_order')->required()->numeric()->default(0),
+                FileUpload::make('photo_uploads')
+                    ->label('Peg photos')
+                    ->helperText('Up to 4 images of the peg. Stored on the uploads disk.')
+                    ->image()
+                    ->multiple()
+                    ->reorderable()
+                    ->maxFiles(4)
+                    ->maxSize(5120)
+                    ->disk(config('filesystems.uploads'))
+                    ->directory('peg-photos')
+                    ->visibility('public')
+                    ->columnSpanFull(),
             ]);
     }
 }

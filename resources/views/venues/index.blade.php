@@ -44,7 +44,7 @@
 
         <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             @forelse ($venues as $venue)
-                <x-venue-card :venue="$venue" />
+                <x-venue-card :venue="$venue" :is-favourited="(bool) ($venue->is_favourited ?? false)" />
             @empty
                 <p class="col-span-full text-slate-600">No venues match those filters.</p>
             @endforelse

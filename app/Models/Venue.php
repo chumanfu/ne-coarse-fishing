@@ -131,6 +131,20 @@ class Venue extends Model
         return $this->hasMany(VenuePhoto::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function favouritedBy(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'favourite_venues')->withTimestamps();
+    }
+
+    public function isFavouritedBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasFavourited($this);
+    }
+
     public function clubs(): BelongsToMany
     {
         return $this->belongsToMany(Club::class)->withTimestamps();

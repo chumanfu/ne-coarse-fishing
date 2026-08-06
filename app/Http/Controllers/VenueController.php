@@ -15,6 +15,11 @@ class VenueController extends Controller
         $venues = Venue::query()
             ->approved()
             ->with(['waters.species', 'manager', 'photos'])
+            ->when($request->user(), function ($query) use ($request) {
+                $query->withExists([
+                    'favouritedBy as is_favourited' => fn ($q) => $q->where('favourite_venues.user_id', $request->user()->id),
+                ]);
+            })
             ->when($request->filled('species'), function ($query) use ($request) {
                 $query->whereHas('waters.species', fn ($q) => $q->where('species.slug', $request->string('species')));
             })
@@ -68,6 +73,7 @@ class VenueController extends Controller
             'speciesList' => $venue->allSpecies(),
             'anglerTactics' => $venue->anglerTactics,
             'pendingPegs' => $venue->waters->flatMap->pegs->where('is_verified', false)->values(),
+            'isFavourited' => auth()->check() && auth()->user()->hasFavourited($venue),
         ]);
     }
 

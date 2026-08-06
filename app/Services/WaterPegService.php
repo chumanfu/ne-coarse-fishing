@@ -130,7 +130,7 @@ class WaterPegService
                 continue;
             }
 
-            $path = $photo->store('peg-photos', Uploads::diskName());
+            $path = Uploads::store($photo, 'peg-photos');
             $order++;
 
             $peg->photos()->create([

@@ -38,6 +38,7 @@
                         <x-slot name="content">
                             <x-dropdown-link :href="route('dashboard')">Dashboard</x-dropdown-link>
                             <x-dropdown-link :href="route('sessions.index')">My Sessions</x-dropdown-link>
+                            <x-dropdown-link :href="route('venues.favourites')">Favourites</x-dropdown-link>
                             <x-dropdown-link :href="route('profile.edit')">Profile</x-dropdown-link>
                             @role('super_admin')
                                 <x-dropdown-link href="/admin">Admin Panel</x-dropdown-link>
@@ -77,6 +78,7 @@
             @auth
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Dashboard</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">My Sessions</x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('venues.favourites')" :active="request()->routeIs('venues.favourites')">Favourites</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('venues.create')">Add Venue</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('sessions.create')">Log Session</x-responsive-nav-link>
             @endauth

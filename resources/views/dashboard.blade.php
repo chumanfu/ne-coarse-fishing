@@ -4,7 +4,7 @@
         <p class="text-slate-600 mt-1">Your venues, managed waters and recent sessions.</p>
     </x-slot>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid gap-6 lg:grid-cols-3">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
         <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="font-bold text-lg">Recent sessions</h2>
@@ -18,6 +18,22 @@
                     </li>
                 @empty
                     <li class="text-slate-600">No sessions yet.</li>
+                @endforelse
+            </ul>
+        </section>
+
+        <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-bold text-lg">Favourites</h2>
+                <a href="{{ route('venues.favourites') }}" class="text-sm font-semibold text-sky-800">View all</a>
+            </div>
+            <ul class="space-y-3 text-sm">
+                @forelse ($favouriteVenues as $venue)
+                    <li>
+                        <a href="{{ route('venues.show', $venue) }}" class="font-semibold text-slate-900 hover:underline">{{ $venue->name }}</a>
+                    </li>
+                @empty
+                    <li class="text-slate-600">Star a venue to save it here.</li>
                 @endforelse
             </ul>
         </section>

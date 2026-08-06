@@ -12,6 +12,7 @@ use App\Http\Controllers\TackleShopController;
 use App\Http\Controllers\VenueClaimController;
 use App\Http\Controllers\VenueController;
 use App\Http\Controllers\VenueEditRequestController;
+use App\Http\Controllers\VenueFavouriteController;
 use App\Http\Controllers\VenueTacticController;
 use App\Models\Activity;
 use App\Models\Club;
@@ -120,6 +121,7 @@ Route::get('/dashboard', function () {
         'mySessions' => $user->fishingSessions()->with('venue')->latest('fished_at')->take(5)->get(),
         'myVenues' => $user->venues()->latest()->take(5)->get(),
         'managedVenues' => $user->managedVenues()->latest()->take(5)->get(),
+        'favouriteVenues' => $user->favouriteVenues()->approved()->orderBy('name')->take(5)->get(),
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -130,6 +132,9 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/venues/{venue:slug}', [VenueController::class, 'destroy'])->name('venues.destroy');
 
     Route::post('/venues/{venue:slug}/claim', [VenueClaimController::class, 'store'])->name('venues.claim');
+    Route::post('/venues/{venue:slug}/favourite', [VenueFavouriteController::class, 'store'])->name('venues.favourite.store');
+    Route::delete('/venues/{venue:slug}/favourite', [VenueFavouriteController::class, 'destroy'])->name('venues.favourite.destroy');
+    Route::get('/favourites', [VenueFavouriteController::class, 'index'])->name('venues.favourites');
     Route::get('/venues/{venue:slug}/pegs/create', [\App\Http\Controllers\WaterPegController::class, 'create'])->name('pegs.create');
     Route::post('/venues/{venue:slug}/pegs', [\App\Http\Controllers\WaterPegController::class, 'store'])->name('pegs.store');
     Route::post('/venues/{venue:slug}/pegs/{waterPeg}/verify', [\App\Http\Controllers\WaterPegController::class, 'verify'])->name('pegs.verify');

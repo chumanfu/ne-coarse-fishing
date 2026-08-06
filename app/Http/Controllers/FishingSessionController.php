@@ -382,9 +382,7 @@ class FishingSessionController extends Controller
     private function storePhotos(Request $request, FishingSession $session): void
     {
         foreach ($request->file('photos', []) as $photo) {
-            $path = $photo->store('session-photos', Uploads::diskName());
-
-            abort_if($path === false, 500, 'Unable to store session photo. Please try again.');
+            $path = Uploads::store($photo, 'session-photos');
 
             $session->photos()->create(['image_path' => $path]);
         }

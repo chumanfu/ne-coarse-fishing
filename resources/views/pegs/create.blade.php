@@ -53,8 +53,10 @@
             </div>
 
             <div>
-                <label class="block text-sm font-semibold mb-1">Peg photos (optional)</label>
+                <label class="block text-sm font-semibold mb-1">Peg photos (optional, up to 4)</label>
+                <p class="text-sm text-slate-600 mb-2">Photos help anglers recognise the peg. They stay with the peg once saved.</p>
                 <input type="file" name="photos[]" accept="image/*" capture="environment" multiple class="block w-full text-sm">
+                @error('photos') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 @error('photos.*') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 

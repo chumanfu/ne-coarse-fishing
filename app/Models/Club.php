@@ -112,10 +112,6 @@ class Club extends Model
             return null;
         }
 
-        if (str_starts_with($this->logo_path, 'images/')) {
-            return asset($this->logo_path);
-        }
-
         return Uploads::url($this->logo_path);
     }
 }
