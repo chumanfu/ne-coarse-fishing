@@ -53,4 +53,6 @@
             </x-primary-button>
         </div>
     </form>
+
+    <x-google-auth-button label="Sign up with Google" divider="Or register with" />
 </x-guest-layout>
