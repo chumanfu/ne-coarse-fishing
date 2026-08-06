@@ -165,7 +165,8 @@ class SessionActivityAndPegTest extends TestCase
         $this->actingAs($manager)
             ->get(route('pegs.create', $venue))
             ->assertOk()
-            ->assertSee('Add peg');
+            ->assertSee('Add peg')
+            ->assertSee('manager-peg-map', false);
 
         $this->actingAs($manager)
             ->post(route('pegs.store', $venue), [
@@ -184,6 +185,51 @@ class SessionActivityAndPegTest extends TestCase
         $this->assertSame('9', $peg->number);
         $this->assertSame('Boilie Point', $peg->name);
         $this->assertCount(1, $peg->photos);
+    }
+
+    public function test_manager_can_edit_peg_with_map_and_update_location(): void
+    {
+        Role::findOrCreate('fishery_manager');
+        $manager = User::factory()->create();
+        $manager->assignRole('fishery_manager');
+        $venue = Venue::factory()->create([
+            'is_approved' => true,
+            'manager_id' => $manager->id,
+            'latitude' => 54.9,
+            'longitude' => -1.6,
+        ]);
+        $water = Water::factory()->for($venue)->create();
+        $peg = WaterPeg::factory()->for($water)->create([
+            'number' => '4',
+            'name' => 'Car park',
+            'latitude' => 54.9001,
+            'longitude' => -1.6001,
+            'is_verified' => true,
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('pegs.edit', [$venue, $peg]))
+            ->assertOk()
+            ->assertSee('Edit peg')
+            ->assertSee('manager-peg-map', false)
+            ->assertSee('54.9001', false);
+
+        $this->actingAs($manager)
+            ->put(route('pegs.update', [$venue, $peg]), [
+                'water_id' => $water->id,
+                'number' => '4',
+                'name' => 'Car park end',
+                'latitude' => 54.9012,
+                'longitude' => -1.6023,
+            ])
+            ->assertRedirect(route('venues.show', $venue));
+
+        $this->assertDatabaseHas('water_pegs', [
+            'id' => $peg->id,
+            'name' => 'Car park end',
+            'latitude' => 54.9012,
+            'longitude' => -1.6023,
+        ]);
     }
 
     public function test_angler_cannot_add_official_peg(): void

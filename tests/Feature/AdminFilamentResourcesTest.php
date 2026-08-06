@@ -16,6 +16,8 @@ use App\Filament\Resources\VenueTactics\VenueTacticResource;
 use App\Filament\Resources\WaterPegs\WaterPegResource;
 use App\Filament\Resources\Waters\WaterResource;
 use App\Models\User;
+use App\Models\Water;
+use App\Models\WaterPeg;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -54,6 +56,18 @@ class AdminFilamentResourcesTest extends TestCase
             $this->assertTrue($resource::canAccess());
             $this->get($resource::getUrl('index'))->assertOk();
         }
+
+        $water = Water::factory()->create();
+        $peg = WaterPeg::factory()->for($water)->create([
+            'latitude' => 54.98,
+            'longitude' => -1.61,
+        ]);
+
+        $this->get(WaterPegResource::getUrl('edit', ['record' => $peg]))
+            ->assertOk()
+            ->assertSee('Location on map', false)
+            ->assertSee('fi-peg-location-map', false)
+            ->assertSee('leaflet', false);
     }
 
     public function test_angler_cannot_access_admin_water_pegs(): void

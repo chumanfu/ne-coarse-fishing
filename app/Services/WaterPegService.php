@@ -39,6 +39,38 @@ class WaterPegService
     }
 
     /**
+     * @param  array{name?: ?string, number?: ?string, latitude: float|string, longitude: float|string}  $data
+     * @param  list<UploadedFile|TemporaryUploadedFile>  $photos
+     * @param  list<int>  $keepPhotoIds
+     */
+    public function updateForWater(
+        WaterPeg $peg,
+        Water $water,
+        User $user,
+        array $data,
+        array $photos = [],
+        array $keepPhotoIds = [],
+    ): WaterPeg {
+        abort_unless($water->venue && $water->venue->canManagePegs($user), 403);
+
+        $peg->update([
+            'water_id' => $water->id,
+            'name' => filled($data['name'] ?? null) ? trim((string) $data['name']) : null,
+            'number' => filled($data['number'] ?? null) ? trim((string) $data['number']) : null,
+            'latitude' => round((float) $data['latitude'], 7),
+            'longitude' => round((float) $data['longitude'], 7),
+        ]);
+
+        if (! $peg->is_verified) {
+            $peg->markVerified($user);
+        }
+
+        $this->syncPhotos($peg, $keepPhotoIds, $photos);
+
+        return $peg->load('photos');
+    }
+
+    /**
      * Sync peg rows from venue wizard water payload.
      *
      * @param  list<array<string, mixed>>  $pegs

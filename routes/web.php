@@ -185,6 +185,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tackle-shops/{tackleShop:slug}/claim', [TackleShopClaimController::class, 'store'])->name('tackle-shops.claim');
     Route::get('/venues/{venue:slug}/pegs/create', [\App\Http\Controllers\WaterPegController::class, 'create'])->name('pegs.create');
     Route::post('/venues/{venue:slug}/pegs', [\App\Http\Controllers\WaterPegController::class, 'store'])->name('pegs.store');
+    Route::get('/venues/{venue:slug}/pegs/{waterPeg}/edit', [\App\Http\Controllers\WaterPegController::class, 'edit'])->name('pegs.edit');
+    Route::put('/venues/{venue:slug}/pegs/{waterPeg}', [\App\Http\Controllers\WaterPegController::class, 'update'])->name('pegs.update');
     Route::post('/venues/{venue:slug}/pegs/{waterPeg}/verify', [\App\Http\Controllers\WaterPegController::class, 'verify'])->name('pegs.verify');
     Route::delete('/venues/{venue:slug}/pegs/{waterPeg}', [\App\Http\Controllers\WaterPegController::class, 'destroy'])->name('pegs.destroy');
 
