@@ -285,6 +285,7 @@
                                             <p class="text-xs text-slate-500">{{ number_format($peg->latitude, 5) }}, {{ number_format($peg->longitude, 5) }}</p>
                                         </div>
                                         <div class="flex flex-wrap gap-2">
+                                            <a href="{{ route('pegs.edit', [$venue, $peg]) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 text-sm font-semibold">Edit</a>
                                             <form method="POST" action="{{ route('pegs.verify', [$venue, $peg]) }}">
                                                 @csrf
                                                 <button class="px-3 py-2 rounded-md bg-sky-700 text-white text-sm font-semibold hover:bg-sky-800">Verify</button>
@@ -324,11 +325,14 @@
                                             <p class="text-sm text-slate-700 mt-2 whitespace-pre-line">{{ Str::limit($peg->description, 280) }}</p>
                                         @endif
                                     </div>
-                                    <form method="POST" action="{{ route('pegs.destroy', [$venue, $peg]) }}" onsubmit="return confirm('Remove this official peg?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button class="text-sm font-semibold text-red-800 hover:underline">Remove</button>
-                                    </form>
+                                    <div class="flex flex-wrap gap-3 shrink-0">
+                                        <a href="{{ route('pegs.edit', [$venue, $peg]) }}" class="text-sm font-semibold text-sky-800 hover:underline">Edit</a>
+                                        <form method="POST" action="{{ route('pegs.destroy', [$venue, $peg]) }}" onsubmit="return confirm('Remove this official peg?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="text-sm font-semibold text-red-800 hover:underline">Remove</button>
+                                        </form>
+                                    </div>
                                 </div>
                             @endforeach
                         </div>
