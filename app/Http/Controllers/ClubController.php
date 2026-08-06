@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Club;
+use App\Services\ClubPersistenceService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -32,9 +34,14 @@ class ClubController extends Controller
 
     public function show(Club $club): View
     {
-        abort_unless($club->is_published, 404);
+        abort_unless(
+            $club->is_published
+                || (auth()->user() && ($club->isManagedBy(auth()->user()) || auth()->user()->hasRole('super_admin'))),
+            404
+        );
 
         $club->load([
+            'manager',
             'venues' => fn ($query) => $query
                 ->approved()
                 ->with(['photos', 'waters.species'])
@@ -44,5 +51,36 @@ class ClubController extends Controller
         return view('clubs.show', [
             'club' => $club,
         ]);
+    }
+
+    public function edit(Club $club): View
+    {
+        $this->authorize('manage', $club);
+
+        return view('clubs.edit', [
+            'club' => $club,
+        ]);
+    }
+
+    public function update(Request $request, Club $club, ClubPersistenceService $persistence): RedirectResponse
+    {
+        $this->authorize('manage', $club);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'url' => ['nullable', 'url', 'max:255'],
+            'facebook_url' => ['nullable', 'url', 'max:2048'],
+            'overview' => ['nullable', 'string', 'max:5000'],
+            'town' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'logo' => ['nullable', 'image', 'max:5120'],
+        ]);
+
+        $persistence->apply($club, $validated, $request->file('logo'));
+
+        return redirect()
+            ->route('clubs.show', $club->fresh())
+            ->with('status', 'Club details updated.');
     }
 }

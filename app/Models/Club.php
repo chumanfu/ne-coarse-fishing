@@ -6,7 +6,9 @@ use Database\Factories\ClubFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use App\Support\Uploads;
 
@@ -28,6 +30,8 @@ class Club extends Model
         'is_featured',
         'sort_order',
         'is_published',
+        'manager_id',
+        'manager_verified',
     ];
 
     protected function casts(): array
@@ -35,6 +39,7 @@ class Club extends Model
         return [
             'is_featured' => 'boolean',
             'is_published' => 'boolean',
+            'manager_verified' => 'boolean',
             'sort_order' => 'integer',
         ];
     }
@@ -71,6 +76,11 @@ class Club extends Model
         return 'slug';
     }
 
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_id');
+    }
+
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class)->withTimestamps();
@@ -79,6 +89,21 @@ class Club extends Model
     public function venues(): BelongsToMany
     {
         return $this->belongsToMany(Venue::class)->withTimestamps();
+    }
+
+    public function claims(): HasMany
+    {
+        return $this->hasMany(ClubClaim::class);
+    }
+
+    public function editRequests(): HasMany
+    {
+        return $this->hasMany(ClubEditRequest::class);
+    }
+
+    public function isManagedBy(User $user): bool
+    {
+        return $this->manager_id === $user->id;
     }
 
     public function scopePublished(Builder $query): Builder

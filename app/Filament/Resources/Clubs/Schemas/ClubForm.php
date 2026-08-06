@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Clubs\Schemas;
 
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -39,6 +40,13 @@ class ClubForm
                 Textarea::make('overview')->rows(4)->columnSpanFull(),
                 Toggle::make('is_featured')->label('Featured on home page'),
                 Toggle::make('is_published')->label('Published')->default(true),
+                Select::make('manager_id')
+                    ->label('Owner / manager')
+                    ->relationship('manager', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
+                Toggle::make('manager_verified')->label('Manager verified'),
             ]);
     }
 }
