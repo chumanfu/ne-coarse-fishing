@@ -51,6 +51,17 @@
                 @method('PATCH')
             @endif
 
+            @if ($errors->any())
+                <div class="rounded-md border-2 border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    <p class="font-semibold">Please fix the following:</p>
+                    <ul class="mt-1 list-disc list-inside space-y-0.5">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div>
                 <label class="block text-sm font-semibold mb-1">Venue</label>
                 <select name="venue_id" x-model="venueId" @change="onVenueChange()" required class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">

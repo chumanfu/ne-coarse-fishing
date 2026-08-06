@@ -238,6 +238,14 @@ class FishingSessionController extends Controller
             $request->merge(['water_id' => null]);
         }
 
+        // The form always posts at least one catch row; drop blank ones before validating.
+        $request->merge([
+            'catches' => collect($request->input('catches', []))
+                ->filter(fn ($catch) => filled($catch['species_id'] ?? null))
+                ->values()
+                ->all() ?: null,
+        ]);
+
         return $request->validate([
             'venue_id' => ['required', 'exists:venues,id'],
             'water_id' => ['nullable', 'exists:waters,id'],
@@ -266,7 +274,7 @@ class FishingSessionController extends Controller
                 ),
             ],
             'catches' => ['nullable', 'array'],
-            'catches.*.species_id' => ['required_with:catches', 'exists:species,id'],
+            'catches.*.species_id' => ['required', 'exists:species,id'],
             'catches.*.weight_lb' => ['nullable', 'numeric', 'min:0', 'max:200'],
             'catches.*.bait' => ['nullable', 'string', 'max:255'],
             'catches.*.quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
