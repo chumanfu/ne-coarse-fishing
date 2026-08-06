@@ -14,7 +14,7 @@ class ListMessageThreads extends ListRecords
     {
         return [
             CreateAction::make()
-                ->label('Message an angler'),
+                ->label('Message a user'),
         ];
     }
 }
