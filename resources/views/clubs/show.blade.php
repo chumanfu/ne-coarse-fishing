@@ -21,6 +21,7 @@
                     @endif
                 </div>
             </div>
+            <div class="flex flex-wrap gap-2">
             @if ($club->url)
                 <a href="{{ $club->url }}"
                    target="_blank"
@@ -29,6 +30,15 @@
                     Visit website
                 </a>
             @endif
+            @if ($club->facebook_url)
+                <a href="{{ $club->facebook_url }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="inline-flex items-center px-4 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold hover:bg-sky-50">
+                    Facebook
+                </a>
+            @endif
+            </div>
         </div>
     </x-slot>
 
@@ -65,6 +75,16 @@
                         <dd class="text-slate-600 mt-1 break-all">
                             <a href="{{ $club->url }}" target="_blank" rel="noopener noreferrer" class="text-sky-800 font-semibold hover:underline">
                                 {{ $club->url }}
+                            </a>
+                        </dd>
+                    </div>
+                @endif
+                @if ($club->facebook_url)
+                    <div class="sm:col-span-2">
+                        <dt class="font-semibold text-slate-900">Facebook</dt>
+                        <dd class="text-slate-600 mt-1 break-all">
+                            <a href="{{ $club->facebook_url }}" target="_blank" rel="noopener noreferrer" class="text-sky-800 font-semibold hover:underline">
+                                {{ $club->facebook_url }}
                             </a>
                         </dd>
                     </div>

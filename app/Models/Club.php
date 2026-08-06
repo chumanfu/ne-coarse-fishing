@@ -19,6 +19,7 @@ class Club extends Model
         'name',
         'slug',
         'url',
+        'facebook_url',
         'logo_path',
         'overview',
         'town',

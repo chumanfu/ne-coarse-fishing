@@ -18,6 +18,7 @@ class VenueEditRequestComparison
         'longitude' => 'Longitude',
         'address' => 'Address',
         'url' => 'Website',
+        'facebook_url' => 'Facebook',
         'what3words' => 'what3words',
         'directions' => 'Directions / parking',
         'day_ticket_info' => 'Day tickets',

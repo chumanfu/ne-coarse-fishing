@@ -62,7 +62,7 @@ class VenueController extends Controller
             'manager',
             'photos',
             'matchReports' => fn ($q) => $q->whereNotNull('published_at')->latest('published_at')->limit(10),
-            'announcements' => fn ($q) => $q->whereNotNull('published_at')->latest('published_at')->limit(10),
+            'announcements' => fn ($q) => $q->currentlyVisible()->latest('published_at')->limit(10),
             'fishingSessions' => fn ($q) => $q->with(['user', 'water', 'waterPeg', 'catches.species', 'photos'])->latest('fished_at')->limit(8),
             'anglerTactics' => fn ($q) => $q->with(['user', 'water'])->limit(20),
             'clubs' => fn ($q) => $q->published()->ordered(),

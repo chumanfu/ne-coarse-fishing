@@ -47,5 +47,13 @@
                 <span class="text-xs font-semibold text-slate-500">{{ $club->websiteHost() }}</span>
             @endif
         @endif
+        @if ($club->facebook_url)
+            <a href="{{ $club->facebook_url }}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="inline-flex items-center px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 text-sm font-semibold hover:bg-sky-50">
+                Facebook
+            </a>
+        @endif
     </div>
 </article>

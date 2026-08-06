@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AboutController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\ClubController;
@@ -8,6 +9,8 @@ use App\Http\Controllers\FishingSessionController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\MatchReportController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReferFriendController;
+use App\Http\Controllers\TackleReviewController;
 use App\Http\Controllers\TackleShopController;
 use App\Http\Controllers\VenueClaimController;
 use App\Http\Controllers\VenueController;
@@ -16,6 +19,7 @@ use App\Http\Controllers\VenueFavouriteController;
 use App\Http\Controllers\VenueTacticController;
 use App\Models\Activity;
 use App\Models\Club;
+use App\Models\TackleReview;
 use App\Models\TackleShop;
 use App\Models\Venue;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +51,22 @@ Route::get('/', function () {
         ->latest()
         ->take(5)
         ->get();
+
+    $tackleReviews = TackleReview::query()
+        ->featured()
+        ->with(['user', 'photos'])
+        ->latest()
+        ->take(3)
+        ->get();
+
+    if ($tackleReviews->isEmpty()) {
+        $tackleReviews = TackleReview::query()
+            ->published()
+            ->with(['user', 'photos'])
+            ->latest()
+            ->take(3)
+            ->get();
+    }
 
     $mapVenues = Venue::query()
         ->approved()
@@ -96,16 +116,20 @@ Route::get('/', function () {
         'featuredShops' => $featuredShops,
         'featuredClubs' => $featuredClubs,
         'activities' => $activities,
+        'tackleReviews' => $tackleReviews,
         'mapMarkers' => $mapMarkers,
         'venueCount' => Venue::approved()->count(),
     ]);
 })->name('home');
 
 Route::get('/activity', [ActivityController::class, 'index'])->name('activity.index');
+Route::get('/about', AboutController::class)->name('about');
+Route::get('/refer', ReferFriendController::class)->name('refer');
 Route::get('/venues', [VenueController::class, 'index'])->name('venues.index');
 Route::get('/venues/{venue:slug}', [VenueController::class, 'show'])->name('venues.show');
 Route::get('/tackle-shops', [TackleShopController::class, 'index'])->name('tackle-shops.index');
 Route::get('/tackle-shops/{tackleShop:slug}', [TackleShopController::class, 'show'])->name('tackle-shops.show');
+Route::get('/tackle-reviews', [TackleReviewController::class, 'index'])->name('tackle-reviews.index');
 Route::get('/clubs', [ClubController::class, 'index'])->name('clubs.index');
 Route::get('/clubs/{club:slug}', [ClubController::class, 'show'])->name('clubs.show');
 Route::get('/map', [MapController::class, 'index'])->name('map.index');
@@ -160,7 +184,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tactics/{venueTactic}/edit', [VenueTacticController::class, 'edit'])->name('tactics.edit');
     Route::patch('/tactics/{venueTactic}', [VenueTacticController::class, 'update'])->name('tactics.update');
     Route::delete('/tactics/{venueTactic}', [VenueTacticController::class, 'destroy'])->name('tactics.destroy');
+
+    Route::get('/tackle-reviews/create', [TackleReviewController::class, 'create'])->name('tackle-reviews.create');
+    Route::post('/tackle-reviews', [TackleReviewController::class, 'store'])->name('tackle-reviews.store');
+    Route::get('/tackle-reviews/{tackleReview}/edit', [TackleReviewController::class, 'edit'])->name('tackle-reviews.edit');
+    Route::patch('/tackle-reviews/{tackleReview}', [TackleReviewController::class, 'update'])->name('tackle-reviews.update');
+    Route::delete('/tackle-reviews/{tackleReview}', [TackleReviewController::class, 'destroy'])->name('tackle-reviews.destroy');
 });
+
+Route::get('/tackle-reviews/{tackleReview}', [TackleReviewController::class, 'show'])
+    ->whereNumber('tackleReview')
+    ->name('tackle-reviews.show');
 
 Route::get('/sessions/{fishingSession}', [FishingSessionController::class, 'show'])->name('sessions.show');
 

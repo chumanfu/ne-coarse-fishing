@@ -11,7 +11,9 @@
                     <x-nav-link :href="route('venues.index')" :active="request()->routeIs('venues.*')">Venues</x-nav-link>
                     <x-nav-link :href="route('clubs.index')" :active="request()->routeIs('clubs.*')">Clubs</x-nav-link>
                     <x-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-nav-link>
+                    <x-nav-link :href="route('tackle-reviews.index')" :active="request()->routeIs('tackle-reviews.*')">Reviews</x-nav-link>
                     <x-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-nav-link>
+                    <x-nav-link :href="route('about')" :active="request()->routeIs('about')">About</x-nav-link>
                     <x-nav-link :href="route('contact.create')" :active="request()->routeIs('contact.*')">Contact</x-nav-link>
                 </div>
             </div>
@@ -39,6 +41,7 @@
                             <x-dropdown-link :href="route('dashboard')">Dashboard</x-dropdown-link>
                             <x-dropdown-link :href="route('sessions.index')">My Sessions</x-dropdown-link>
                             <x-dropdown-link :href="route('venues.favourites')">Favourites</x-dropdown-link>
+                            <x-dropdown-link :href="route('refer')">Refer a friend</x-dropdown-link>
                             <x-dropdown-link :href="route('profile.edit')">Profile</x-dropdown-link>
                             @role('super_admin')
                                 <x-dropdown-link href="/admin">Admin Panel</x-dropdown-link>
@@ -73,12 +76,15 @@
             <x-responsive-nav-link :href="route('venues.index')" :active="request()->routeIs('venues.*')">Venues</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('clubs.index')" :active="request()->routeIs('clubs.*')">Clubs</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('tackle-reviews.index')" :active="request()->routeIs('tackle-reviews.*')">Reviews</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('about')" :active="request()->routeIs('about')">About</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('contact.create')" :active="request()->routeIs('contact.*')">Contact</x-responsive-nav-link>
             @auth
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Dashboard</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">My Sessions</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('venues.favourites')" :active="request()->routeIs('venues.favourites')">Favourites</x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('refer')" :active="request()->routeIs('refer')">Refer a friend</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('venues.create')">Add Venue</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('sessions.create')">Log Session</x-responsive-nav-link>
             @endauth

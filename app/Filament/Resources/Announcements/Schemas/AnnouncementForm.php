@@ -34,6 +34,9 @@ class AnnouncementForm
                     ->required()
                     ->columnSpanFull(),
                 DateTimePicker::make('published_at'),
+                DateTimePicker::make('ends_at')
+                    ->label('Hide after')
+                    ->helperText('Optional. Announcement stops showing after this time.'),
             ]);
     }
 }

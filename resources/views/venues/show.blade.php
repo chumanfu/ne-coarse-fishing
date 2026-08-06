@@ -36,6 +36,9 @@
                 @if ($venue->url)
                     <a href="{{ $venue->url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm">Visit website</a>
                 @endif
+                @if ($venue->facebook_url)
+                    <a href="{{ $venue->facebook_url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm">Facebook</a>
+                @endif
                 <a href="{{ route('map.index', ['species' => null]) }}#venue-{{ $venue->id }}" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm">View on map</a>
                 @auth
                     <a href="{{ route('sessions.create', ['venue' => $venue->slug]) }}" class="px-3 py-2 rounded-md bg-sky-700 text-white font-semibold text-sm">Log a session here</a>
@@ -58,6 +61,14 @@
                     @endif
                 @endauth
             </div>
+        </div>
+        <div class="mt-4">
+            <x-share-links
+                :url="route('venues.show', $venue)"
+                :title="$venue->name"
+                :text="'Check out '.$venue->name.' on '.config('app.name')"
+                label="Share venue"
+            />
         </div>
     </x-slot>
 
@@ -379,6 +390,12 @@
                     <div>
                         <h3 class="font-bold text-slate-900 mb-1">Website</h3>
                         <a href="{{ $venue->url }}" target="_blank" rel="noopener noreferrer" class="text-sky-800 underline break-all">{{ $venue->url }}</a>
+                    </div>
+                @endif
+                @if ($venue->facebook_url)
+                    <div>
+                        <h3 class="font-bold text-slate-900 mb-1">Facebook</h3>
+                        <a href="{{ $venue->facebook_url }}" target="_blank" rel="noopener noreferrer" class="text-sky-800 underline break-all">{{ $venue->facebook_url }}</a>
                     </div>
                 @endif
                 @if ($venue->what3words)

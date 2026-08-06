@@ -16,6 +16,14 @@
                 </div>
             @endif
         </div>
+        <div class="mt-4">
+            <x-share-links
+                :url="route('sessions.show', $session)"
+                :title="$session->venue->name.' session'"
+                :text="'Fishing session at '.$session->venue->name.' on '.$session->fished_at->format('d M Y')"
+                label="Share session"
+            />
+        </div>
     </x-slot>
 
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">

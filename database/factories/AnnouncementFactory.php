@@ -23,6 +23,23 @@ class AnnouncementFactory extends Factory
             'title' => fake()->sentence(5),
             'body' => fake()->paragraph(),
             'published_at' => now(),
+            'ends_at' => null,
         ];
+    }
+
+    public function expired(): static
+    {
+        return $this->state(fn () => [
+            'published_at' => now()->subDays(3),
+            'ends_at' => now()->subDay(),
+        ]);
+    }
+
+    public function scheduled(): static
+    {
+        return $this->state(fn () => [
+            'published_at' => now()->addDay(),
+            'ends_at' => now()->addDays(3),
+        ]);
     }
 }

@@ -16,6 +16,19 @@
     <div class="min-h-screen flex flex-col">
         @include('layouts.navigation')
 
+        @isset($siteAnnouncements)
+            @foreach ($siteAnnouncements as $siteAnnouncement)
+                <div class="border-b-2 {{ $siteAnnouncement->level === 'maintenance' ? 'bg-amber-100 border-amber-600 text-amber-950' : ($siteAnnouncement->level === 'warning' ? 'bg-orange-100 border-orange-600 text-orange-950' : 'bg-sky-100 border-sky-700 text-sky-950') }}">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                        <p class="text-xs font-bold uppercase tracking-wide">{{ $siteAnnouncement->levelLabel() }} · site notice</p>
+                        <p class="font-bold mt-0.5">{{ $siteAnnouncement->title }}</p>
+                        <p class="text-sm mt-1 whitespace-pre-line">{{ $siteAnnouncement->body }}</p>
+                        <p class="text-xs mt-2 opacity-80">Visible until {{ $siteAnnouncement->ends_at->timezone(config('app.timezone'))->format('d M Y H:i') }}</p>
+                    </div>
+                </div>
+            @endforeach
+        @endisset
+
         @isset($header)
             <header class="bg-white border-b-2 border-slate-300">
                 <div class="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8">
@@ -41,6 +54,9 @@
                 <p class="font-semibold text-white tracking-wide">{{ config('app.name') }}</p>
                 <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
                     <p>Venue guides, interactive maps &amp; catch reports across the North East.</p>
+                    <a href="{{ route('about') }}" class="font-semibold text-white hover:text-sky-200 underline-offset-2 hover:underline">About</a>
+                    <a href="{{ route('refer') }}" class="font-semibold text-white hover:text-sky-200 underline-offset-2 hover:underline">Refer a friend</a>
+                    <a href="{{ route('tackle-reviews.index') }}" class="font-semibold text-white hover:text-sky-200 underline-offset-2 hover:underline">Tackle reviews</a>
                     <a href="{{ route('contact.create') }}" class="font-semibold text-white hover:text-sky-200 underline-offset-2 hover:underline">Contact us</a>
                 </div>
             </div>

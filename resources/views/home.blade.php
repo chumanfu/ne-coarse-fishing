@@ -200,6 +200,39 @@
         </div>
     </div>
 
+    <div class="border-t-2 border-slate-200 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="flex items-end justify-between gap-4 mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Tackle reviews</h2>
+                    <p class="text-slate-600 mt-1">What anglers are using — rated and reviewed by the community.</p>
+                </div>
+                <a href="{{ route('tackle-reviews.index') }}" class="text-sky-800 font-semibold hover:underline">View all</a>
+            </div>
+
+            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                @forelse ($tackleReviews as $review)
+                    <a href="{{ route('tackle-reviews.show', $review) }}" class="block bg-white border-2 border-slate-300 rounded-xl overflow-hidden hover:border-sky-700 transition">
+                        @if ($review->photos->isNotEmpty())
+                            <img src="{{ $review->photos->first()->url() }}" alt="" class="w-full h-40 object-cover border-b-2 border-slate-200">
+                        @endif
+                        <div class="p-5">
+                            <h3 class="font-bold text-lg text-slate-900">{{ $review->displayName() }}</h3>
+                            <div class="mt-2"><x-star-rating :rating="$review->rating" /></div>
+                            <p class="text-sm text-slate-700 mt-3 line-clamp-3">{{ $review->body }}</p>
+                            <p class="text-xs text-slate-500 mt-3">By {{ $review->user->name }}</p>
+                        </div>
+                    </a>
+                @empty
+                    <p class="text-slate-600 col-span-full">
+                        No reviews yet.
+                        <a href="{{ route('tackle-reviews.create') }}" class="text-sky-800 font-semibold hover:underline">Write the first one</a>.
+                    </p>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
     <x-slot name="scripts">
         <style>
             [x-cloak]{display:none!important}

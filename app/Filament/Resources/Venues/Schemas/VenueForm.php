@@ -37,6 +37,11 @@ class VenueForm
                             ->url()
                             ->maxLength(2048)
                             ->columnSpanFull(),
+                        TextInput::make('facebook_url')
+                            ->label('Facebook URL')
+                            ->url()
+                            ->maxLength(2048)
+                            ->columnSpanFull(),
                         TextInput::make('what3words')
                             ->label('what3words')
                             ->helperText('Three words separated by dots, e.g. filled.count.soap')

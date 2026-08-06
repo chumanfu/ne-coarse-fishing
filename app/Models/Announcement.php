@@ -19,12 +19,14 @@ class Announcement extends Model
         'title',
         'body',
         'published_at',
+        'ends_at',
     ];
 
     protected function casts(): array
     {
         return [
             'published_at' => 'datetime',
+            'ends_at' => 'datetime',
         ];
     }
 
@@ -36,6 +38,18 @@ class Announcement extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function scopeCurrentlyVisible($query)
+    {
+        $now = now();
+
+        return $query
+            ->whereNotNull('published_at')
+            ->where('published_at', '<=', $now)
+            ->where(function ($inner) use ($now) {
+                $inner->whereNull('ends_at')->orWhere('ends_at', '>', $now);
+            });
     }
 
     public function typeLabel(): string

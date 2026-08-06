@@ -56,6 +56,8 @@ class VenueWizard extends Component
 
     public string $url = '';
 
+    public string $facebookUrl = '';
+
     public string $what3words = '';
 
     public string $directions = '';
@@ -454,6 +456,7 @@ class VenueWizard extends Component
             'longitude' => $this->longitude,
             'address' => $this->address ?: null,
             'url' => $this->url ?: null,
+            'facebook_url' => $this->facebookUrl ?: null,
             'what3words' => Venue::normalizeWhat3words($this->what3words),
             'directions' => $this->directions ?: null,
             'day_ticket_info' => $this->day_ticket_info ?: null,
@@ -607,6 +610,7 @@ class VenueWizard extends Component
             4 => $this->validate([
                 'address' => ['nullable', 'string', 'max:255'],
                 'url' => ['nullable', 'url', 'max:2048'],
+                'facebookUrl' => ['nullable', 'url', 'max:2048'],
                 'what3words' => ['nullable', 'string', 'max:64', 'regex:/^[a-zA-Z0-9]+\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+$/'],
                 'directions' => ['nullable', 'string'],
                 'newPhotos' => ['nullable', 'array', 'max:8'],
@@ -676,6 +680,7 @@ class VenueWizard extends Component
         $this->overview = (string) $venue->overview;
         $this->address = (string) $venue->address;
         $this->url = (string) $venue->url;
+        $this->facebookUrl = (string) $venue->facebook_url;
         $this->what3words = (string) $venue->what3words;
         $this->directions = (string) $venue->directions;
         $this->ticket_type = $venue->ticket_type;

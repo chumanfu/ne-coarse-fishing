@@ -26,19 +26,29 @@ class AnnouncementController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
             'published_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date', 'after:published_at'],
         ]);
+
+        $publishedAt = isset($validated['published_at'])
+            ? \Illuminate\Support\Carbon::parse($validated['published_at'])
+            : now();
 
         $venue->announcements()->create([
             'user_id' => $request->user()->id,
             'type' => $validated['type'],
             'title' => $validated['title'],
             'body' => $validated['body'],
-            'published_at' => $validated['published_at'] ?? now(),
+            'published_at' => $publishedAt,
+            'ends_at' => $validated['ends_at'] ?? null,
         ]);
+
+        $status = $publishedAt->isFuture()
+            ? 'Announcement scheduled.'
+            : 'Announcement published.';
 
         return redirect()
             ->route('venues.show', $venue)
-            ->with('status', 'Announcement published.')
+            ->with('status', $status)
             ->withFragment('official');
     }
 

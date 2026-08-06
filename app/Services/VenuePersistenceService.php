@@ -16,6 +16,7 @@ class VenuePersistenceService
         'longitude',
         'address',
         'url',
+        'facebook_url',
         'what3words',
         'directions',
         'day_ticket_info',

@@ -25,6 +25,11 @@ class AnnouncementsTable
                 TextColumn::make('published_at')
                     ->dateTime()
                     ->sortable(),
+                TextColumn::make('ends_at')
+                    ->label('Hide after')
+                    ->dateTime()
+                    ->sortable()
+                    ->placeholder('No end'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

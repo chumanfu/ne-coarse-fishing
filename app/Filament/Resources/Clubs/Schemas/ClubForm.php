@@ -20,6 +20,10 @@ class ClubForm
                     ->label('Website URL')
                     ->url()
                     ->maxLength(255),
+                TextInput::make('facebook_url')
+                    ->label('Facebook URL')
+                    ->url()
+                    ->maxLength(2048),
                 FileUpload::make('logo_path')
                     ->label('Logo')
                     ->image()

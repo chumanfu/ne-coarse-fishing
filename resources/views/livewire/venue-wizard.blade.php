@@ -117,6 +117,11 @@
                     <label>Website URL</label>
                     <input type="url" wire:model="url" placeholder="https://example.com">
                     @error('url') <p class="error">{{ $message }}</p> @enderror
+
+                    <label class="mt-3 block">Facebook URL</label>
+                    <input type="url" wire:model="facebookUrl" placeholder="https://facebook.com/...">
+                    @error('facebookUrl') <p class="error">{{ $message }}</p> @enderror
+                    @error('url') <p class="error">{{ $message }}</p> @enderror
                 </div>
                 <div style="margin-top: 1rem;">
                     <label>what3words</label>

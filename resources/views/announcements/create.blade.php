@@ -22,7 +22,21 @@
                 <label class="block text-sm font-semibold mb-1">Details</label>
                 <textarea name="body" rows="8" required class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">{{ old('body') }}</textarea>
             </div>
-            <button class="px-5 py-3 rounded-md bg-emerald-700 text-white font-bold">Publish</button>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Publish at</label>
+                    <input type="datetime-local" name="published_at" value="{{ old('published_at', now()->format('Y-m-d\TH:i')) }}" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
+                    <p class="text-xs text-slate-500 mt-1">Leave as now, or schedule for later.</p>
+                    @error('published_at') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Hide after (optional)</label>
+                    <input type="datetime-local" name="ends_at" value="{{ old('ends_at') }}" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
+                    <p class="text-xs text-slate-500 mt-1">Stops showing after this time.</p>
+                    @error('ends_at') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+            <button class="px-5 py-3 rounded-md bg-emerald-700 text-white font-bold">Save announcement</button>
         </form>
     </div>
 </x-app-layout>

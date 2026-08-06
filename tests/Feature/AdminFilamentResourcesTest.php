@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\Announcements\AnnouncementResource;
 use App\Filament\Resources\MatchReports\MatchReportResource;
+use App\Filament\Resources\SiteAnnouncements\SiteAnnouncementResource;
+use App\Filament\Resources\TackleReviews\TackleReviewResource;
 use App\Filament\Resources\VenuePhotos\VenuePhotoResource;
 use App\Filament\Resources\VenueTactics\VenueTacticResource;
 use App\Filament\Resources\WaterPegs\WaterPegResource;
@@ -32,8 +34,10 @@ class AdminFilamentResourcesTest extends TestCase
             WaterPegResource::class,
             MatchReportResource::class,
             AnnouncementResource::class,
+            SiteAnnouncementResource::class,
             VenueTacticResource::class,
             VenuePhotoResource::class,
+            TackleReviewResource::class,
         ];
 
         foreach ($resources as $resource) {
