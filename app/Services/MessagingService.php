@@ -48,8 +48,13 @@ class MessagingService
         return $thread;
     }
 
-    public function startWithUser(User $admin, User $recipient, string $subject, string $body): MessageThread
-    {
+    public function startWithUser(
+        User $admin,
+        User $recipient,
+        string $subject,
+        string $body,
+        bool $queueMail = false,
+    ): MessageThread {
         [$thread, $message] = DB::transaction(function () use ($admin, $recipient, $subject, $body) {
             $thread = MessageThread::query()->create([
                 'user_id' => $recipient->id,
@@ -72,9 +77,26 @@ class MessagingService
             return [$thread->fresh(['messages']), $message];
         });
 
-        $this->notifyParticipant($thread, $message);
+        $this->notifyParticipant($thread, $message, $queueMail);
 
         return $thread;
+    }
+
+    /**
+     * Create an inbox thread (+ email) for every registered user except the sender.
+     */
+    public function broadcastToAllUsers(User $admin, string $subject, string $body): int
+    {
+        $recipients = User::query()
+            ->whereKeyNot($admin->id)
+            ->orderBy('id')
+            ->get();
+
+        foreach ($recipients as $recipient) {
+            $this->startWithUser($admin, $recipient, $subject, $body, queueMail: true);
+        }
+
+        return $recipients->count();
     }
 
     public function reply(MessageThread $thread, User $sender, string $body, bool $asAdmin): Message
@@ -165,12 +187,22 @@ class MessagingService
         ));
     }
 
-    private function notifyParticipant(MessageThread $thread, Message $message): void
+    private function notifyParticipant(MessageThread $thread, Message $message, bool $queue = false): void
     {
-        Mail::to($thread->contact_email, $thread->contact_name)->send(new MessageReplyNotification(
+        $mailable = new MessageReplyNotification(
             thread: $thread,
             message: $message,
             forAdmin: false,
-        ));
+        );
+
+        $mail = Mail::to($thread->contact_email, $thread->contact_name);
+
+        if ($queue) {
+            $mail->queue($mailable);
+
+            return;
+        }
+
+        $mail->send($mailable);
     }
 }
