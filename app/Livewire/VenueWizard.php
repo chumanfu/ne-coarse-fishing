@@ -433,13 +433,15 @@ class VenueWizard extends Component
             'editRequestMessage' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        VenueEditRequest::query()->create([
+        $editRequest = VenueEditRequest::query()->create([
             'venue_id' => $venue->id,
             'user_id' => auth()->id(),
             'message' => filled($this->editRequestMessage) ? trim($this->editRequestMessage) : null,
             'proposed_data' => $this->buildProposedData(),
             'status' => 'pending',
         ]);
+
+        app(\App\Services\ActivityLogger::class)->venueEditSuggested($editRequest);
 
         return redirect()
             ->route('venues.show', $venue)

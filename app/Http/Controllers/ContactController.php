@@ -43,6 +43,8 @@ class ContactController extends Controller
             user: $request->user(),
         );
 
+        app(\App\Services\ActivityLogger::class)->messageReceived($thread, $request->user());
+
         $redirect = $request->user()
             ? redirect()->route('messages.show', $thread)
             : redirect()->route('contact.create');

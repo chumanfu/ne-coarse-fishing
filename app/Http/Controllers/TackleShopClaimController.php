@@ -17,12 +17,14 @@ class TackleShopClaimController extends Controller
             'message' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        TackleShopClaim::query()->create([
+        $claim = TackleShopClaim::query()->create([
             'tackle_shop_id' => $tackleShop->id,
             'user_id' => $request->user()->id,
             'message' => $validated['message'] ?? null,
             'status' => 'pending',
         ]);
+
+        app(\App\Services\ActivityLogger::class)->tackleShopClaimed($claim);
 
         return redirect()
             ->route('tackle-shops.show', $tackleShop)

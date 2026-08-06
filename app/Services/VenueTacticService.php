@@ -20,7 +20,7 @@ class VenueTacticService
             return;
         }
 
-        VenueTactic::query()->updateOrCreate(
+        $tactic = VenueTactic::query()->updateOrCreate(
             ['fishing_session_id' => $session->id],
             [
                 'venue_id' => $session->venue_id,
@@ -31,6 +31,10 @@ class VenueTacticService
                 'fished_at' => $session->fished_at,
             ]
         );
+
+        if ($tactic->wasRecentlyCreated) {
+            app(ActivityLogger::class)->tacticShared($tactic);
+        }
     }
 
     public function createStandalone(User $user, Venue $venue, array $data): VenueTactic
@@ -39,7 +43,7 @@ class VenueTacticService
             abort_unless($venue->waters()->whereKey($data['water_id'])->exists(), 422);
         }
 
-        return VenueTactic::query()->create([
+        $tactic = VenueTactic::query()->create([
             'venue_id' => $venue->id,
             'user_id' => $user->id,
             'water_id' => $data['water_id'] ?? null,
@@ -47,5 +51,9 @@ class VenueTacticService
             'body' => trim($data['body']),
             'fished_at' => $data['fished_at'] ?? null,
         ]);
+
+        app(ActivityLogger::class)->tacticShared($tactic);
+
+        return $tactic;
     }
 }

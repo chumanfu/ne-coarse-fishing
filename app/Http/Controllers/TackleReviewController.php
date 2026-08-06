@@ -61,6 +61,8 @@ class TackleReviewController extends Controller
             ]);
         }
 
+        app(\App\Services\ActivityLogger::class)->tackleReviewPublished($review);
+
         return redirect()
             ->route('tackle-reviews.show', $review)
             ->with('status', 'Tackle review published.');

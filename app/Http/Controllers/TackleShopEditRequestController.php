@@ -38,13 +38,15 @@ class TackleShopEditRequestController extends Controller
             'message' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        TackleShopEditRequest::query()->create([
+        $editRequest = TackleShopEditRequest::query()->create([
             'tackle_shop_id' => $tackleShop->id,
             'user_id' => $request->user()->id,
             'message' => $validated['message'] ?? null,
             'proposed_data' => $persistence->proposedFromInput($validated),
             'status' => 'pending',
         ]);
+
+        app(\App\Services\ActivityLogger::class)->tackleShopEditSuggested($editRequest);
 
         return redirect()
             ->route('tackle-shops.show', $tackleShop)

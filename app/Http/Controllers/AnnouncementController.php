@@ -33,7 +33,7 @@ class AnnouncementController extends Controller
             ? \Illuminate\Support\Carbon::parse($validated['published_at'])
             : now();
 
-        $venue->announcements()->create([
+        $announcement = $venue->announcements()->create([
             'user_id' => $request->user()->id,
             'type' => $validated['type'],
             'title' => $validated['title'],
@@ -41,6 +41,8 @@ class AnnouncementController extends Controller
             'published_at' => $publishedAt,
             'ends_at' => $validated['ends_at'] ?? null,
         ]);
+
+        app(\App\Services\ActivityLogger::class)->announcementPublished($announcement);
 
         $status = $publishedAt->isFuture()
             ? 'Announcement scheduled.'

@@ -35,6 +35,10 @@ class WaterPegService
 
         $this->storePhotos($peg, $photos);
 
+        if ($venue) {
+            app(ActivityLogger::class)->pegAdded($peg, $user, $venue);
+        }
+
         return $peg->load('photos');
     }
 
