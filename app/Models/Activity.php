@@ -40,13 +40,20 @@ class Activity extends Model
 
     public function typeLabel(): string
     {
-        return match ($this->type) {
+        return self::typeOptions()[$this->type] ?? 'Update';
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function typeOptions(): array
+    {
+        return [
             self::TYPE_VENUE => 'Venue',
             self::TYPE_SESSION => 'Session',
             self::TYPE_TACTIC => 'Tactic',
             self::TYPE_CLUB => 'Club',
             self::TYPE_TACKLE_SHOP => 'Tackle shop',
-            default => 'Update',
-        };
+        ];
     }
 }
