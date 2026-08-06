@@ -41,7 +41,8 @@ class UserForm
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload()
-                    ->label('Roles'),
+                    ->label('Roles')
+                    ->helperText('Users may hold multiple roles (e.g. angler + fishery manager). Only site admins can grant or change roles.'),
             ]);
     }
 }

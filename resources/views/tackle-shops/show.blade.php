@@ -21,13 +21,31 @@
                     @endif
                 </div>
             </div>
-            <a href="{{ $shop->url }}"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="inline-flex items-center px-4 py-2 rounded-md bg-sky-700 text-white font-semibold hover:bg-sky-800">
-                Visit website
-            </a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ $shop->url }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="inline-flex items-center px-4 py-2 rounded-md bg-sky-700 text-white font-semibold hover:bg-sky-800">
+                    Visit website
+                </a>
+                @auth
+                    @can('manage', $shop)
+                        <a href="{{ route('tackle-shops.edit', $shop) }}" class="inline-flex items-center px-4 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold hover:bg-sky-50">Edit shop</a>
+                    @elsecan('suggestEdit', $shop)
+                        <a href="{{ route('tackle-shops.suggest-edit', $shop) }}" class="inline-flex items-center px-4 py-2 rounded-md border-2 border-amber-600 text-amber-950 font-semibold hover:bg-amber-50">Suggest an edit</a>
+                    @endcan
+                    @can('claim', $shop)
+                        <form method="POST" action="{{ route('tackle-shops.claim', $shop) }}" class="inline">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center px-4 py-2 rounded-md border-2 border-amber-600 text-amber-950 font-semibold hover:bg-amber-50" onclick="return confirm('Claim management of this tackle shop?')">Claim ownership</button>
+                        </form>
+                    @endcan
+                @endauth
+            </div>
         </div>
+        @if ($shop->manager_verified && $shop->manager)
+            <p class="mt-3 text-sm text-emerald-800 font-semibold">Managed by {{ $shop->manager->name }}</p>
+        @endif
     </x-slot>
 
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">

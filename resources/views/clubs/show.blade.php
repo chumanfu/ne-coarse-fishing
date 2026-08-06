@@ -38,8 +38,24 @@
                     Facebook
                 </a>
             @endif
+            @auth
+                @can('manage', $club)
+                    <a href="{{ route('clubs.edit', $club) }}" class="inline-flex items-center px-4 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold hover:bg-sky-50">Edit club</a>
+                @elsecan('suggestEdit', $club)
+                    <a href="{{ route('clubs.suggest-edit', $club) }}" class="inline-flex items-center px-4 py-2 rounded-md border-2 border-amber-600 text-amber-950 font-semibold hover:bg-amber-50">Suggest an edit</a>
+                @endcan
+                @can('claim', $club)
+                    <form method="POST" action="{{ route('clubs.claim', $club) }}" class="inline">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center px-4 py-2 rounded-md border-2 border-amber-600 text-amber-950 font-semibold hover:bg-amber-50" onclick="return confirm('Claim management of this club?')">Claim ownership</button>
+                    </form>
+                @endcan
+            @endauth
             </div>
         </div>
+        @if ($club->manager_verified && $club->manager)
+            <p class="mt-3 text-sm text-emerald-800 font-semibold">Managed by {{ $club->manager->name }}</p>
+        @endif
     </x-slot>
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">

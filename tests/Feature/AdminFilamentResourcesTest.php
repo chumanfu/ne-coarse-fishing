@@ -3,10 +3,14 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\Announcements\AnnouncementResource;
+use App\Filament\Resources\ClubClaims\ClubClaimResource;
+use App\Filament\Resources\ClubEditRequests\ClubEditRequestResource;
 use App\Filament\Resources\MatchReports\MatchReportResource;
 use App\Filament\Resources\MessageThreads\MessageThreadResource;
 use App\Filament\Resources\SiteAnnouncements\SiteAnnouncementResource;
 use App\Filament\Resources\TackleReviews\TackleReviewResource;
+use App\Filament\Resources\TackleShopClaims\TackleShopClaimResource;
+use App\Filament\Resources\TackleShopEditRequests\TackleShopEditRequestResource;
 use App\Filament\Resources\VenuePhotos\VenuePhotoResource;
 use App\Filament\Resources\VenueTactics\VenueTacticResource;
 use App\Filament\Resources\WaterPegs\WaterPegResource;
@@ -37,6 +41,10 @@ class AdminFilamentResourcesTest extends TestCase
             AnnouncementResource::class,
             SiteAnnouncementResource::class,
             MessageThreadResource::class,
+            ClubClaimResource::class,
+            TackleShopClaimResource::class,
+            ClubEditRequestResource::class,
+            TackleShopEditRequestResource::class,
             VenueTacticResource::class,
             VenuePhotoResource::class,
             TackleReviewResource::class,

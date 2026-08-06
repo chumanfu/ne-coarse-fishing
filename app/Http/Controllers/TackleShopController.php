@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\TackleShop;
+use App\Services\TackleShopPersistenceService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Validation\Rule;
 
 class TackleShopController extends Controller
 {
@@ -36,10 +39,49 @@ class TackleShopController extends Controller
 
     public function show(TackleShop $tackleShop): View
     {
-        abort_unless($tackleShop->is_published, 404);
+        abort_unless(
+            $tackleShop->is_published
+                || (auth()->user() && ($tackleShop->isManagedBy(auth()->user()) || auth()->user()->hasRole('super_admin'))),
+            404
+        );
+
+        $tackleShop->load('manager');
 
         return view('tackle-shops.show', [
             'shop' => $tackleShop,
         ]);
+    }
+
+    public function edit(TackleShop $tackleShop): View
+    {
+        $this->authorize('manage', $tackleShop);
+
+        return view('tackle-shops.edit', [
+            'shop' => $tackleShop,
+        ]);
+    }
+
+    public function update(Request $request, TackleShop $tackleShop, TackleShopPersistenceService $persistence): RedirectResponse
+    {
+        $this->authorize('manage', $tackleShop);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'url' => ['required', 'url', 'max:255'],
+            'overview' => ['nullable', 'string', 'max:5000'],
+            'town' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'location_type' => ['required', Rule::in(array_keys(TackleShop::LOCATION_TYPES))],
+            'latitude' => ['nullable', 'numeric'],
+            'longitude' => ['nullable', 'numeric'],
+            'logo' => ['nullable', 'image', 'max:5120'],
+        ]);
+
+        $persistence->apply($tackleShop, $validated, $request->file('logo'));
+
+        return redirect()
+            ->route('tackle-shops.show', $tackleShop->fresh())
+            ->with('status', 'Tackle shop details updated.');
     }
 }

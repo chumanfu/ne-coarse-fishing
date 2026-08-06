@@ -3,17 +3,21 @@
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\ClubClaimController;
 use App\Http\Controllers\ClubController;
+use App\Http\Controllers\ClubEditRequestController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\FishingSessionController;
-use App\Http\Controllers\MapController;
 use App\Http\Controllers\GdprExportController;
+use App\Http\Controllers\MapController;
 use App\Http\Controllers\MatchReportController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReferFriendController;
 use App\Http\Controllers\TackleReviewController;
+use App\Http\Controllers\TackleShopClaimController;
 use App\Http\Controllers\TackleShopController;
+use App\Http\Controllers\TackleShopEditRequestController;
 use App\Http\Controllers\VenueClaimController;
 use App\Http\Controllers\VenueController;
 use App\Http\Controllers\VenueEditRequestController;
@@ -167,6 +171,18 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/venues/{venue:slug}/favourite', [VenueFavouriteController::class, 'store'])->name('venues.favourite.store');
     Route::delete('/venues/{venue:slug}/favourite', [VenueFavouriteController::class, 'destroy'])->name('venues.favourite.destroy');
     Route::get('/favourites', [VenueFavouriteController::class, 'index'])->name('venues.favourites');
+
+    Route::get('/clubs/{club:slug}/edit', [ClubController::class, 'edit'])->name('clubs.edit');
+    Route::patch('/clubs/{club:slug}', [ClubController::class, 'update'])->name('clubs.update');
+    Route::get('/clubs/{club:slug}/suggest-edit', [ClubEditRequestController::class, 'create'])->name('clubs.suggest-edit');
+    Route::post('/clubs/{club:slug}/suggest-edit', [ClubEditRequestController::class, 'store'])->name('clubs.suggest-edit.store');
+    Route::post('/clubs/{club:slug}/claim', [ClubClaimController::class, 'store'])->name('clubs.claim');
+
+    Route::get('/tackle-shops/{tackleShop:slug}/edit', [TackleShopController::class, 'edit'])->name('tackle-shops.edit');
+    Route::patch('/tackle-shops/{tackleShop:slug}', [TackleShopController::class, 'update'])->name('tackle-shops.update');
+    Route::get('/tackle-shops/{tackleShop:slug}/suggest-edit', [TackleShopEditRequestController::class, 'create'])->name('tackle-shops.suggest-edit');
+    Route::post('/tackle-shops/{tackleShop:slug}/suggest-edit', [TackleShopEditRequestController::class, 'store'])->name('tackle-shops.suggest-edit.store');
+    Route::post('/tackle-shops/{tackleShop:slug}/claim', [TackleShopClaimController::class, 'store'])->name('tackle-shops.claim');
     Route::get('/venues/{venue:slug}/pegs/create', [\App\Http\Controllers\WaterPegController::class, 'create'])->name('pegs.create');
     Route::post('/venues/{venue:slug}/pegs', [\App\Http\Controllers\WaterPegController::class, 'store'])->name('pegs.store');
     Route::post('/venues/{venue:slug}/pegs/{waterPeg}/verify', [\App\Http\Controllers\WaterPegController::class, 'verify'])->name('pegs.verify');

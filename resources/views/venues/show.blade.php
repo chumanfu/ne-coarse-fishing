@@ -122,6 +122,21 @@
                 <h2 class="text-xl font-bold mb-4">Waters</h2>
                 <div class="space-y-4">
                     @foreach ($venue->waters as $water)
+                        @php
+                            $waterPegs = $water->pegs
+                                ->where('is_verified', true)
+                                ->filter(fn ($peg) => $peg->latitude !== null && $peg->longitude !== null)
+                                ->values();
+                            $waterPegsPayload = $waterPegs->map(function ($peg) {
+                                return [
+                                    'id' => $peg->id,
+                                    'label' => $peg->label(),
+                                    'lat' => $peg->latitude,
+                                    'lng' => $peg->longitude,
+                                    'description' => $peg->description,
+                                ];
+                            })->values();
+                        @endphp
                         <div class="border-2 border-slate-200 rounded-lg p-4">
                             <h3 class="font-bold text-slate-900">{{ $water->name }}</h3>
                             @if ($water->description)
@@ -140,6 +155,18 @@
                                     @foreach ($water->species as $species)
                                         <span class="text-xs font-semibold bg-sky-50 border border-sky-300 text-sky-900 px-2 py-1 rounded">{{ $species->name }}</span>
                                     @endforeach
+                                </div>
+                            @endif
+                            @if ($waterPegs->isNotEmpty())
+                                <div class="mt-4">
+                                    <p class="text-sm font-semibold text-slate-800 mb-2">Peg map</p>
+                                    <div
+                                        id="water-map-{{ $water->id }}"
+                                        class="w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-200"
+                                        style="height: 16rem; min-height: 16rem;"
+                                        data-pegs='@json($waterPegsPayload)'
+                                    ></div>
+                                    <p class="text-xs text-slate-500 mt-2">{{ $waterPegs->count() }} mapped peg{{ $waterPegs->count() === 1 ? '' : 's' }}</p>
                                 </div>
                             @endif
                         </div>
@@ -449,6 +476,46 @@
                 }).addTo(map);
                 L.marker([{{ $venue->latitude }}, {{ $venue->longitude }}]).addTo(map)
                     .bindPopup(@json($venue->name));
+
+                document.querySelectorAll('[id^="water-map-"]').forEach((el) => {
+                    let pegs = [];
+                    try {
+                        pegs = JSON.parse(el.dataset.pegs || '[]');
+                    } catch (e) {
+                        return;
+                    }
+                    if (!pegs.length) {
+                        return;
+                    }
+
+                    const escapeHtml = (value) => String(value ?? '')
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;');
+
+                    const waterMap = L.map(el.id);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; OpenStreetMap'
+                    }).addTo(waterMap);
+
+                    const bounds = [];
+                    pegs.forEach((peg) => {
+                        const marker = L.marker([peg.lat, peg.lng]).addTo(waterMap);
+                        const popup = peg.description
+                            ? `<strong>${escapeHtml(peg.label)}</strong><br>${escapeHtml(peg.description)}`
+                            : `<strong>${escapeHtml(peg.label)}</strong>`;
+                        marker.bindPopup(popup);
+                        bounds.push([peg.lat, peg.lng]);
+                    });
+
+                    if (bounds.length === 1) {
+                        waterMap.setView(bounds[0], 17);
+                    } else {
+                        waterMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 18 });
+                    }
+                });
             });
         </script>
     @endpush
