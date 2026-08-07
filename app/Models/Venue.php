@@ -15,6 +15,23 @@ class Venue extends Model
     /** @use HasFactory<VenueFactory> */
     use HasFactory;
 
+    /** @var array<string, string> */
+    public const FACILITIES = [
+        'wifi' => 'WiFi',
+        'camping' => 'Camping',
+        'touring_vehicles' => 'Touring vehicles',
+        'no_commercial_vehicles' => 'Commercial vehicles not allowed',
+        'lodges' => 'Lodges',
+        'toilets' => 'Toilets',
+        'showers' => 'Showers',
+        'tackle_shop' => 'Tackle shop',
+        'fishery_pellets_only' => 'Fishery pellets only',
+        'food' => 'Food',
+        'drink' => 'Drink',
+        'car_park' => 'Car park',
+        'park_at_peg' => 'Park at peg',
+    ];
+
     protected $fillable = [
         'user_id',
         'manager_id',
@@ -34,6 +51,7 @@ class Venue extends Model
         'opening_times',
         'season_info',
         'tactics_guide',
+        'facilities',
         'is_complex',
         'is_approved',
         'manager_verified',
@@ -44,6 +62,7 @@ class Venue extends Model
         return [
             'latitude' => 'float',
             'longitude' => 'float',
+            'facilities' => 'array',
             'is_complex' => 'boolean',
             'is_approved' => 'boolean',
             'manager_verified' => 'boolean',
@@ -230,5 +249,34 @@ class Venue extends Model
 
         // Venue manager (typically fishery_manager role after a claim) or original submitter.
         return $this->manager_id === $user->id || $this->user_id === $user->id;
+    }
+
+    public function hasFacility(string $facility): bool
+    {
+        return in_array($facility, $this->facilities ?? [], true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function facilityLabels(): array
+    {
+        return collect($this->facilities ?? [])
+            ->map(fn (string $facility) => self::FACILITIES[$facility] ?? ucfirst(str_replace('_', ' ', $facility)))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<string>|null  $facilities
+     * @return list<string>
+     */
+    public static function normalizeFacilities(?array $facilities): array
+    {
+        return collect($facilities ?? [])
+            ->filter(fn ($facility) => is_string($facility) && array_key_exists($facility, self::FACILITIES))
+            ->unique()
+            ->values()
+            ->all();
     }
 }

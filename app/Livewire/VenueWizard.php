@@ -80,6 +80,9 @@ class VenueWizard extends Component
 
     public bool $manager_verified = false;
 
+    /** @var list<string> */
+    public array $facilities = [];
+
     /** @var list<array{id: ?int, name: string, description: string, peg_count: mixed, depth_info: string, species: list<int|string>, pegs: list<array{id: ?int, name: string, number: string, latitude: mixed, longitude: mixed}>}> */
     public array $waters = [];
 
@@ -101,7 +104,6 @@ class VenueWizard extends Component
             'peg_count' => '',
             'depth_info' => '',
             'species' => [],
-            'facilities' => [],
             'pegs' => [],
         ]];
 
@@ -259,7 +261,6 @@ class VenueWizard extends Component
             'peg_count' => '',
             'depth_info' => '',
             'species' => [],
-            'facilities' => [],
             'pegs' => [],
         ];
         $this->is_complex = true;
@@ -469,6 +470,7 @@ class VenueWizard extends Component
             'opening_times' => $this->opening_times ?: null,
             'season_info' => $this->season_info ?: null,
             'tactics_guide' => $this->tactics_guide ?: null,
+            'facilities' => Venue::normalizeFacilities($this->facilities),
             'is_complex' => $this->is_complex || count($this->waters) > 1,
         ];
     }
@@ -493,7 +495,6 @@ class VenueWizard extends Component
                     ->map(fn ($id) => (int) $id)
                     ->values()
                     ->all(),
-                'facilities' => Water::normalizeFacilities($water['facilities'] ?? []),
             ])->values()->all(),
         ];
     }
@@ -514,7 +515,6 @@ class VenueWizard extends Component
                 'description' => $waterData['description'] ?: null,
                 'peg_count' => $waterData['peg_count'] !== '' ? $waterData['peg_count'] : null,
                 'depth_info' => $waterData['depth_info'] ?: null,
-                'facilities' => Water::normalizeFacilities($waterData['facilities'] ?? []),
                 'sort_order' => $index,
             ];
 
@@ -638,8 +638,8 @@ class VenueWizard extends Component
                 'waters.*.depth_info' => ['nullable', 'string'],
                 'waters.*.species' => ['nullable', 'array'],
                 'waters.*.species.*' => ['integer', 'exists:species,id'],
-                'waters.*.facilities' => ['nullable', 'array'],
-                'waters.*.facilities.*' => ['string', 'in:'.implode(',', array_keys(Water::FACILITIES))],
+                'facilities' => ['nullable', 'array'],
+                'facilities.*' => ['string', 'in:'.implode(',', array_keys(Venue::FACILITIES))],
                 'waters.*.pegs' => ['nullable', 'array'],
                 'waters.*.pegs.*.name' => ['nullable', 'string', 'max:100'],
                 'waters.*.pegs.*.number' => ['nullable', 'string', 'max:50'],
@@ -697,6 +697,7 @@ class VenueWizard extends Component
         $this->opening_times = (string) $venue->opening_times;
         $this->season_info = (string) $venue->season_info;
         $this->tactics_guide = (string) $venue->tactics_guide;
+        $this->facilities = $venue->facilities ?? [];
         $this->is_complex = (bool) $venue->is_complex;
         $this->is_approved = (bool) $venue->is_approved;
         $this->manager_verified = (bool) $venue->manager_verified;
@@ -710,7 +711,6 @@ class VenueWizard extends Component
                 'peg_count' => $water->peg_count,
                 'depth_info' => (string) $water->depth_info,
                 'species' => $water->species->pluck('id')->map(fn ($id) => (string) $id)->all(),
-                'facilities' => $water->facilities ?? [],
                 'pegs' => $water->pegs()->verified()->with('photos')->orderBy('sort_order')->get()->map(fn ($peg) => [
                     'id' => $peg->id,
                     'name' => (string) $peg->name,

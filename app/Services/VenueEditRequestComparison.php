@@ -27,6 +27,7 @@ class VenueEditRequestComparison
         'opening_times' => 'Opening times',
         'season_info' => 'Seasonal restrictions',
         'is_complex' => 'Complex venue',
+        'facilities' => 'Facilities',
     ];
 
     /** @return array{fields: list<array{label: string, before: string, after: string, changed: bool}>, waters: list<array{label: string, before: string, after: string, changed: bool, status: string}>} */
@@ -146,12 +147,7 @@ class VenueEditRequestComparison
             return true;
         }
 
-        $beforeFacilities = Water::normalizeFacilities($beforeWater->facilities);
-        $afterFacilities = Water::normalizeFacilities($proposed['facilities'] ?? []);
-        sort($beforeFacilities);
-        sort($afterFacilities);
-
-        return $beforeFacilities !== $afterFacilities;
+        return false;
     }
 
     /** @return list<string> */
@@ -184,7 +180,7 @@ class VenueEditRequestComparison
         }
 
         $labels = collect($facilities)
-            ->map(fn (string $facility) => Water::FACILITIES[$facility] ?? ucfirst(str_replace('_', ' ', $facility)))
+            ->map(fn (string $facility) => Venue::FACILITIES[$facility] ?? ucfirst(str_replace('_', ' ', $facility)))
             ->values()
             ->all();
 
@@ -207,6 +203,7 @@ class VenueEditRequestComparison
             },
             'is_complex' => $value ? 'Yes' : 'No',
             'what3words' => blank($value) ? '—' : '///'.Venue::normalizeWhat3words((string) $value),
+            'facilities' => $this->formatFacilitiesLine(Venue::normalizeFacilities(is_array($value) ? $value : null)) ?? '—',
             default => (string) $value,
         };
     }
@@ -219,7 +216,6 @@ class VenueEditRequestComparison
             filled($water->peg_count) ? 'Pegs: '.$water->peg_count : null,
             filled($water->depth_info) ? 'Depth: '.$water->depth_info : null,
             $this->formatSpeciesLine($this->sortedSpeciesNames($water)),
-            $this->formatFacilitiesLine(Water::normalizeFacilities($water->facilities)),
         ]);
 
         return implode("\n", $lines);
@@ -234,7 +230,6 @@ class VenueEditRequestComparison
             filled($proposed['peg_count'] ?? null) ? 'Pegs: '.$proposed['peg_count'] : null,
             filled($proposed['depth_info'] ?? null) ? 'Depth: '.$proposed['depth_info'] : null,
             $this->formatSpeciesLine($this->sortedProposedSpeciesNames($proposed)),
-            $this->formatFacilitiesLine(Water::normalizeFacilities($proposed['facilities'] ?? [])),
         ]);
 
         return implode("\n", $lines);

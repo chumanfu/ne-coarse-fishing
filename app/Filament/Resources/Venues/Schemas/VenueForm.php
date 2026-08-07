@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Venues\Schemas;
 
+use App\Models\Venue;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -61,6 +63,11 @@ class VenueForm
                         Textarea::make('opening_times')->rows(2),
                         Textarea::make('season_info')->rows(2),
                         Textarea::make('tactics_guide')->rows(4)->columnSpanFull(),
+                        CheckboxList::make('facilities')
+                            ->label('Facilities')
+                            ->options(Venue::FACILITIES)
+                            ->columns(2)
+                            ->columnSpanFull(),
                         Toggle::make('is_complex'),
                         Toggle::make('is_approved')->label('Approved for public listing'),
                         Toggle::make('manager_verified')->label('Manager verified badge'),
