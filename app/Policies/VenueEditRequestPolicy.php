@@ -9,7 +9,7 @@ class VenueEditRequestPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('super_admin') || $user->hasRole('fishery_manager');
+        return $user->hasAnyRole(['super_admin', 'fishery_manager', 'club_owner']);
     }
 
     public function view(User $user, VenueEditRequest $request): bool

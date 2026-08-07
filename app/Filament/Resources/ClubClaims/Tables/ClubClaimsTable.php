@@ -41,7 +41,7 @@ class ClubClaimsTable
                             'manager_id' => $record->user_id,
                             'manager_verified' => true,
                         ]);
-                        $record->user->assignRole('fishery_manager');
+                        $record->user->assignRole('club_owner');
                     }),
                 Action::make('reject')
                     ->visible(fn (ClubClaim $record) => $record->status === 'pending')

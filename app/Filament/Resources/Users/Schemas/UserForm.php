@@ -42,7 +42,7 @@ class UserForm
                     ->multiple()
                     ->preload()
                     ->label('Roles')
-                    ->helperText('Users may hold multiple roles (e.g. angler + fishery manager). Only site admins can grant or change roles.'),
+                    ->helperText('Users may hold multiple roles (e.g. angler + fishery manager, or angler + club owner). Only site admins can grant or change roles.'),
             ]);
     }
 }

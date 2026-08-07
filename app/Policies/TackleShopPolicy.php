@@ -19,7 +19,8 @@ class TackleShopPolicy
 
     public function manage(User $user, TackleShop $tackleShop): bool
     {
-        return $tackleShop->isManagedBy($user) || $user->hasRole('super_admin');
+        return $user->hasRole('super_admin')
+            || ($user->hasRole('tackle_shop_owner') && $tackleShop->isManagedBy($user));
     }
 
     public function update(User $user, TackleShop $tackleShop): bool
@@ -36,7 +37,7 @@ class TackleShopPolicy
 
     public function suggestEdit(User $user, TackleShop $tackleShop): bool
     {
-        if (! $tackleShop->is_published || $tackleShop->isManagedBy($user) || $user->hasRole('super_admin')) {
+        if (! $tackleShop->is_published || $this->manage($user, $tackleShop)) {
             return false;
         }
 
