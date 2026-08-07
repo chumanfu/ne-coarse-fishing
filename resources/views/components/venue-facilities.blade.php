@@ -1,14 +1,14 @@
-@props(['water'])
+@props(['venue'])
 
 @php
-    /** @var \App\Models\Water $water */
-    $available = collect($water->facilities ?? []);
+    /** @var \App\Models\Venue $venue */
+    $available = collect($venue->facilities ?? []);
 @endphp
 
-<div {{ $attributes->merge(['class' => 'mt-4']) }}>
+<div {{ $attributes->merge(['class' => '']) }}>
     <p class="text-sm font-semibold text-slate-800 mb-2">Facilities</p>
-    <ul class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        @foreach (\App\Models\Water::FACILITIES as $key => $label)
+    <ul class="grid grid-cols-2 gap-2">
+        @foreach (\App\Models\Venue::FACILITIES as $key => $label)
             @php
                 $isAvailable = $available->contains($key);
             @endphp

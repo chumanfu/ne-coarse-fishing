@@ -243,6 +243,21 @@
                     </div>
                 @endunless
 
+                <div style="margin-top: 1rem;">
+                    <label>Facilities</label>
+                    <p class="hint">Tick everything available at this venue.</p>
+                    <div class="check-grid">
+                        @foreach (\App\Models\Venue::FACILITIES as $facilityKey => $facilityLabel)
+                            <label>
+                                <input type="checkbox"
+                                       wire:model="facilities"
+                                       value="{{ $facilityKey }}">
+                                {{ $facilityLabel }}
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
                 @if ($editRequest)
                     <div style="margin-top: 1rem;">
                         <label>Note for reviewers (optional)</label>
@@ -293,20 +308,6 @@
                                                    wire:model="waters.{{ $index }}.species"
                                                    value="{{ $species->id }}">
                                             {{ $species->name }}
-                                        </label>
-                                    @endforeach
-                                </div>
-                            </div>
-                            <div style="margin-top: 0.75rem;">
-                                <label>Facilities</label>
-                                <p class="hint">Tick everything available on this water.</p>
-                                <div class="check-grid">
-                                    @foreach (\App\Models\Water::FACILITIES as $facilityKey => $facilityLabel)
-                                        <label>
-                                            <input type="checkbox"
-                                                   wire:model="waters.{{ $index }}.facilities"
-                                                   value="{{ $facilityKey }}">
-                                            {{ $facilityLabel }}
                                         </label>
                                     @endforeach
                                 </div>

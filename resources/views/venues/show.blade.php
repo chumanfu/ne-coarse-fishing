@@ -157,7 +157,6 @@
                                     @endforeach
                                 </div>
                             @endif
-                            <x-water-facilities :water="$water" />
                             @if ($waterPegs->isNotEmpty())
                                 <div class="mt-4">
                                     <p class="text-sm font-semibold text-slate-800 mb-2">Peg map</p>
@@ -416,6 +415,10 @@
 
         <aside class="space-y-6">
             <div id="venue-map" class="h-64 rounded-xl border-2 border-slate-400 overflow-hidden"></div>
+
+            <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
+                <x-venue-facilities :venue="$venue" />
+            </section>
 
             <section class="bg-white border-2 border-slate-300 rounded-xl p-5 space-y-4 text-sm">
                 @if ($venue->url)

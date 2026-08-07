@@ -5,17 +5,16 @@ namespace Tests\Feature;
 use App\Livewire\VenueWizard;
 use App\Models\User;
 use App\Models\Venue;
-use App\Models\Water;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
-class WaterFacilitiesTest extends TestCase
+class VenueFacilitiesTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_venue_wizard_persists_water_facilities(): void
+    public function test_venue_wizard_persists_venue_facilities(): void
     {
         $user = User::factory()->create();
         Role::findOrCreate('angler');
@@ -32,22 +31,21 @@ class WaterFacilitiesTest extends TestCase
             ->set('address', 'Durham')
             ->set('ticket_type', 'day_ticket')
             ->set('waters.0.name', 'Main lake')
-            ->set('waters.0.facilities', ['wifi', 'toilets', 'car_park'])
+            ->set('facilities', ['wifi', 'toilets', 'car_park'])
             ->call('save')
             ->assertHasNoErrors()
             ->assertRedirect();
 
-        $water = Water::query()->where('name', 'Main lake')->first();
+        $venue = Venue::query()->where('name', 'Facilities Test Lakes')->first();
 
-        $this->assertNotNull($water);
-        $this->assertSame(['wifi', 'toilets', 'car_park'], $water->facilities);
+        $this->assertNotNull($venue);
+        $this->assertSame(['wifi', 'toilets', 'car_park'], $venue->facilities);
     }
 
     public function test_venue_show_displays_all_facilities_with_unavailable_greyed_out(): void
     {
-        $venue = Venue::factory()->create(['is_approved' => true]);
-        $water = Water::factory()->for($venue)->create([
-            'name' => 'Match Lake',
+        $venue = Venue::factory()->create([
+            'is_approved' => true,
             'facilities' => ['wifi', 'toilets', 'car_park'],
         ]);
 
