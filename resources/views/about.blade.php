@@ -8,6 +8,20 @@
         <article class="bg-white border-2 border-slate-300 rounded-xl p-6 sm:p-8 space-y-5 text-slate-800 leading-relaxed">
             <p>For 37 years, coarse angling has been my main passion. Most of that time was spent exploring the waters of North Lincolnshire, with a strong bias toward the lakes and rivers around Grimsby.</p>
 
+            <figure class="overflow-hidden rounded-xl border-2 border-slate-200 bg-slate-100">
+                <img
+                    src="{{ asset('images/about/canal-fishing-vintage.png') }}"
+                    alt="Anglers fishing from a canal bank"
+                    class="w-full h-auto object-cover"
+                    loading="lazy"
+                    width="1200"
+                    height="800"
+                >
+                <figcaption class="px-4 py-3 text-sm text-slate-600 border-t border-slate-200 bg-slate-50">
+                    Canal-side fishing — the kind of scene that got many of us started.
+                </figcaption>
+            </figure>
+
             <p>In 2011, I moved north to Newcastle, but my tackle remained firmly planted in Lincolnshire. That all changed when my parents decided their garage desperately needed a clear out. Suddenly, my gear was repatriated—much to the absolute delight of my wife and two kids, who were thrilled to welcome decades of stored fishing equipment into our home.</p>
 
             <p>Reconnecting with my old kit instantly rekindled my love for the sport. But it also left me facing a blank slate: where do I actually fish around here?</p>
@@ -19,6 +33,20 @@
             <p>That frustration was the catalyst for NE Coarse Fishing.</p>
 
             <p>My goal was to build a dedicated hub for pleasure anglers across the region. NE Coarse Fishing brings together venues, clubs, and local tackle shops into one clear, accessible platform. More than just a directory, the site includes session logging—allowing anglers to share real-time catch reports, working tactics, and effective baits so the community stays informed on what’s actually working on the bank.</p>
+
+            <figure class="overflow-hidden rounded-xl border-2 border-slate-200 bg-slate-100">
+                <img
+                    src="{{ asset('images/about/chris-bankside-catch.png') }}"
+                    alt="Chris Mitchell holding a fish on a North East bank"
+                    class="w-full h-auto object-cover"
+                    loading="lazy"
+                    width="1200"
+                    height="1600"
+                >
+                <figcaption class="px-4 py-3 text-sm text-slate-600 border-t border-slate-200 bg-slate-50">
+                    Back on the bank in the North East — exactly the kind of session the site is built to capture.
+                </figcaption>
+            </figure>
 
             <p>Right now, the platform provides the framework, but its real value comes from the community. NE Coarse Fishing is designed to be built by local anglers, venue owners, and tackle shops working together to map out the current North East fishing scene.</p>
 

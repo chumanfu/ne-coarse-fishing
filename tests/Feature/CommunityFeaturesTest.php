@@ -21,7 +21,9 @@ class CommunityFeaturesTest extends TestCase
         $this->get(route('about'))
             ->assertOk()
             ->assertSee('NE Coarse Fishing', false)
-            ->assertSee('Tight lines', false);
+            ->assertSee('Tight lines', false)
+            ->assertSee('images/about/canal-fishing-vintage.png', false)
+            ->assertSee('images/about/chris-bankside-catch.png', false);
 
         $this->get(route('refer'))
             ->assertOk()
