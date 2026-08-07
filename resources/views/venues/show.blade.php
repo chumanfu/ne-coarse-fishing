@@ -157,6 +157,7 @@
                                     @endforeach
                                 </div>
                             @endif
+                            <x-water-facilities :water="$water" />
                             @if ($waterPegs->isNotEmpty())
                                 <div class="mt-4">
                                     <p class="text-sm font-semibold text-slate-800 mb-2">Peg map</p>

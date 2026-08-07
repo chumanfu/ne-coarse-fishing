@@ -142,7 +142,16 @@ class VenueEditRequestComparison
             ->values()
             ->all();
 
-        return $beforeSpeciesIds !== $afterSpeciesIds;
+        if ($beforeSpeciesIds !== $afterSpeciesIds) {
+            return true;
+        }
+
+        $beforeFacilities = Water::normalizeFacilities($beforeWater->facilities);
+        $afterFacilities = Water::normalizeFacilities($proposed['facilities'] ?? []);
+        sort($beforeFacilities);
+        sort($afterFacilities);
+
+        return $beforeFacilities !== $afterFacilities;
     }
 
     /** @return list<string> */
@@ -165,6 +174,21 @@ class VenueEditRequestComparison
     private function formatSpeciesLine(array $names): ?string
     {
         return $names !== [] ? 'Species: '.implode(', ', $names) : null;
+    }
+
+    /** @param  list<string>  $facilities */
+    private function formatFacilitiesLine(array $facilities): ?string
+    {
+        if ($facilities === []) {
+            return null;
+        }
+
+        $labels = collect($facilities)
+            ->map(fn (string $facility) => Water::FACILITIES[$facility] ?? ucfirst(str_replace('_', ' ', $facility)))
+            ->values()
+            ->all();
+
+        return 'Facilities: '.implode(', ', $labels);
     }
 
     private function formatVenueValue(string $key, mixed $value): string
@@ -195,6 +219,7 @@ class VenueEditRequestComparison
             filled($water->peg_count) ? 'Pegs: '.$water->peg_count : null,
             filled($water->depth_info) ? 'Depth: '.$water->depth_info : null,
             $this->formatSpeciesLine($this->sortedSpeciesNames($water)),
+            $this->formatFacilitiesLine(Water::normalizeFacilities($water->facilities)),
         ]);
 
         return implode("\n", $lines);
@@ -209,6 +234,7 @@ class VenueEditRequestComparison
             filled($proposed['peg_count'] ?? null) ? 'Pegs: '.$proposed['peg_count'] : null,
             filled($proposed['depth_info'] ?? null) ? 'Depth: '.$proposed['depth_info'] : null,
             $this->formatSpeciesLine($this->sortedProposedSpeciesNames($proposed)),
+            $this->formatFacilitiesLine(Water::normalizeFacilities($proposed['facilities'] ?? [])),
         ]);
 
         return implode("\n", $lines);

@@ -65,6 +65,7 @@ class VenuePersistenceService
                     'description' => filled($waterData['description'] ?? null) ? $waterData['description'] : null,
                     'peg_count' => ($waterData['peg_count'] ?? '') !== '' ? $waterData['peg_count'] : null,
                     'depth_info' => filled($waterData['depth_info'] ?? null) ? $waterData['depth_info'] : null,
+                    'facilities' => Water::normalizeFacilities($waterData['facilities'] ?? []),
                     'sort_order' => $index,
                 ];
 

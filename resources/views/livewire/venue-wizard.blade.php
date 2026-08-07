@@ -297,6 +297,20 @@
                                     @endforeach
                                 </div>
                             </div>
+                            <div style="margin-top: 0.75rem;">
+                                <label>Facilities</label>
+                                <p class="hint">Tick everything available on this water.</p>
+                                <div class="check-grid">
+                                    @foreach (\App\Models\Water::FACILITIES as $facilityKey => $facilityLabel)
+                                        <label>
+                                            <input type="checkbox"
+                                                   wire:model="waters.{{ $index }}.facilities"
+                                                   value="{{ $facilityKey }}">
+                                            {{ $facilityLabel }}
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
 
                             <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--vw-border);">
                                 <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
