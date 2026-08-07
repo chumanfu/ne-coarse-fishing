@@ -10,6 +10,7 @@ class ActivityController extends Controller
     public function index(): View
     {
         $activities = Activity::query()
+            ->publicFeed()
             ->with('user')
             ->latest()
             ->paginate(25);

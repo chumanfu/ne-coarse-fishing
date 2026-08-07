@@ -70,6 +70,18 @@ class Activity extends Model
     }
 
     /**
+     * Activities safe to show on the public site (home + /activity).
+     * Sign-ups remain available in the Filament admin activity log.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<static>
+     */
+    public function scopePublicFeed($query)
+    {
+        return $query->where('type', '!=', self::TYPE_USER_REGISTERED);
+    }
+
+    /**
      * @return array<string, string>
      */
     public static function typeOptions(): array
