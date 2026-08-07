@@ -54,6 +54,7 @@ Route::get('/', function () {
         ->get();
 
     $activities = Activity::query()
+        ->publicFeed()
         ->with('user')
         ->latest()
         ->take(10)
