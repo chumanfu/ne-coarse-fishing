@@ -36,27 +36,27 @@ Route::get('/', function () {
         ->approved()
         ->with(['waters.species', 'manager', 'photos'])
         ->latest()
-        ->take(6)
+        ->take(4)
         ->get();
 
     $featuredShops = TackleShop::query()
         ->published()
         ->featured()
         ->ordered()
-        ->take(6)
+        ->take(4)
         ->get();
 
     $featuredClubs = Club::query()
         ->published()
         ->featured()
         ->ordered()
-        ->take(6)
+        ->take(4)
         ->get();
 
     $activities = Activity::query()
         ->with('user')
         ->latest()
-        ->take(5)
+        ->take(10)
         ->get();
 
     $tackleReviews = TackleReview::query()

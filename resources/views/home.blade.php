@@ -41,197 +41,227 @@
         </div>
     </section>
 
-    <div class="border-t border-slate-200 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="flex items-end justify-between gap-4 mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-900">Latest activity</h2>
-                    <p class="text-slate-600 mt-1">New venues, sessions, tactics, clubs and tackle shops from around the region.</p>
-                </div>
-                <a href="{{ route('activity.index') }}" class="text-sky-800 font-semibold hover:underline shrink-0">View all</a>
-            </div>
+    <section class="home-board border-t border-slate-200 bg-slate-50" aria-label="Home board">
+        <div class="home-board__inner max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
+            <div class="home-board__grid grid gap-8 xl:grid-cols-12 xl:gap-6 2xl:gap-8 xl:items-start">
 
-            <div class="space-y-3">
-                @forelse ($activities as $activity)
-                    <x-activity-row :activity="$activity" />
-                @empty
-                    <p class="text-slate-600">No activity yet — log a session or add a venue to get things started.</p>
-                @endforelse
-            </div>
-        </div>
-    </div>
-
-    <div class="border-t-2 border-slate-200 bg-slate-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
-             id="home-map"
-             x-data="homeVenueMap(@js($mapMarkers))">
-            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-900">Explore the map</h2>
-                    <p class="text-slate-600 mt-1">Search venues and tackle shops, or click a pin for a quick look.</p>
-                </div>
-                <a href="{{ route('map.index') }}" class="text-sky-800 font-semibold hover:underline shrink-0">Full map &amp; filters</a>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-4 mb-4 text-sm font-semibold text-slate-700">
-                <span class="inline-flex items-center gap-2">
-                    <span class="inline-block h-3 w-3 rounded-full bg-blue-600 border-2 border-white shadow" aria-hidden="true"></span>
-                    Venues
-                </span>
-                <span class="inline-flex items-center gap-2">
-                    <span class="inline-block h-3 w-3 rounded-full bg-red-600 border-2 border-white shadow" aria-hidden="true"></span>
-                    Tackle shops
-                </span>
-            </div>
-
-            <div class="relative mb-4 max-w-md">
-                <label for="home-venue-search" class="block text-sm font-semibold text-slate-800 mb-1">Search map</label>
-                <input
-                    id="home-venue-search"
-                    type="search"
-                    x-model="query"
-                    @keydown.escape="query = ''"
-                    placeholder="Type a venue or shop name…"
-                    class="w-full rounded-md border-2 border-slate-400 bg-white px-3 py-2 focus:border-sky-700 focus:ring-sky-700"
-                    autocomplete="off"
-                >
-                <div
-                    x-show="query.trim() && filtered.length"
-                    x-cloak
-                    class="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white border-2 border-slate-300 rounded-lg shadow-lg"
-                >
-                    <template x-for="venue in filtered.slice(0, 8)" :key="venue.id">
-                        <button
-                            type="button"
-                            class="w-full text-left px-3 py-2 hover:bg-sky-50 border-b border-slate-100 last:border-0"
-                            @click="focusVenue(venue)"
-                        >
-                            <span class="font-semibold text-slate-900" x-text="venue.name"></span>
-                            <span class="block text-xs text-slate-600" x-text="venue.type === 'tackle_shop' ? ('Tackle shop · ' + venue.ticket_type) : venue.ticket_type"></span>
-                        </button>
-                    </template>
-                </div>
-                <p x-show="query.trim() && !filtered.length" x-cloak class="mt-2 text-sm text-slate-600">No venues or shops match that name.</p>
-            </div>
-
-            <div id="home-venue-map"
-                 class="w-full rounded-xl border-2 border-slate-400 overflow-hidden bg-slate-200"
-                 style="height: 28rem; min-height: 28rem;"></div>
-            <p class="mt-3 text-sm text-slate-600">
-                <span x-text="filtered.length"></span> of {{ count($mapMarkers) }} places shown
-            </p>
-        </div>
-    </div>
-
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="flex items-end justify-between gap-4 mb-6">
-            <div>
-                <h2 class="text-2xl font-bold text-slate-900">Featured venues</h2>
-                <p class="text-slate-600 mt-1">Recently approved waters across the region.</p>
-            </div>
-            <a href="{{ route('venues.index') }}" class="text-sky-800 font-semibold hover:underline">View all</a>
-        </div>
-
-        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            @forelse ($featured as $venue)
-                <a href="{{ route('venues.show', $venue) }}" class="block bg-white border-2 border-slate-300 rounded-xl overflow-hidden hover:border-sky-700 transition">
-                    @if ($venue->photos->isNotEmpty())
-                        <img src="{{ $venue->photos->first()->url() }}" alt="" class="w-full h-40 object-cover border-b-2 border-slate-200">
-                    @endif
-                    <div class="p-5">
-                        <div class="flex items-start justify-between gap-3">
-                            <h3 class="font-bold text-lg text-slate-900">{{ $venue->name }}</h3>
-                            @if ($venue->manager_verified)
-                                <span class="shrink-0 text-xs font-bold uppercase tracking-wide bg-emerald-100 text-emerald-900 border border-emerald-600 px-2 py-1 rounded">Verified</span>
-                            @endif
+                {{-- Column 1: Latest activity --}}
+                <aside class="home-board__col home-board__col--activity xl:col-span-3 order-2 xl:order-1">
+                    <div class="home-board__panel">
+                        <div class="home-board__panel-head">
+                            <div>
+                                <h2 class="home-board__title">Latest activity</h2>
+                                <p class="home-board__lead">New venues, sessions, tactics and more.</p>
+                            </div>
+                            <a href="{{ route('activity.index') }}" class="home-board__link">View all</a>
                         </div>
-                        <p class="text-sm text-slate-600 mt-2 line-clamp-3">{{ $venue->overview ?: 'No overview yet.' }}</p>
-                        <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-                            <span class="bg-slate-100 border border-slate-300 px-2 py-1 rounded">{{ $venue->ticketTypeLabel() }}</span>
-                            @foreach ($venue->allSpecies()->take(3) as $species)
-                                <span class="bg-sky-50 border border-sky-300 text-sky-900 px-2 py-1 rounded">{{ $species->name }}</span>
-                            @endforeach
+
+                        <div class="space-y-2">
+                            @forelse ($activities as $activity)
+                                <x-activity-row :activity="$activity" compact />
+                            @empty
+                                <p class="text-sm text-slate-600">No activity yet — log a session or add a venue to get things started.</p>
+                            @endforelse
                         </div>
                     </div>
-                </a>
-            @empty
-                <p class="text-slate-600 col-span-full">No venues approved yet. Be the first to submit one.</p>
-            @endforelse
-        </div>
-    </div>
+                </aside>
 
-    <div class="border-t-2 border-slate-200 bg-slate-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="flex items-end justify-between gap-4 mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-900">Angling clubs</h2>
-                    <p class="text-slate-600 mt-1">Local clubs and alliances across the region — pick yours when you register.</p>
-                </div>
-                <a href="{{ route('clubs.index') }}" class="text-sky-800 font-semibold hover:underline">View all</a>
-            </div>
-
-            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                @forelse ($featuredClubs as $club)
-                    <x-club-card :club="$club" />
-                @empty
-                    <p class="text-slate-600 col-span-full">Club listings are coming soon.</p>
-                @endforelse
-            </div>
-        </div>
-    </div>
-
-    <div class="border-t-2 border-slate-200 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="flex items-end justify-between gap-4 mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-900">Tackle shops</h2>
-                    <p class="text-slate-600 mt-1">Local North East independents and the big online stores — with a direct link to each website.</p>
-                </div>
-                <a href="{{ route('tackle-shops.index') }}" class="text-sky-800 font-semibold hover:underline">View all</a>
-            </div>
-
-            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                @forelse ($featuredShops as $shop)
-                    <x-tackle-shop-card :shop="$shop" />
-                @empty
-                    <p class="text-slate-600 col-span-full">Tackle shop listings are coming soon.</p>
-                @endforelse
-            </div>
-        </div>
-    </div>
-
-    <div class="border-t-2 border-slate-200 bg-slate-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="flex items-end justify-between gap-4 mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-900">Tackle reviews</h2>
-                    <p class="text-slate-600 mt-1">What anglers are using — rated and reviewed by the community.</p>
-                </div>
-                <a href="{{ route('tackle-reviews.index') }}" class="text-sky-800 font-semibold hover:underline">View all</a>
-            </div>
-
-            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                @forelse ($tackleReviews as $review)
-                    <a href="{{ route('tackle-reviews.show', $review) }}" class="block bg-white border-2 border-slate-300 rounded-xl overflow-hidden hover:border-sky-700 transition">
-                        @if ($review->photos->isNotEmpty())
-                            <img src="{{ $review->photos->first()->url() }}" alt="" class="w-full h-40 object-cover border-b-2 border-slate-200">
-                        @endif
-                        <div class="p-5">
-                            <h3 class="font-bold text-lg text-slate-900">{{ $review->displayName() }}</h3>
-                            <div class="mt-2"><x-star-rating :rating="$review->rating" /></div>
-                            <p class="text-sm text-slate-700 mt-3 line-clamp-3">{{ $review->body }}</p>
-                            <p class="text-xs text-slate-500 mt-3">By {{ $review->user->name }}</p>
+                {{-- Column 2: Map + featured venues --}}
+                <div
+                    class="home-board__col home-board__col--map xl:col-span-5 2xl:col-span-6 order-1 xl:order-2 space-y-8"
+                    id="home-map"
+                    x-data="homeVenueMap(@js($mapMarkers))"
+                >
+                    <div class="home-board__panel">
+                        <div class="home-board__panel-head">
+                            <div>
+                                <h2 class="home-board__title">Explore the map</h2>
+                                <p class="home-board__lead">Search venues and tackle shops, or click a pin.</p>
+                            </div>
+                            <a href="{{ route('map.index') }}" class="home-board__link">Full map</a>
                         </div>
-                    </a>
-                @empty
-                    <p class="text-slate-600 col-span-full">
-                        No reviews yet.
-                        <a href="{{ route('tackle-reviews.create') }}" class="text-sky-800 font-semibold hover:underline">Write the first one</a>.
-                    </p>
-                @endforelse
+
+                        <div class="flex flex-wrap items-center gap-4 mb-3 text-sm font-semibold text-slate-700">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="inline-block h-3 w-3 rounded-full bg-blue-600 border-2 border-white shadow" aria-hidden="true"></span>
+                                Venues
+                            </span>
+                            <span class="inline-flex items-center gap-2">
+                                <span class="inline-block h-3 w-3 rounded-full bg-red-600 border-2 border-white shadow" aria-hidden="true"></span>
+                                Tackle shops
+                            </span>
+                        </div>
+
+                        <div class="relative mb-3">
+                            <label for="home-venue-search" class="block text-sm font-semibold text-slate-800 mb-1">Search map</label>
+                            <input
+                                id="home-venue-search"
+                                type="search"
+                                x-model="query"
+                                @keydown.escape="query = ''"
+                                placeholder="Type a venue or shop name…"
+                                class="w-full rounded-md border-2 border-slate-400 bg-white px-3 py-2 focus:border-sky-700 focus:ring-sky-700"
+                                autocomplete="off"
+                            >
+                            <div
+                                x-show="query.trim() && filtered.length"
+                                x-cloak
+                                class="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white border-2 border-slate-300 rounded-lg shadow-lg"
+                            >
+                                <template x-for="venue in filtered.slice(0, 8)" :key="venue.id">
+                                    <button
+                                        type="button"
+                                        class="w-full text-left px-3 py-2 hover:bg-sky-50 border-b border-slate-100 last:border-0"
+                                        @click="focusVenue(venue)"
+                                    >
+                                        <span class="font-semibold text-slate-900" x-text="venue.name"></span>
+                                        <span class="block text-xs text-slate-600" x-text="venue.type === 'tackle_shop' ? ('Tackle shop · ' + venue.ticket_type) : venue.ticket_type"></span>
+                                    </button>
+                                </template>
+                            </div>
+                            <p x-show="query.trim() && !filtered.length" x-cloak class="mt-2 text-sm text-slate-600">No venues or shops match that name.</p>
+                        </div>
+
+                        <div id="home-venue-map"
+                             class="w-full rounded-xl border-2 border-slate-400 overflow-hidden bg-slate-200"
+                             style="height: 22rem; min-height: 22rem;"></div>
+                        <p class="mt-2 text-sm text-slate-600">
+                            <span x-text="filtered.length"></span> of {{ count($mapMarkers) }} places shown
+                        </p>
+                    </div>
+
+                    <div class="home-board__panel">
+                        <div class="home-board__panel-head">
+                            <div>
+                                <h2 class="home-board__title">Featured venues</h2>
+                                <p class="home-board__lead">Recently approved waters across the region.</p>
+                            </div>
+                            <a href="{{ route('venues.index') }}" class="home-board__link">View all</a>
+                        </div>
+
+                        <div class="space-y-3">
+                            @forelse ($featured as $venue)
+                                <a href="{{ route('venues.show', $venue) }}" class="home-board__item group">
+                                    @if ($venue->photos->isNotEmpty())
+                                        <img src="{{ $venue->photos->first()->url() }}" alt="" class="home-board__thumb" loading="lazy">
+                                    @else
+                                        <span class="home-board__thumb home-board__thumb--empty" aria-hidden="true"></span>
+                                    @endif
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <h3 class="font-bold text-slate-900 group-hover:text-sky-800">{{ $venue->name }}</h3>
+                                            @if ($venue->manager_verified)
+                                                <span class="shrink-0 text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-900 border border-emerald-600 px-1.5 py-0.5 rounded">Verified</span>
+                                            @endif
+                                        </div>
+                                        <p class="text-sm text-slate-600 mt-1 line-clamp-2">{{ $venue->overview ?: 'No overview yet.' }}</p>
+                                        <div class="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold">
+                                            <span class="bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded">{{ $venue->ticketTypeLabel() }}</span>
+                                            @foreach ($venue->allSpecies()->take(2) as $species)
+                                                <span class="bg-sky-50 border border-sky-300 text-sky-900 px-1.5 py-0.5 rounded">{{ $species->name }}</span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </a>
+                            @empty
+                                <p class="text-sm text-slate-600">No venues approved yet. Be the first to submit one.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Column 3: Clubs, shops, reviews --}}
+                <aside class="home-board__col home-board__col--directory xl:col-span-4 2xl:col-span-3 order-3 space-y-8">
+                    <div class="home-board__panel">
+                        <div class="home-board__panel-head">
+                            <div>
+                                <h2 class="home-board__title">Angling clubs</h2>
+                                <p class="home-board__lead">Local clubs across the region.</p>
+                            </div>
+                            <a href="{{ route('clubs.index') }}" class="home-board__link">View all</a>
+                        </div>
+
+                        <div class="space-y-2">
+                            @forelse ($featuredClubs as $club)
+                                <a href="{{ route('clubs.show', $club) }}" class="home-board__item home-board__item--compact group">
+                                    @if ($club->logoUrl())
+                                        <img src="{{ $club->logoUrl() }}" alt="" class="home-board__logo" loading="lazy">
+                                    @endif
+                                    <div class="min-w-0 flex-1">
+                                        <h3 class="font-bold text-slate-900 group-hover:text-sky-800">{{ $club->name }}</h3>
+                                        @if ($club->town)
+                                            <p class="text-xs font-semibold text-slate-500 mt-0.5">{{ $club->town }}</p>
+                                        @endif
+                                    </div>
+                                </a>
+                            @empty
+                                <p class="text-sm text-slate-600">Club listings are coming soon.</p>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    <div class="home-board__panel">
+                        <div class="home-board__panel-head">
+                            <div>
+                                <h2 class="home-board__title">Tackle shops</h2>
+                                <p class="home-board__lead">Independents and online stores.</p>
+                            </div>
+                            <a href="{{ route('tackle-shops.index') }}" class="home-board__link">View all</a>
+                        </div>
+
+                        <div class="space-y-2">
+                            @forelse ($featuredShops as $shop)
+                                <a href="{{ route('tackle-shops.show', $shop) }}" class="home-board__item home-board__item--compact group">
+                                    @if ($shop->logoUrl())
+                                        <img src="{{ $shop->logoUrl() }}" alt="" class="home-board__logo" loading="lazy">
+                                    @endif
+                                    <div class="min-w-0 flex-1">
+                                        <h3 class="font-bold text-slate-900 group-hover:text-sky-800">{{ $shop->name }}</h3>
+                                        <p class="text-xs font-semibold text-slate-500 mt-0.5">
+                                            {{ $shop->locationTypeLabel() }}@if ($shop->town) · {{ $shop->town }}@endif
+                                        </p>
+                                    </div>
+                                </a>
+                            @empty
+                                <p class="text-sm text-slate-600">Tackle shop listings are coming soon.</p>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    <div class="home-board__panel">
+                        <div class="home-board__panel-head">
+                            <div>
+                                <h2 class="home-board__title">Tackle reviews</h2>
+                                <p class="home-board__lead">Rated by the community.</p>
+                            </div>
+                            <a href="{{ route('tackle-reviews.index') }}" class="home-board__link">View all</a>
+                        </div>
+
+                        <div class="space-y-2">
+                            @forelse ($tackleReviews as $review)
+                                <a href="{{ route('tackle-reviews.show', $review) }}" class="home-board__item home-board__item--compact group">
+                                    @if ($review->photos->isNotEmpty())
+                                        <img src="{{ $review->photos->first()->url() }}" alt="" class="home-board__thumb home-board__thumb--square" loading="lazy">
+                                    @endif
+                                    <div class="min-w-0 flex-1">
+                                        <h3 class="font-bold text-slate-900 group-hover:text-sky-800">{{ $review->displayName() }}</h3>
+                                        <div class="mt-1"><x-star-rating :rating="$review->rating" /></div>
+                                        <p class="text-xs text-slate-600 mt-1 line-clamp-2">{{ $review->body }}</p>
+                                    </div>
+                                </a>
+                            @empty
+                                <p class="text-sm text-slate-600">
+                                    No reviews yet.
+                                    <a href="{{ route('tackle-reviews.create') }}" class="text-sky-800 font-semibold hover:underline">Write the first one</a>.
+                                </p>
+                            @endforelse
+                        </div>
+                    </div>
+                </aside>
+
             </div>
         </div>
-    </div>
+    </section>
 
     <x-slot name="scripts">
         <style>
@@ -247,6 +277,89 @@
             }
             .map-pin--venue .map-pin__dot { background: #2563eb; }
             .map-pin--shop .map-pin__dot { background: #dc2626; }
+
+            .home-board__panel {
+                background: #fff;
+                border: 2px solid #cbd5e1;
+                border-radius: 0.75rem;
+                padding: 1rem 1.1rem 1.15rem;
+            }
+            .home-board__panel-head {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 0.75rem;
+                margin-bottom: 0.9rem;
+            }
+            .home-board__title {
+                font-size: 1.15rem;
+                line-height: 1.25;
+                font-weight: 700;
+                color: #0f172a;
+            }
+            .home-board__lead {
+                margin-top: 0.2rem;
+                font-size: 0.875rem;
+                color: #475569;
+            }
+            .home-board__link {
+                flex-shrink: 0;
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: #075985;
+                text-decoration: none;
+            }
+            .home-board__link:hover { text-decoration: underline; }
+            .home-board__item {
+                display: flex;
+                gap: 0.75rem;
+                align-items: flex-start;
+                padding: 0.7rem;
+                border: 2px solid #e2e8f0;
+                border-radius: 0.65rem;
+                background: #f8fafc;
+                transition: border-color 0.15s ease;
+            }
+            .home-board__item:hover { border-color: #0369a1; }
+            .home-board__item--compact {
+                align-items: center;
+                padding: 0.55rem 0.65rem;
+            }
+            .home-board__thumb {
+                width: 4.5rem;
+                height: 4.5rem;
+                object-fit: cover;
+                border-radius: 0.45rem;
+                border: 1px solid #cbd5e1;
+                flex-shrink: 0;
+                background: #e2e8f0;
+            }
+            .home-board__thumb--square {
+                width: 3.25rem;
+                height: 3.25rem;
+            }
+            .home-board__thumb--empty {
+                display: block;
+                background:
+                    linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+            }
+            .home-board__logo {
+                width: 2.75rem;
+                height: 2.75rem;
+                object-fit: contain;
+                border-radius: 0.4rem;
+                border: 1px solid #e2e8f0;
+                background: #fff;
+                padding: 0.2rem;
+                flex-shrink: 0;
+            }
+            @media (min-width: 1280px) {
+                .home-board__col--activity,
+                .home-board__col--directory {
+                    position: sticky;
+                    top: 1rem;
+                }
+            }
         </style>
         <script>
             function homeVenueMap(markers) {
@@ -301,6 +414,10 @@
                             this.map.invalidateSize();
                             this.renderMarkers(this.filtered);
                         });
+
+                        // Recalculate once the three-column layout settles.
+                        setTimeout(() => this.map?.invalidateSize(), 200);
+                        setTimeout(() => this.map?.invalidateSize(), 600);
                     },
                     popupHtml(marker) {
                         const isShop = marker.type === 'tackle_shop';
