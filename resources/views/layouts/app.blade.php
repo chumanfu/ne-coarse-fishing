@@ -49,18 +49,7 @@
             {{ $slot }}
         </main>
 
-        <footer class="bg-slate-900 text-slate-300 mt-12">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-sm flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                <p class="font-semibold text-white tracking-wide">{{ config('app.name') }}</p>
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-                    <p>Venue guides, interactive maps &amp; catch reports across the North East.</p>
-                    <a href="{{ route('about') }}" class="font-semibold text-white hover:text-sky-200 underline-offset-2 hover:underline">About</a>
-                    <a href="{{ route('refer') }}" class="font-semibold text-white hover:text-sky-200 underline-offset-2 hover:underline">Refer a friend</a>
-                    <a href="{{ route('tackle-reviews.index') }}" class="font-semibold text-white hover:text-sky-200 underline-offset-2 hover:underline">Tackle reviews</a>
-                    <a href="{{ route('contact.create') }}" class="font-semibold text-white hover:text-sky-200 underline-offset-2 hover:underline">Contact us</a>
-                </div>
-            </div>
-        </footer>
+        @include('layouts.partials.footer')
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>

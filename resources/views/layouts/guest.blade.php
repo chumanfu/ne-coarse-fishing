@@ -15,17 +15,21 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-            <div>
-                <a href="{{ url('/') }}" class="flex items-center gap-2.5">
-                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-sky-800 text-white font-bold text-sm tracking-tight">NE</span>
-                    <span class="font-bold text-slate-900 tracking-tight text-[15px]">{{ config('app.name', 'NE Coarse Fishing') }}</span>
-                </a>
+        <div class="min-h-screen flex flex-col">
+            <div class="flex-1 flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
+                <div>
+                    <a href="{{ url('/') }}" class="flex items-center gap-2.5">
+                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-sky-800 text-white font-bold text-sm tracking-tight">NE</span>
+                        <span class="font-bold text-slate-900 tracking-tight text-[15px]">{{ config('app.name', 'NE Coarse Fishing') }}</span>
+                    </a>
+                </div>
+
+                <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
+                    {{ $slot }}
+                </div>
             </div>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
-                {{ $slot }}
-            </div>
+            @include('layouts.partials.footer')
         </div>
     </body>
 </html>

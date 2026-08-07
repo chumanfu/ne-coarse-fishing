@@ -6,6 +6,7 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\ClubClaimController;
 use App\Http\Controllers\ClubController;
 use App\Http\Controllers\ClubEditRequestController;
+use App\Http\Controllers\CodeOfConductController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\FishingSessionController;
 use App\Http\Controllers\GdprExportController;
@@ -132,6 +133,7 @@ Route::get('/', function () {
 
 Route::get('/activity', [ActivityController::class, 'index'])->name('activity.index');
 Route::get('/about', AboutController::class)->name('about');
+Route::get('/code-of-conduct', CodeOfConductController::class)->name('code-of-conduct');
 Route::get('/refer', ReferFriendController::class)->name('refer');
 Route::get('/venues', [VenueController::class, 'index'])->name('venues.index');
 Route::get('/venues/{venue:slug}', [VenueController::class, 'show'])->name('venues.show');
