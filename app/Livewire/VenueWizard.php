@@ -101,6 +101,7 @@ class VenueWizard extends Component
             'peg_count' => '',
             'depth_info' => '',
             'species' => [],
+            'facilities' => [],
             'pegs' => [],
         ]];
 
@@ -258,6 +259,7 @@ class VenueWizard extends Component
             'peg_count' => '',
             'depth_info' => '',
             'species' => [],
+            'facilities' => [],
             'pegs' => [],
         ];
         $this->is_complex = true;
@@ -491,6 +493,7 @@ class VenueWizard extends Component
                     ->map(fn ($id) => (int) $id)
                     ->values()
                     ->all(),
+                'facilities' => Water::normalizeFacilities($water['facilities'] ?? []),
             ])->values()->all(),
         ];
     }
@@ -511,6 +514,7 @@ class VenueWizard extends Component
                 'description' => $waterData['description'] ?: null,
                 'peg_count' => $waterData['peg_count'] !== '' ? $waterData['peg_count'] : null,
                 'depth_info' => $waterData['depth_info'] ?: null,
+                'facilities' => Water::normalizeFacilities($waterData['facilities'] ?? []),
                 'sort_order' => $index,
             ];
 
@@ -634,6 +638,8 @@ class VenueWizard extends Component
                 'waters.*.depth_info' => ['nullable', 'string'],
                 'waters.*.species' => ['nullable', 'array'],
                 'waters.*.species.*' => ['integer', 'exists:species,id'],
+                'waters.*.facilities' => ['nullable', 'array'],
+                'waters.*.facilities.*' => ['string', 'in:'.implode(',', array_keys(Water::FACILITIES))],
                 'waters.*.pegs' => ['nullable', 'array'],
                 'waters.*.pegs.*.name' => ['nullable', 'string', 'max:100'],
                 'waters.*.pegs.*.number' => ['nullable', 'string', 'max:50'],
@@ -704,6 +710,7 @@ class VenueWizard extends Component
                 'peg_count' => $water->peg_count,
                 'depth_info' => (string) $water->depth_info,
                 'species' => $water->species->pluck('id')->map(fn ($id) => (string) $id)->all(),
+                'facilities' => $water->facilities ?? [],
                 'pegs' => $water->pegs()->verified()->with('photos')->orderBy('sort_order')->get()->map(fn ($peg) => [
                     'id' => $peg->id,
                     'name' => (string) $peg->name,
