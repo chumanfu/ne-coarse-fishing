@@ -41,7 +41,7 @@ class TackleShopClaimsTable
                             'manager_id' => $record->user_id,
                             'manager_verified' => true,
                         ]);
-                        $record->user->assignRole('fishery_manager');
+                        $record->user->assignRole('tackle_shop_owner');
                     }),
                 Action::make('reject')
                     ->visible(fn (TackleShopClaim $record) => $record->status === 'pending')

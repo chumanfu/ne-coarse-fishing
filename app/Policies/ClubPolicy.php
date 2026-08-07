@@ -19,7 +19,8 @@ class ClubPolicy
 
     public function manage(User $user, Club $club): bool
     {
-        return $club->isManagedBy($user) || $user->hasRole('super_admin');
+        return $user->hasRole('super_admin')
+            || ($user->hasRole('club_owner') && $club->isManagedBy($user));
     }
 
     public function update(User $user, Club $club): bool
@@ -36,7 +37,7 @@ class ClubPolicy
 
     public function suggestEdit(User $user, Club $club): bool
     {
-        if (! $club->is_published || $club->isManagedBy($user) || $user->hasRole('super_admin')) {
+        if (! $club->is_published || $this->manage($user, $club)) {
             return false;
         }
 

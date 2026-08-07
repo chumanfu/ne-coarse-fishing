@@ -234,7 +234,13 @@ class Venue extends Model
             return true;
         }
 
-        return $this->manager_id === $user->id;
+        if ($this->manager_id === $user->id) {
+            return true;
+        }
+
+        // Club owners can manage venues linked to clubs they manage.
+        return $user->hasRole('club_owner')
+            && $this->clubs()->where('manager_id', $user->id)->exists();
     }
 
     public function canManagePegs(?User $user): bool
@@ -247,8 +253,10 @@ class Venue extends Model
             return true;
         }
 
-        // Venue manager (typically fishery_manager role after a claim) or original submitter.
-        return $this->manager_id === $user->id || $this->user_id === $user->id;
+        // Venue manager, original submitter, or owner of a linked club.
+        return $this->manager_id === $user->id
+            || $this->user_id === $user->id
+            || ($user->hasRole('club_owner') && $this->clubs()->where('manager_id', $user->id)->exists());
     }
 
     public function hasFacility(string $facility): bool

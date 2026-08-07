@@ -26,6 +26,8 @@ class DirectoryOwnershipTest extends TestCase
         Role::findOrCreate('super_admin');
         Role::findOrCreate('angler');
         Role::findOrCreate('fishery_manager');
+        Role::findOrCreate('club_owner');
+        Role::findOrCreate('tackle_shop_owner');
     }
 
     public function test_angler_can_claim_and_suggest_club_edits(): void
@@ -64,7 +66,7 @@ class DirectoryOwnershipTest extends TestCase
         Storage::fake(config('filesystems.uploads'));
 
         $manager = User::factory()->create();
-        $manager->assignRole('angler');
+        $manager->assignRole(['angler', 'club_owner']);
         $club = Club::factory()->create([
             'is_published' => true,
             'manager_id' => $manager->id,

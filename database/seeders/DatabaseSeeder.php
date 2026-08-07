@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $roles = collect(['angler', 'fishery_manager', 'super_admin'])
+        $roles = collect(['angler', 'fishery_manager', 'club_owner', 'tackle_shop_owner', 'super_admin'])
             ->mapWithKeys(fn (string $role) => [$role => Role::findOrCreate($role)]);
 
         $admin = User::query()->updateOrCreate(
@@ -41,6 +41,26 @@ class DatabaseSeeder extends Seeder
             ]
         );
         $manager->syncRoles([$roles['fishery_manager'], $roles['angler']]);
+
+        $clubOwner = User::query()->updateOrCreate(
+            ['email' => 'club@nefishing.test'],
+            [
+                'name' => 'Club Owner',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $clubOwner->syncRoles([$roles['club_owner'], $roles['angler']]);
+
+        $shopOwner = User::query()->updateOrCreate(
+            ['email' => 'shop@nefishing.test'],
+            [
+                'name' => 'Tackle Shop Owner',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+            ]
+        );
+        $shopOwner->syncRoles([$roles['tackle_shop_owner'], $roles['angler']]);
 
         $angler = User::query()->updateOrCreate(
             ['email' => 'angler@nefishing.test'],

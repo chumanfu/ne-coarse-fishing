@@ -29,7 +29,7 @@ class VenueEditRequestResource extends Resource
     {
         $user = auth()->user();
 
-        return $user && ($user->hasRole('super_admin') || $user->hasRole('fishery_manager'));
+        return $user && $user->hasAnyRole(['super_admin', 'fishery_manager', 'club_owner']);
     }
 
     public static function canView($record): bool

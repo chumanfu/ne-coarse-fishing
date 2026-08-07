@@ -25,7 +25,13 @@ class VenueEditRequestsTable
                     return $query;
                 }
 
-                return $query->whereHas('venue', fn (Builder $inner) => $inner->where('manager_id', $user?->id));
+                return $query->whereHas('venue', function (Builder $inner) use ($user): void {
+                    $inner->where('manager_id', $user?->id);
+
+                    if ($user?->hasRole('club_owner')) {
+                        $inner->orWhereHas('clubs', fn (Builder $clubs) => $clubs->where('manager_id', $user->id));
+                    }
+                });
             })
             ->columns([
                 TextColumn::make('venue.name')->searchable()->sortable(),
