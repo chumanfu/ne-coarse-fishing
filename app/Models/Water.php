@@ -33,6 +33,7 @@ class Water extends Model
             }
 
             $water->photos()->each(fn (WaterPhoto $photo) => $photo->delete());
+            $water->videos()->each(fn (WaterVideo $video) => $video->delete());
         });
     }
 
@@ -59,6 +60,11 @@ class Water extends Model
     public function photos(): HasMany
     {
         return $this->hasMany(WaterPhoto::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function videos(): HasMany
+    {
+        return $this->hasMany(WaterVideo::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function mapImageUrl(): ?string

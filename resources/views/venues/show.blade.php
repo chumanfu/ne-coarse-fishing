@@ -129,6 +129,8 @@
                                 ->values();
                             $approvedPhotos = $water->photos->where('is_approved', true)->values();
                             $pendingPhotos = $water->photos->where('is_approved', false)->values();
+                            $approvedVideos = $water->videos->where('is_approved', true)->values();
+                            $pendingVideos = $water->videos->where('is_approved', false)->values();
                             $canManageWater = auth()->user() && $venue->canManagePegs(auth()->user());
                         @endphp
                         <div class="border-2 border-slate-200 rounded-lg p-4">
@@ -312,6 +314,155 @@
                                                     </div>
                                                 @endforeach
                                             </div>
+                                        </div>
+                                    @endif
+                                @endif
+                            </div>
+
+                            <div class="mt-5"
+                                 x-data="waterVideoCarousel(@js($approvedVideos->map(fn ($video) => [
+                                     'embed' => $video->embedUrl(),
+                                     'title' => $video->title,
+                                     'watch' => $video->watchUrl(),
+                                 ])->values()->all()))">
+                                <p class="text-sm font-semibold text-slate-800 mb-2">Angler videos</p>
+                                @if ($approvedVideos->isNotEmpty())
+                                    <div class="mb-3">
+                                        <div class="relative overflow-hidden rounded-lg border-2 border-slate-300 bg-slate-950">
+                                            <div class="aspect-video">
+                                                <iframe
+                                                    :src="videos[index].embed"
+                                                    :title="videos[index].title || '{{ $water->name }} video'"
+                                                    class="h-full w-full"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                    allowfullscreen
+                                                    loading="lazy"
+                                                    referrerpolicy="strict-origin-when-cross-origin"
+                                                ></iframe>
+                                            </div>
+                                            <template x-if="videos.length > 1">
+                                                <div>
+                                                    <button type="button"
+                                                            @click="prev()"
+                                                            class="absolute left-2 top-1/2 -translate-y-1/2 rounded-md bg-white/90 px-2 py-1 text-sm font-semibold text-slate-900 shadow hover:bg-white"
+                                                            aria-label="Previous video">
+                                                        Prev
+                                                    </button>
+                                                    <button type="button"
+                                                            @click="next()"
+                                                            class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-white/90 px-2 py-1 text-sm font-semibold text-slate-900 shadow hover:bg-white"
+                                                            aria-label="Next video">
+                                                        Next
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+                                            <p class="text-sm text-slate-700" x-text="videos[index]?.title || 'YouTube video'"></p>
+                                            <a :href="videos[index]?.watch"
+                                               target="_blank"
+                                               rel="noopener noreferrer"
+                                               class="text-sm font-semibold text-sky-800 hover:underline">
+                                                Open on YouTube
+                                            </a>
+                                        </div>
+                                        <template x-if="videos.length > 1">
+                                            <div class="mt-2 flex flex-wrap items-center justify-center gap-2" role="tablist" aria-label="Video slides">
+                                                <template x-for="(video, i) in videos" :key="i">
+                                                    <button type="button"
+                                                            @click="go(i)"
+                                                            class="h-2.5 w-2.5 rounded-full border border-slate-400"
+                                                            :class="i === index ? 'bg-sky-700 border-sky-700' : 'bg-white'"
+                                                            :aria-label="'Show video ' + (i + 1)"
+                                                            :aria-current="i === index ? 'true' : 'false'"></button>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                @else
+                                    <p class="text-sm text-slate-600 mb-3">No approved videos yet.</p>
+                                @endif
+
+                                @auth
+                                    <form method="POST"
+                                          action="{{ route('waters.videos.store', [$venue, $water]) }}"
+                                          class="space-y-3">
+                                        @csrf
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-700 mb-1">YouTube URL for this water</label>
+                                            <input type="url"
+                                                   name="youtube_url"
+                                                   value="{{ old('youtube_url') }}"
+                                                   placeholder="https://www.youtube.com/watch?v=..."
+                                                   required
+                                                   class="block w-full rounded-md border-2 border-slate-300 px-3 py-2 text-sm">
+                                            @error('youtube_url')
+                                                <p class="mt-1 text-sm text-red-700">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-700 mb-1">Title (optional)</label>
+                                            <input type="text"
+                                                   name="title"
+                                                   value="{{ old('title') }}"
+                                                   maxlength="120"
+                                                   placeholder="e.g. Spring carp on the Method"
+                                                   class="block w-full rounded-md border-2 border-slate-300 px-3 py-2 text-sm">
+                                        </div>
+                                        <button class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 text-sm font-semibold hover:bg-sky-50">Submit for approval</button>
+                                    </form>
+                                    <p class="text-xs text-slate-500 mt-1">Videos appear publicly once a venue manager approves them.</p>
+                                @else
+                                    <a href="{{ route('login') }}" class="text-sm font-semibold text-sky-800 hover:underline">Log in to share a YouTube video</a>
+                                @endauth
+
+                                @if ($canManageWater && $pendingVideos->isNotEmpty())
+                                    <div class="mt-4 space-y-2">
+                                        <p class="text-sm font-semibold text-amber-950">Pending video approval</p>
+                                        @foreach ($pendingVideos as $video)
+                                            <div class="flex flex-col sm:flex-row sm:items-center gap-3 border-2 border-amber-300 rounded-lg p-2 bg-amber-50/50">
+                                                <a href="{{ $video->watchUrl() }}" target="_blank" rel="noopener noreferrer" class="shrink-0">
+                                                    <img src="{{ $video->thumbnailUrl() }}" alt="" class="h-20 w-36 object-cover rounded border border-slate-300">
+                                                </a>
+                                                <div class="flex-1 text-sm text-slate-700">
+                                                    <p class="font-semibold text-slate-900">{{ $video->title ?: 'Untitled video' }}</p>
+                                                    <p>Submitted by {{ $video->uploader?->name ?? 'angler' }}</p>
+                                                    <a href="{{ $video->watchUrl() }}" target="_blank" rel="noopener noreferrer" class="font-semibold text-sky-800 hover:underline">Preview on YouTube</a>
+                                                </div>
+                                                <div class="flex flex-wrap gap-2">
+                                                    <form method="POST" action="{{ route('waters.videos.approve', [$venue, $water, $video]) }}">
+                                                        @csrf
+                                                        <button class="px-3 py-2 rounded-md bg-sky-700 text-white text-sm font-semibold hover:bg-sky-800">Approve</button>
+                                                    </form>
+                                                    <form method="POST" action="{{ route('waters.videos.destroy', [$venue, $water, $video]) }}" onsubmit="return confirm('Reject and delete this video?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button class="px-3 py-2 rounded-md border-2 border-slate-400 text-sm font-semibold">Reject</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @elseif (auth()->check() && ! $canManageWater)
+                                    @php
+                                        $ownPendingVideos = $pendingVideos->where('user_id', auth()->id())->values();
+                                    @endphp
+                                    @if ($ownPendingVideos->isNotEmpty())
+                                        <div class="mt-3 space-y-2">
+                                            <p class="text-xs font-semibold text-slate-700 mb-2">Your videos awaiting approval</p>
+                                            @foreach ($ownPendingVideos as $video)
+                                                <div class="flex items-center gap-3 border-2 border-amber-300 rounded-lg p-2">
+                                                    <img src="{{ $video->thumbnailUrl() }}" alt="" class="h-16 w-28 object-cover rounded border border-slate-300 opacity-80">
+                                                    <div class="flex-1 text-sm text-slate-700">
+                                                        {{ $video->title ?: 'Untitled video' }}
+                                                    </div>
+                                                    <form method="POST" action="{{ route('waters.videos.destroy', [$venue, $water, $video]) }}">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button class="text-xs font-semibold text-red-800 hover:underline">Withdraw</button>
+                                                    </form>
+                                                </div>
+                                            @endforeach
                                         </div>
                                     @endif
                                 @endif
@@ -657,6 +808,28 @@
                     },
                     resetZoom() {
                         this.scale = 1;
+                    },
+                };
+            }
+
+            function waterVideoCarousel(videos) {
+                return {
+                    videos: videos || [],
+                    index: 0,
+                    next() {
+                        if (! this.videos.length) {
+                            return;
+                        }
+                        this.index = (this.index + 1) % this.videos.length;
+                    },
+                    prev() {
+                        if (! this.videos.length) {
+                            return;
+                        }
+                        this.index = (this.index - 1 + this.videos.length) % this.videos.length;
+                    },
+                    go(i) {
+                        this.index = i;
                     },
                 };
             }

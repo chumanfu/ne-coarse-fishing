@@ -199,6 +199,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/venues/{venue:slug}/waters/{water}/photos/{waterPhoto}/approve', [\App\Http\Controllers\WaterPhotoController::class, 'approve'])->name('waters.photos.approve');
     Route::delete('/venues/{venue:slug}/waters/{water}/photos/{waterPhoto}', [\App\Http\Controllers\WaterPhotoController::class, 'destroy'])->name('waters.photos.destroy');
 
+    Route::post('/venues/{venue:slug}/waters/{water}/videos', [\App\Http\Controllers\WaterVideoController::class, 'store'])->name('waters.videos.store');
+    Route::post('/venues/{venue:slug}/waters/{water}/videos/{waterVideo}/approve', [\App\Http\Controllers\WaterVideoController::class, 'approve'])->name('waters.videos.approve');
+    Route::delete('/venues/{venue:slug}/waters/{water}/videos/{waterVideo}', [\App\Http\Controllers\WaterVideoController::class, 'destroy'])->name('waters.videos.destroy');
+
     Route::get('/venues/{venue:slug}/match-reports/create', [MatchReportController::class, 'create'])->name('match-reports.create');
     Route::post('/venues/{venue:slug}/match-reports', [MatchReportController::class, 'store'])->name('match-reports.store');
     Route::delete('/match-reports/{matchReport}', [MatchReportController::class, 'destroy'])->name('match-reports.destroy');

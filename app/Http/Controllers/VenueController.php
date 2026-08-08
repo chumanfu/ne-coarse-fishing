@@ -61,6 +61,7 @@ class VenueController extends Controller
             'waters.species',
             'waters.pegs' => fn ($q) => $q->with('photos')->orderBy('sort_order')->orderBy('id'),
             'waters.photos' => fn ($q) => $q->with('uploader')->orderBy('sort_order')->orderBy('id'),
+            'waters.videos' => fn ($q) => $q->with('uploader')->orderBy('sort_order')->orderBy('id'),
             'manager',
             'photos',
             'matchReports' => fn ($q) => $q->whereNotNull('published_at')->latest('published_at')->limit(10),
