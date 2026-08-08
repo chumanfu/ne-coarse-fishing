@@ -193,6 +193,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/venues/{venue:slug}/pegs/{waterPeg}/verify', [\App\Http\Controllers\WaterPegController::class, 'verify'])->name('pegs.verify');
     Route::delete('/venues/{venue:slug}/pegs/{waterPeg}', [\App\Http\Controllers\WaterPegController::class, 'destroy'])->name('pegs.destroy');
 
+    Route::post('/venues/{venue:slug}/waters/{water}/map-image', [\App\Http\Controllers\WaterMapImageController::class, 'update'])->name('waters.map-image.update');
+    Route::delete('/venues/{venue:slug}/waters/{water}/map-image', [\App\Http\Controllers\WaterMapImageController::class, 'destroy'])->name('waters.map-image.destroy');
+    Route::post('/venues/{venue:slug}/waters/{water}/photos', [\App\Http\Controllers\WaterPhotoController::class, 'store'])->name('waters.photos.store');
+    Route::post('/venues/{venue:slug}/waters/{water}/photos/{waterPhoto}/approve', [\App\Http\Controllers\WaterPhotoController::class, 'approve'])->name('waters.photos.approve');
+    Route::delete('/venues/{venue:slug}/waters/{water}/photos/{waterPhoto}', [\App\Http\Controllers\WaterPhotoController::class, 'destroy'])->name('waters.photos.destroy');
+
     Route::get('/venues/{venue:slug}/match-reports/create', [MatchReportController::class, 'create'])->name('match-reports.create');
     Route::post('/venues/{venue:slug}/match-reports', [MatchReportController::class, 'store'])->name('match-reports.store');
     Route::delete('/match-reports/{matchReport}', [MatchReportController::class, 'destroy'])->name('match-reports.destroy');

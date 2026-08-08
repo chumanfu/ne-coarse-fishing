@@ -313,12 +313,35 @@
                                 </div>
                             </div>
 
+                            <div style="margin-top: 0.75rem;">
+                                <label>Pond map image (top-down)</label>
+                                <p class="hint">Used to place pegs. Upload a clear overhead view of the pond.</p>
+                                @if (! empty($water['map_image_url']) && empty($water['map_image']))
+                                    <img src="{{ $water['map_image_url'] }}" alt="" style="max-width: 100%; max-height: 12rem; object-fit: contain; border: 1px solid var(--vw-border); border-radius: 0.4rem; margin-bottom: 0.5rem; background: #f1f5f9;">
+                                @endif
+                                <input type="file" wire:model="waters.{{ $index }}.map_image" accept="image/*">
+                                <div wire:loading wire:target="waters.{{ $index }}.map_image" class="hint">Uploading map…</div>
+                                @error('waters.'.$index.'.map_image') <p class="error">{{ $message }}</p> @enderror
+                            </div>
+
                             <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--vw-border);">
                                 <div class="row" style="justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                     <strong>Pegs</strong>
                                     <button type="button" wire:click="addPeg({{ $index }})" class="venue-wizard-btn venue-wizard-btn-outline">Add peg</button>
                                 </div>
-                                <p class="hint">Give each peg a number and/or name, then set its pin on the map below.</p>
+                                <p class="hint">Give each peg a number and/or name, then click the pond map to place it.</p>
+
+                                @php
+                                    $mapPreviewUrl = null;
+                                    if (! empty($water['map_image']) && $water['map_image'] instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                                        try {
+                                            $mapPreviewUrl = $water['map_image']->temporaryUrl();
+                                        } catch (\Throwable) {
+                                            $mapPreviewUrl = null;
+                                        }
+                                    }
+                                    $mapPreviewUrl = $mapPreviewUrl ?: ($water['map_image_url'] ?? null);
+                                @endphp
 
                                 @foreach (($water['pegs'] ?? []) as $pegIndex => $peg)
                                     <div class="venue-wizard-water" style="margin-top: 0.75rem; background: var(--vw-bg);" wire:key="water-{{ $index }}-peg-{{ $pegIndex }}">
@@ -336,30 +359,35 @@
                                                 <input type="text" wire:model="waters.{{ $index }}.pegs.{{ $pegIndex }}.name" placeholder="Island">
                                             </div>
                                         </div>
-                                        <div class="grid-2" style="margin-top: 0.5rem;">
-                                            <div>
-                                                <label>Latitude</label>
-                                                <input type="number" step="any" wire:model.blur="waters.{{ $index }}.pegs.{{ $pegIndex }}.latitude">
+
+                                        @if ($mapPreviewUrl)
+                                            <div
+                                                x-data="{
+                                                    x: @js($peg['map_x'] !== null && $peg['map_x'] !== '' ? (float) $peg['map_x'] : null),
+                                                    y: @js($peg['map_y'] !== null && $peg['map_y'] !== '' ? (float) $peg['map_y'] : null),
+                                                    place(event) {
+                                                        const rect = event.currentTarget.getBoundingClientRect();
+                                                        if (! rect.width || ! rect.height) return;
+                                                        this.x = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
+                                                        this.y = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
+                                                        $wire.setPegLocation({{ $index }}, {{ $pegIndex }}, this.x, this.y);
+                                                    }
+                                                }"
+                                                style="margin-top: 0.75rem;"
+                                            >
+                                                <div @click="place($event)" style="position: relative; width: 100%; border: 2px solid var(--vw-border); border-radius: 0.5rem; overflow: hidden; background: #e2e8f0; cursor: crosshair;">
+                                                    <img src="{{ $mapPreviewUrl }}" alt="Pond map" style="display: block; width: 100%; max-height: 14rem; object-fit: contain; margin: 0 auto;">
+                                                    <template x-if="x !== null && y !== null">
+                                                        <span style="position: absolute; width: 0.9rem; height: 0.9rem; margin-left: -0.45rem; margin-top: -0.45rem; border-radius: 9999px; border: 2px solid #fff; background: #0369a1; box-shadow: 0 1px 2px rgba(0,0,0,.35);"
+                                                              :style="`left:${x}%; top:${y}%;`"></span>
+                                                    </template>
+                                                </div>
+                                                <p class="hint" style="margin-top: 0.35rem;" x-show="x !== null && y !== null" x-text="`Position ${Number(x).toFixed(1)}%, ${Number(y).toFixed(1)}%`"></p>
                                             </div>
-                                            <div>
-                                                <label>Longitude</label>
-                                                <input type="number" step="any" wire:model.blur="waters.{{ $index }}.pegs.{{ $pegIndex }}.longitude">
-                                            </div>
-                                        </div>
-                                        <div class="venue-wizard-peg-map-host"
-                                             style="margin-top: 0.75rem;"
-                                             wire:ignore
-                                             data-peg-map
-                                             data-lat="{{ (float) ($peg['latitude'] ?? $latitude ?? 54.7767) }}"
-                                             data-lng="{{ (float) ($peg['longitude'] ?? $longitude ?? -1.5753) }}"
-                                             data-water-index="{{ $index }}"
-                                             data-peg-index="{{ $pegIndex }}"
-                                             data-map-id="peg-map-{{ $index }}-{{ $pegIndex }}">
-                                            <div id="peg-map-{{ $index }}-{{ $pegIndex }}"
-                                                 class="venue-wizard-peg-map"
-                                                 style="height: 12rem; min-height: 12rem; width: 100%; border: 2px solid var(--vw-border); border-radius: 0.5rem; background: #e2e8f0;"></div>
-                                            <p class="hint" style="margin-top: 0.35rem;">Click map or drag marker to set this peg.</p>
-                                        </div>
+                                        @else
+                                            <p class="hint" style="margin-top: 0.75rem;">Upload a pond map image above before placing this peg.</p>
+                                        @endif
+
                                         <div style="margin-top: 0.75rem;">
                                             <label>Peg photos</label>
                                             <p class="hint">Optional. Up to 4 photos of this peg.</p>
@@ -473,133 +501,5 @@
             setTimeout(() => this.map.invalidateSize(), 50);
         }
     }));
-
-    const pegMaps = window.__venueWizardPegMaps || (window.__venueWizardPegMaps = {});
-
-    const findLivewireComponent = (el) => {
-        const root = el.closest('[wire\\:id]');
-        if (! root || typeof Livewire === 'undefined') {
-            return null;
-        }
-
-        return Livewire.find(root.getAttribute('wire:id'));
-    };
-
-    const initPegMapHost = (host) => {
-        if (! host || typeof L === 'undefined') {
-            return;
-        }
-
-        const mapId = host.dataset.mapId;
-        const el = document.getElementById(mapId);
-        if (! mapId || ! el) {
-            return;
-        }
-
-        // Already initialised on this host element.
-        if (host.dataset.pegMapReady === '1' && pegMaps[mapId] && el._leaflet_id) {
-            pegMaps[mapId].invalidateSize();
-            return;
-        }
-
-        if (pegMaps[mapId]) {
-            try {
-                pegMaps[mapId].remove();
-            } catch (e) {}
-            delete pegMaps[mapId];
-        }
-
-        // Leaflet leaves a marker on the node; clear before re-init.
-        if (el._leaflet_id) {
-            el._leaflet_id = null;
-            el.innerHTML = '';
-        }
-
-        const lat = Number(host.dataset.lat || 54.7767);
-        const lng = Number(host.dataset.lng || -1.5753);
-        const waterIndex = Number(host.dataset.waterIndex);
-        const pegIndex = Number(host.dataset.pegIndex);
-        const center = [lat, lng];
-
-        const map = L.map(el, { scrollWheelZoom: false }).setView(center, 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
-
-        const marker = L.marker(center, { draggable: true }).addTo(map);
-        const save = (la, ln) => {
-            host.dataset.lat = String(la);
-            host.dataset.lng = String(ln);
-            const component = findLivewireComponent(host);
-            component?.call('setPegLocation', waterIndex, pegIndex, la, ln);
-        };
-
-        marker.on('dragend', () => {
-            const pos = marker.getLatLng();
-            save(Number(pos.lat.toFixed(7)), Number(pos.lng.toFixed(7)));
-        });
-        map.on('click', (e) => {
-            marker.setLatLng(e.latlng);
-            save(Number(e.latlng.lat.toFixed(7)), Number(e.latlng.lng.toFixed(7)));
-        });
-
-        pegMaps[mapId] = map;
-        host.dataset.pegMapReady = '1';
-
-        requestAnimationFrame(() => map.invalidateSize());
-        setTimeout(() => map.invalidateSize(), 100);
-        setTimeout(() => map.invalidateSize(), 300);
-        setTimeout(() => map.invalidateSize(), 700);
-    };
-
-    const initAllPegMaps = (root = document) => {
-        if (! root) {
-            return;
-        }
-        if (root.querySelectorAll) {
-            root.querySelectorAll('[data-peg-map]').forEach((host) => initPegMapHost(host));
-        }
-        if (root.matches?.('[data-peg-map]')) {
-            initPegMapHost(root);
-        }
-    };
-
-    const waitForLeafletThenInit = (attempt = 0) => {
-        if (typeof L !== 'undefined') {
-            initAllPegMaps(document);
-            return;
-        }
-        if (attempt > 50) {
-            console.error('Leaflet failed to load for venue wizard peg maps.');
-            return;
-        }
-        setTimeout(() => waitForLeafletThenInit(attempt + 1), 100);
-    };
-
-    waitForLeafletThenInit();
-
-    $wire.on('peg-maps-refresh', () => {
-        setTimeout(() => waitForLeafletThenInit(), 50);
-        setTimeout(() => waitForLeafletThenInit(), 250);
-        setTimeout(() => waitForLeafletThenInit(), 600);
-    });
-
-    if (! window.__venueWizardPegMapHooksBound) {
-        window.__venueWizardPegMapHooksBound = true;
-
-        document.addEventListener('livewire:navigated', () => waitForLeafletThenInit());
-
-        Livewire.hook('morph.updated', ({ el }) => {
-            setTimeout(() => initAllPegMaps(el), 30);
-        });
-
-        Livewire.hook('commit', ({ succeed }) => {
-            succeed(() => {
-                setTimeout(() => waitForLeafletThenInit(), 30);
-                setTimeout(() => waitForLeafletThenInit(), 200);
-            });
-        });
-    }
 </script>
 @endscript

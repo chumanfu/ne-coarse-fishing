@@ -73,7 +73,11 @@ class SessionActivityAndPegTest extends TestCase
 
         $user = User::factory()->create();
         $venue = Venue::factory()->create(['is_approved' => true, 'manager_id' => null]);
-        $water = Water::factory()->for($venue)->create(['name' => 'Main Lake']);
+        $water = Water::factory()->for($venue)->create([
+            'name' => 'Main Lake',
+            'map_image_path' => 'water-maps/main.jpg',
+        ]);
+        Storage::disk(Uploads::diskName())->put('water-maps/main.jpg', 'fake');
 
         $this->actingAs($user)->post(route('sessions.store'), [
             'venue_id' => $venue->id,
@@ -82,8 +86,8 @@ class SessionActivityAndPegTest extends TestCase
             'peg_mode' => 'new',
             'peg_number' => '14',
             'peg_name' => 'Island',
-            'peg_latitude' => 55.0318,
-            'peg_longitude' => -1.5701,
+            'peg_map_x' => 55.0,
+            'peg_map_y' => 40.0,
             'peg_photos' => [
                 UploadedFile::fake()->image('peg-a.jpg'),
                 UploadedFile::fake()->image('peg-b.jpg'),
@@ -160,21 +164,25 @@ class SessionActivityAndPegTest extends TestCase
             'latitude' => 54.79,
             'longitude' => -1.62,
         ]);
-        $water = Water::factory()->for($venue)->create(['name' => 'Match Lake']);
+        $water = Water::factory()->for($venue)->create([
+            'name' => 'Match Lake',
+            'map_image_path' => 'water-maps/match.jpg',
+        ]);
+        Storage::disk(Uploads::diskName())->put('water-maps/match.jpg', 'fake');
 
         $this->actingAs($manager)
             ->get(route('pegs.create', $venue))
             ->assertOk()
             ->assertSee('Add peg')
-            ->assertSee('manager-peg-map', false);
+            ->assertSee('Location on pond map');
 
         $this->actingAs($manager)
             ->post(route('pegs.store', $venue), [
                 'water_id' => $water->id,
                 'number' => '9',
                 'name' => 'Boilie Point',
-                'latitude' => 54.791,
-                'longitude' => -1.621,
+                'map_x' => 48.5,
+                'map_y' => 52.25,
                 'photos' => [UploadedFile::fake()->image('peg.jpg')],
             ])
             ->assertRedirect(route('venues.show', $venue));
@@ -184,11 +192,16 @@ class SessionActivityAndPegTest extends TestCase
         $this->assertTrue($peg->is_verified);
         $this->assertSame('9', $peg->number);
         $this->assertSame('Boilie Point', $peg->name);
+        $this->assertEqualsWithDelta(48.5, $peg->map_x, 0.01);
+        $this->assertEqualsWithDelta(52.25, $peg->map_y, 0.01);
+        $this->assertNull($peg->latitude);
+        $this->assertNull($peg->longitude);
         $this->assertCount(1, $peg->photos);
     }
 
     public function test_manager_can_edit_peg_with_map_and_update_location(): void
     {
+        Storage::fake(Uploads::diskName());
         Role::findOrCreate('fishery_manager');
         $manager = User::factory()->create();
         $manager->assignRole('fishery_manager');
@@ -198,12 +211,15 @@ class SessionActivityAndPegTest extends TestCase
             'latitude' => 54.9,
             'longitude' => -1.6,
         ]);
-        $water = Water::factory()->for($venue)->create();
+        $water = Water::factory()->for($venue)->create([
+            'map_image_path' => 'water-maps/pond.jpg',
+        ]);
+        Storage::disk(Uploads::diskName())->put('water-maps/pond.jpg', 'fake');
         $peg = WaterPeg::factory()->for($water)->create([
             'number' => '4',
             'name' => 'Car park',
-            'latitude' => 54.9001,
-            'longitude' => -1.6001,
+            'map_x' => 20,
+            'map_y' => 30,
             'is_verified' => true,
         ]);
 
@@ -211,25 +227,25 @@ class SessionActivityAndPegTest extends TestCase
             ->get(route('pegs.edit', [$venue, $peg]))
             ->assertOk()
             ->assertSee('Edit peg')
-            ->assertSee('manager-peg-map', false)
-            ->assertSee('54.9001', false);
+            ->assertSee('Location on pond map');
 
         $this->actingAs($manager)
             ->put(route('pegs.update', [$venue, $peg]), [
                 'water_id' => $water->id,
                 'number' => '4',
                 'name' => 'Car park end',
-                'latitude' => 54.9012,
-                'longitude' => -1.6023,
+                'map_x' => 65.5,
+                'map_y' => 22.25,
             ])
             ->assertRedirect(route('venues.show', $venue));
 
         $this->assertDatabaseHas('water_pegs', [
             'id' => $peg->id,
             'name' => 'Car park end',
-            'latitude' => 54.9012,
-            'longitude' => -1.6023,
         ]);
+        $peg->refresh();
+        $this->assertEqualsWithDelta(65.5, $peg->map_x, 0.01);
+        $this->assertEqualsWithDelta(22.25, $peg->map_y, 0.01);
     }
 
     public function test_angler_cannot_add_official_peg(): void
@@ -248,8 +264,8 @@ class SessionActivityAndPegTest extends TestCase
             ->post(route('pegs.store', $venue), [
                 'water_id' => $water->id,
                 'number' => '1',
-                'latitude' => 54.7,
-                'longitude' => -1.5,
+                'map_x' => 10,
+                'map_y' => 20,
             ])
             ->assertForbidden();
     }
@@ -263,8 +279,8 @@ class SessionActivityAndPegTest extends TestCase
             'number' => '7',
             'name' => 'Point',
             'is_verified' => true,
-            'latitude' => 55.1,
-            'longitude' => -1.6,
+            'map_x' => 50,
+            'map_y' => 50,
         ]);
 
         $this->actingAs($user)->post(route('sessions.store'), [
@@ -326,15 +342,13 @@ class SessionActivityAndPegTest extends TestCase
             'name' => 'Hidden corner',
             'is_verified' => false,
             'created_by' => $other->id,
-            'latitude' => 55.03304,
-            'longitude' => -1.57723,
+            'map_x' => 12.5,
+            'map_y' => 77.5,
         ]);
 
         $session = FishingSession::factory()->for($owner)->for($venue)->create([
             'water_id' => $water->id,
             'water_peg_id' => $peg->id,
-            'peg_latitude' => 55.03304,
-            'peg_longitude' => -1.57723,
         ]);
 
         $this->actingAs($owner)

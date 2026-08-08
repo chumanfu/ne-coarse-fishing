@@ -13,7 +13,7 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 class WaterPegService
 {
     /**
-     * @param  array{name?: ?string, number?: ?string, latitude: float|string, longitude: float|string}  $data
+     * @param  array{name?: ?string, number?: ?string, map_x: float|string, map_y: float|string}  $data
      * @param  list<UploadedFile|TemporaryUploadedFile>  $photos
      */
     public function createForWater(Water $water, User $user, array $data, bool $forceVerified = false, array $photos = []): WaterPeg
@@ -25,8 +25,10 @@ class WaterPegService
             'created_by' => $user->id,
             'name' => filled($data['name'] ?? null) ? trim((string) $data['name']) : null,
             'number' => filled($data['number'] ?? null) ? trim((string) $data['number']) : null,
-            'latitude' => round((float) $data['latitude'], 7),
-            'longitude' => round((float) $data['longitude'], 7),
+            'map_x' => round((float) $data['map_x'], 4),
+            'map_y' => round((float) $data['map_y'], 4),
+            'latitude' => null,
+            'longitude' => null,
             'is_verified' => $verified,
             'verified_by' => $verified ? $user->id : null,
             'verified_at' => $verified ? now() : null,
@@ -43,7 +45,7 @@ class WaterPegService
     }
 
     /**
-     * @param  array{name?: ?string, number?: ?string, latitude: float|string, longitude: float|string}  $data
+     * @param  array{name?: ?string, number?: ?string, map_x: float|string, map_y: float|string}  $data
      * @param  list<UploadedFile|TemporaryUploadedFile>  $photos
      * @param  list<int>  $keepPhotoIds
      */
@@ -61,8 +63,10 @@ class WaterPegService
             'water_id' => $water->id,
             'name' => filled($data['name'] ?? null) ? trim((string) $data['name']) : null,
             'number' => filled($data['number'] ?? null) ? trim((string) $data['number']) : null,
-            'latitude' => round((float) $data['latitude'], 7),
-            'longitude' => round((float) $data['longitude'], 7),
+            'map_x' => round((float) $data['map_x'], 4),
+            'map_y' => round((float) $data['map_y'], 4),
+            'latitude' => null,
+            'longitude' => null,
         ]);
 
         if (! $peg->is_verified) {
@@ -89,15 +93,17 @@ class WaterPegService
                 continue;
             }
 
-            if (! isset($pegData['latitude'], $pegData['longitude']) || $pegData['latitude'] === '' || $pegData['longitude'] === '') {
+            if (! isset($pegData['map_x'], $pegData['map_y']) || $pegData['map_x'] === '' || $pegData['map_y'] === '') {
                 continue;
             }
 
             $attributes = [
                 'name' => filled($pegData['name'] ?? null) ? trim((string) $pegData['name']) : null,
                 'number' => filled($pegData['number'] ?? null) ? trim((string) $pegData['number']) : null,
-                'latitude' => round((float) $pegData['latitude'], 7),
-                'longitude' => round((float) $pegData['longitude'], 7),
+                'map_x' => round((float) $pegData['map_x'], 4),
+                'map_y' => round((float) $pegData['map_y'], 4),
+                'latitude' => null,
+                'longitude' => null,
                 'sort_order' => $index,
             ];
 
@@ -130,7 +136,6 @@ class WaterPegService
             $keepIds[] = $peg->id;
         }
 
-        // Only remove verified/official pegs managed here; keep pending pegs created via sessions.
         $water->pegs()
             ->where('is_verified', true)
             ->whereNotIn('id', $keepIds)

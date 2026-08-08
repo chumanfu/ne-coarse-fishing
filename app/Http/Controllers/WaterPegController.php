@@ -28,6 +28,7 @@ class WaterPegController extends Controller
 
         $validated = $this->validatedPeg($request);
         $water = $venue->waters()->whereKey($validated['water_id'])->firstOrFail();
+        abort_unless($water->hasMapImage(), 422, 'Upload a pond map image for this water before placing pegs.');
 
         $pegs->createForWater(
             $water,
@@ -35,8 +36,8 @@ class WaterPegController extends Controller
             [
                 'name' => $validated['name'] ?? null,
                 'number' => $validated['number'] ?? null,
-                'latitude' => $validated['latitude'],
-                'longitude' => $validated['longitude'],
+                'map_x' => $validated['map_x'],
+                'map_y' => $validated['map_y'],
             ],
             true,
             $request->file('photos', []),
@@ -66,6 +67,7 @@ class WaterPegController extends Controller
 
         $validated = $this->validatedPeg($request);
         $water = $venue->waters()->whereKey($validated['water_id'])->firstOrFail();
+        abort_unless($water->hasMapImage(), 422, 'Upload a pond map image for this water before placing pegs.');
 
         $pegs->updateForWater(
             $waterPeg,
@@ -74,8 +76,8 @@ class WaterPegController extends Controller
             [
                 'name' => $validated['name'] ?? null,
                 'number' => $validated['number'] ?? null,
-                'latitude' => $validated['latitude'],
-                'longitude' => $validated['longitude'],
+                'map_x' => $validated['map_x'],
+                'map_y' => $validated['map_y'],
             ],
             $request->file('photos', []),
             collect($request->input('keep_photo_ids', []))->map(fn ($id) => (int) $id)->all(),
@@ -108,7 +110,7 @@ class WaterPegController extends Controller
     }
 
     /**
-     * @return array{water_id: int, number: ?string, name: ?string, latitude: float, longitude: float}
+     * @return array{water_id: int, number: ?string, name: ?string, map_x: float, map_y: float}
      */
     private function validatedPeg(Request $request): array
     {
@@ -116,8 +118,8 @@ class WaterPegController extends Controller
             'water_id' => ['required', 'exists:waters,id'],
             'number' => ['nullable', 'string', 'max:50'],
             'name' => ['nullable', 'string', 'max:100'],
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'map_x' => ['required', 'numeric', 'between:0,100'],
+            'map_y' => ['required', 'numeric', 'between:0,100'],
             'photos' => ['nullable', 'array', 'max:4'],
             'photos.*' => ['image', 'max:5120'],
             'keep_photo_ids' => ['nullable', 'array'],

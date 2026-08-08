@@ -40,12 +40,31 @@
                 @if ($session->pegLabel())
                     <p class="text-sm text-slate-600 mb-3">{{ $session->pegLabel() }}</p>
                 @endif
-                <div id="session-peg-view-map"
-                     class="w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-200"
-                     style="height: 18rem; min-height: 18rem;"></div>
-                <p class="text-xs text-slate-500 mt-2">
-                    {{ number_format($session->pegMapLatitude(), 5) }}, {{ number_format($session->pegMapLongitude(), 5) }}
-                </p>
+                @php
+                    $mapUrl = $session->water?->mapImageUrl() ?? $session->waterPeg?->water?->mapImageUrl();
+                    $mapX = $session->pegMapX();
+                    $mapY = $session->pegMapY();
+                @endphp
+                @if ($mapUrl && $mapX !== null && $mapY !== null)
+                    <div id="session-peg-view-map" class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100">
+                        <img src="{{ $mapUrl }}" alt="Pond map" class="block w-full h-auto max-h-80 object-contain mx-auto">
+                        <span
+                            class="absolute h-4 w-4 -ml-2 -mt-2 rounded-full border-2 border-white bg-sky-700 shadow"
+                            style="left: {{ $mapX }}%; top: {{ $mapY }}%;"
+                            title="{{ $session->pegLabel() }}"
+                        ></span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">
+                        Map {{ number_format($mapX, 1) }}%, {{ number_format($mapY, 1) }}%
+                    </p>
+                @elseif ($mapUrl)
+                    <div class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100">
+                        <img src="{{ $mapUrl }}" alt="Pond map" class="block w-full h-auto max-h-80 object-contain mx-auto">
+                    </div>
+                    <p class="text-xs text-amber-800 mt-2">This peg is not placed on the pond map yet.</p>
+                @else
+                    <p class="text-sm text-slate-600">This water does not have a pond map image yet.</p>
+                @endif
                 @if ($session->waterPeg?->photos?->isNotEmpty())
                     <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
                         @foreach ($session->waterPeg->photos as $photo)
@@ -112,24 +131,4 @@
 
         <a href="{{ route('venues.show', $session->venue) }}" class="inline-flex font-semibold text-sky-800 hover:underline">Back to venue</a>
     </div>
-
-    @if ($session->hasPegLocation())
-        <x-slot name="scripts">
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const lat = {{ $session->pegMapLatitude() }};
-                    const lng = {{ $session->pegMapLongitude() }};
-                    const map = L.map('session-peg-view-map').setView([lat, lng], 16);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        maxZoom: 19,
-                        attribution: '&copy; OpenStreetMap'
-                    }).addTo(map);
-                    L.marker([lat, lng]).addTo(map)
-                        .bindPopup(@json($session->pegLabel() ? 'Peg '.$session->pegLabel() : 'Peg location'))
-                        .openPopup();
-                    setTimeout(() => map.invalidateSize(), 200);
-                });
-            </script>
-        </x-slot>
-    @endif
 </x-app-layout>

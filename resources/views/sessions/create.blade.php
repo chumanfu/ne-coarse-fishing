@@ -11,8 +11,8 @@
             ])->values()->all()
             : [['species_id' => '', 'weight_lb' => '', 'bait' => '', 'quantity' => 1]]);
         $tacticsTip = old('tactics_tip', $editing ? ($session->venueTactic?->body ?? $session->tactics_tip) : '');
-        $initialPegLat = old('peg_latitude', $editing ? $session->peg_latitude : null);
-        $initialPegLng = old('peg_longitude', $editing ? $session->peg_longitude : null);
+        $initialPegX = old('peg_map_x', $editing ? $session->pegMapX() : null);
+        $initialPegY = old('peg_map_y', $editing ? $session->pegMapY() : null);
         $initialWaterId = old(
             'water_id',
             $editing ? ($session->water_id ?? $session->waterPeg?->water_id ?? null) : null,
@@ -39,8 +39,8 @@
             pegMode: @js(old('peg_mode', $editing && $session->water_peg_id ? 'existing' : ($editing && $session->hasPegLocation() ? 'new' : 'existing'))),
             waterPegId: @js((string) old('water_peg_id', $editing ? ($session->water_peg_id ?? '') : '')),
             waterId: @js((string) $initialWaterId),
-            pegLat: @js($initialPegLat !== null && $initialPegLat !== '' ? (float) $initialPegLat : null),
-            pegLng: @js($initialPegLng !== null && $initialPegLng !== '' ? (float) $initialPegLng : null),
+            pegX: @js($initialPegX !== null && $initialPegX !== '' ? (float) $initialPegX : null),
+            pegY: @js($initialPegY !== null && $initialPegY !== '' ? (float) $initialPegY : null),
          })">
         <form method="POST"
               action="{{ $editing ? route('sessions.update', $session) : route('sessions.store') }}"
@@ -153,26 +153,43 @@
                 <div x-show="(pegMode === 'new' && !isWholeVenue) || (pegMode === 'existing' && waterPegId)" x-cloak>
                     <div class="flex flex-wrap items-end justify-between gap-3 mb-2">
                         <div>
-                            <label class="block text-sm font-semibold mb-1" x-text="pegMode === 'new' ? 'Mark peg on map' : 'Peg location'"></label>
-                            <p class="text-sm text-slate-600" x-show="pegMode === 'new'">Click the map or drag the marker.</p>
+                            <label class="block text-sm font-semibold mb-1" x-text="pegMode === 'new' ? 'Mark peg on pond map' : 'Peg location'"></label>
+                            <p class="text-sm text-slate-600" x-show="pegMode === 'new'">Click the top-down pond image to place the peg.</p>
                         </div>
                         <button type="button"
                                 @click="clearPegLocation()"
-                                x-show="pegMode === 'new' && pegLat !== null && pegLng !== null"
+                                x-show="pegMode === 'new' && pegX !== null && pegY !== null"
                                 class="text-sm font-semibold text-slate-700 hover:text-sky-800">
                             Clear pin
                         </button>
                     </div>
-                    <div id="session-peg-map"
-                         class="w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-200"
-                         style="height: 18rem; min-height: 18rem;"></div>
-                    <input type="hidden" name="peg_latitude" :value="pegLat ?? ''">
-                    <input type="hidden" name="peg_longitude" :value="pegLng ?? ''">
-                    <p class="text-xs text-slate-500 mt-2" x-show="pegLat !== null && pegLng !== null" x-cloak>
-                        Pin: <span x-text="pegLat?.toFixed(5)"></span>, <span x-text="pegLng?.toFixed(5)"></span>
-                    </p>
-                    @error('peg_latitude') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
-                    @error('peg_longitude') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
+
+                    <template x-if="! selectedWaterMapUrl">
+                        <p class="text-sm text-amber-900 bg-amber-50 border-2 border-amber-400 rounded-lg p-3">
+                            This water does not have a pond map image yet. Ask a venue manager to upload one on the venue page before adding pegs.
+                        </p>
+                    </template>
+                    <template x-if="selectedWaterMapUrl">
+                        <div>
+                            <div class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100 select-none"
+                                 @click="pegMode === 'new' && placePeg($event)">
+                                <img :src="selectedWaterMapUrl" alt="Pond map" class="block w-full h-auto max-h-72 object-contain mx-auto">
+                                <template x-if="pegX !== null && pegY !== null">
+                                    <span
+                                        class="absolute h-4 w-4 -ml-2 -mt-2 rounded-full border-2 border-white bg-sky-700 shadow"
+                                        :style="`left:${pegX}%; top:${pegY}%;`"
+                                    ></span>
+                                </template>
+                            </div>
+                            <input type="hidden" name="peg_map_x" :value="pegX ?? ''">
+                            <input type="hidden" name="peg_map_y" :value="pegY ?? ''">
+                            <p class="text-xs text-slate-500 mt-2" x-show="pegX !== null && pegY !== null" x-cloak>
+                                Position <span x-text="Number(pegX).toFixed(1)"></span>%, <span x-text="Number(pegY).toFixed(1)"></span>%
+                            </p>
+                        </div>
+                    </template>
+                    @error('peg_map_x') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
+                    @error('peg_map_y') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
 
@@ -257,7 +274,7 @@
 
     <x-slot name="scripts">
         <script>
-            function sessionForm({ venueId, watersByVenue, venuesById, pegsByVenue, catches, pegMode, waterPegId, waterId, pegLat, pegLng }) {
+            function sessionForm({ venueId, watersByVenue, venuesById, pegsByVenue, catches, pegMode, waterPegId, waterId, pegX, pegY }) {
                 return {
                     venueId: venueId || '',
                     waterId: waterId || 'all',
@@ -267,16 +284,23 @@
                     catches,
                     pegMode: pegMode || 'existing',
                     waterPegId: waterPegId || '',
-                    pegLat,
-                    pegLng,
-                    map: null,
-                    marker: null,
-                    defaultCenter: [54.7767, -1.5753],
+                    pegX,
+                    pegY,
                     get isWholeVenue() {
                         return ! this.waterId || this.waterId === 'all';
                     },
                     get currentWaters() {
                         return this.watersByVenue[this.venueId] || this.watersByVenue[String(this.venueId)] || [];
+                    },
+                    get selectedWater() {
+                        if (this.isWholeVenue) {
+                            return null;
+                        }
+
+                        return this.currentWaters.find((water) => String(water.id) === String(this.waterId)) || null;
+                    },
+                    get selectedWaterMapUrl() {
+                        return this.selectedWater?.map_url || null;
                     },
                     get currentPegs() {
                         const byWater = this.pegsByVenue[this.venueId] || this.pegsByVenue[String(this.venueId)] || {};
@@ -307,7 +331,6 @@
                             this.waterId = desiredWaterId;
                         }
 
-                        // Alpine x-for options mount after init; re-apply so selects show saved values.
                         this.$nextTick(() => {
                             const waterId = this.waterId;
                             this.waterId = 'all';
@@ -327,9 +350,6 @@
                                 });
                             });
                         });
-
-                        this.$watch('pegMode', () => this.$nextTick(() => this.ensureMap()));
-                        this.$nextTick(() => this.ensureMap());
                     },
                     waterIdForPeg(pegId) {
                         if (! pegId || ! this.venueId) {
@@ -346,84 +366,18 @@
 
                         return null;
                     },
-                    ensureMap() {
-                        if (this.pegMode === 'none') return;
-                        if (this.pegMode === 'existing' && !this.waterPegId) return;
-                        if (this.pegMode === 'new' && this.isWholeVenue) return;
-                        this.waitForLeaflet();
-                    },
-                    waitForLeaflet(attempt = 0) {
-                        if (typeof L !== 'undefined') {
-                            this.initMap();
-                            return;
-                        }
-                        if (attempt > 50) {
-                            console.error('Leaflet failed to load for session peg map.');
-                            return;
-                        }
-                        setTimeout(() => this.waitForLeaflet(attempt + 1), 100);
-                    },
-                    initMap() {
-                        const el = document.getElementById('session-peg-map');
-                        if (!el) return;
-
-                        if (this.map) {
-                            setTimeout(() => this.map.invalidateSize(), 50);
+                    placePeg(event) {
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        if (! rect.width || ! rect.height) {
                             return;
                         }
 
-                        const center = this.currentCenter();
-                        const zoom = this.pegLat !== null && this.pegLng !== null ? 16 : (this.venueId ? 14 : 9);
-
-                        this.map = L.map(el).setView(center, zoom);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            maxZoom: 19,
-                            attribution: '&copy; OpenStreetMap'
-                        }).addTo(this.map);
-
-                        this.marker = L.marker(center, { draggable: this.pegMode === 'new' }).addTo(this.map);
-                        this.marker.on('dragend', () => {
-                            if (this.pegMode !== 'new') return;
-                            const pos = this.marker.getLatLng();
-                            this.setPeg(pos.lat, pos.lng);
-                        });
-                        this.map.on('click', (e) => {
-                            if (this.pegMode !== 'new') return;
-                            this.setPeg(e.latlng.lat, e.latlng.lng);
-                            this.marker.setLatLng(e.latlng);
-                        });
-
-                        if (this.pegMode === 'new' && (this.pegLat === null || this.pegLng === null)) {
-                            this.marker.setOpacity(0.55);
-                        }
-
-                        setTimeout(() => this.map.invalidateSize(), 50);
-                        setTimeout(() => this.map.invalidateSize(), 250);
-                        setTimeout(() => this.map.invalidateSize(), 600);
-                    },
-                    currentCenter() {
-                        if (this.pegLat !== null && this.pegLng !== null) {
-                            return [this.pegLat, this.pegLng];
-                        }
-                        const venue = this.venuesById[this.venueId] || this.venuesById[String(this.venueId)];
-                        if (venue && venue.lat != null && venue.lng != null) {
-                            return [Number(venue.lat), Number(venue.lng)];
-                        }
-                        return this.defaultCenter;
-                    },
-                    setPeg(lat, lng) {
-                        this.pegLat = Number(Number(lat).toFixed(7));
-                        this.pegLng = Number(Number(lng).toFixed(7));
-                        if (this.marker) this.marker.setOpacity(1);
+                        this.pegX = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
+                        this.pegY = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
                     },
                     clearPegLocation() {
-                        this.pegLat = null;
-                        this.pegLng = null;
-                        if (!this.map || !this.marker) return;
-                        const center = this.currentCenter();
-                        this.marker.setLatLng(center);
-                        this.marker.setOpacity(0.55);
-                        this.map.setView(center, this.venueId ? 14 : 9);
+                        this.pegX = null;
+                        this.pegY = null;
                     },
                     selectExistingPeg() {
                         const peg = this.currentPegs.find(p => String(p.id) === String(this.waterPegId));
@@ -433,17 +387,8 @@
                             this.waterId = String(peg.water_id);
                         }
 
-                        this.pegLat = peg.lat;
-                        this.pegLng = peg.lng;
-                        this.$nextTick(() => {
-                            this.ensureMap();
-                            if (this.marker) {
-                                this.marker.setLatLng([peg.lat, peg.lng]);
-                                this.marker.dragging?.disable();
-                                this.marker.setOpacity(1);
-                            }
-                            if (this.map) this.map.setView([peg.lat, peg.lng], 16);
-                        });
+                        this.pegX = peg.x === null || peg.x === undefined ? null : Number(peg.x);
+                        this.pegY = peg.y === null || peg.y === undefined ? null : Number(peg.y);
                     },
                     onVenueChange() {
                         if (this._syncingSelects) {
@@ -451,13 +396,8 @@
                         }
                         this.waterId = 'all';
                         this.waterPegId = '';
-                        this.pegLat = null;
-                        this.pegLng = null;
-                        if (this.map && this.marker) {
-                            const center = this.currentCenter();
-                            this.marker.setLatLng(center);
-                            this.map.setView(center, 14);
-                        }
+                        this.pegX = null;
+                        this.pegY = null;
                     },
                     onWaterChange() {
                         if (this._syncingSelects) {
@@ -465,10 +405,9 @@
                         }
                         this.waterPegId = '';
                         if (this.pegMode === 'existing') {
-                            this.pegLat = null;
-                            this.pegLng = null;
+                            this.pegX = null;
+                            this.pegY = null;
                         }
-                        this.$nextTick(() => this.ensureMap());
                     },
                     addCatch() {
                         this.catches.push({ species_id: '', weight_lb: '', bait: '', quantity: 1 });

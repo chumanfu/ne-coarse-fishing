@@ -22,6 +22,8 @@ class WaterPeg extends Model
         'description',
         'latitude',
         'longitude',
+        'map_x',
+        'map_y',
         'is_verified',
         'verified_by',
         'verified_at',
@@ -33,6 +35,8 @@ class WaterPeg extends Model
         return [
             'latitude' => 'float',
             'longitude' => 'float',
+            'map_x' => 'float',
+            'map_y' => 'float',
             'is_verified' => 'boolean',
             'verified_at' => 'datetime',
             'sort_order' => 'integer',
@@ -96,6 +100,11 @@ class WaterPeg extends Model
         }
 
         return implode(' · ', $parts);
+    }
+
+    public function hasMapPosition(): bool
+    {
+        return $this->map_x !== null && $this->map_y !== null;
     }
 
     public function markVerified(?User $verifier = null): void
