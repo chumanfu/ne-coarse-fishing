@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Species;
 use App\Models\Venue;
+use App\Services\PegCatchStatsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -52,7 +53,7 @@ class VenueController extends Controller
         return view('venues.create');
     }
 
-    public function show(Venue $venue): View
+    public function show(Venue $venue, PegCatchStatsService $pegStats): View
     {
         $this->authorize('view', $venue);
 
@@ -69,11 +70,21 @@ class VenueController extends Controller
             'clubs' => fn ($q) => $q->published()->ordered(),
         ]);
 
+        $mappedPegs = $venue->waters
+            ->flatMap(fn ($water) => $water->pegs
+                ->where('is_verified', true)
+                ->filter(fn ($peg) => $peg->hasMapPosition()))
+            ->values();
+
+        $pegMapPayloads = collect($pegStats->mapPayloads($mappedPegs))
+            ->groupBy(fn (array $payload) => (string) $payload['water_id']);
+
         return view('venues.show', [
             'venue' => $venue,
             'speciesList' => $venue->allSpecies(),
             'anglerTactics' => $venue->anglerTactics,
             'pendingPegs' => $venue->waters->flatMap->pegs->where('is_verified', false)->values(),
+            'pegMapPayloads' => $pegMapPayloads,
             'isFavourited' => auth()->check() && auth()->user()->hasFavourited($venue),
         ]);
     }
