@@ -155,17 +155,17 @@
                             <div class="mt-4">
                                 <p class="text-sm font-semibold text-slate-800 mb-2">Pond map</p>
                                 @if ($water->hasMapImage())
-                                    <x-pond-map :src="$water->mapImageUrl()" :alt="$water->name.' pond map'" max-height-class="max-h-80">
-                                        @foreach ($waterPegs as $peg)
-                                            <span
-                                                class="absolute z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow ring-2 ring-sky-900/30"
-                                                style="left: {{ $peg->map_x }}%; top: {{ $peg->map_y }}%;"
-                                                title="{{ $peg->label() }}"
-                                            ></span>
-                                        @endforeach
-                                    </x-pond-map>
+                                    @php
+                                        $mapPegPayload = ($pegMapPayloads[(string) $water->id] ?? collect())->values()->all();
+                                    @endphp
+                                    <x-pond-map-explorer
+                                        :src="$water->mapImageUrl()"
+                                        :alt="$water->name.' pond map'"
+                                        :pegs="$mapPegPayload"
+                                        max-height-class="max-h-80"
+                                    />
                                     @if ($waterPegs->isNotEmpty())
-                                        <p class="text-xs text-slate-500 mt-2">{{ $waterPegs->count() }} mapped peg{{ $waterPegs->count() === 1 ? '' : 's' }}</p>
+                                        <p class="text-xs text-slate-500 mt-2">{{ $waterPegs->count() }} mapped peg{{ $waterPegs->count() === 1 ? '' : 's' }} — click a pin for catch stats</p>
                                     @else
                                         <p class="text-xs text-slate-500 mt-2">No pegs placed on this map yet.</p>
                                     @endif
@@ -203,15 +203,49 @@
                                 @endif
                             </div>
 
-                            <div class="mt-5">
+                            <div class="mt-5"
+                                 x-data="waterPhotoLightbox(@js($approvedPhotos->map(fn ($photo) => ['url' => $photo->url()])->values()->all()))">
                                 <p class="text-sm font-semibold text-slate-800 mb-2">Angler photos</p>
                                 @if ($approvedPhotos->isNotEmpty())
                                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-                                        @foreach ($approvedPhotos as $photo)
-                                            <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer" class="relative block">
+                                        @foreach ($approvedPhotos as $index => $photo)
+                                            <button type="button"
+                                                    @click="open({{ $index }})"
+                                                    class="relative block text-left">
                                                 <img src="{{ $photo->url() }}" alt="{{ $water->name }} photo" class="rounded-md object-cover h-24 w-full border border-slate-300 hover:border-sky-700">
-                                            </a>
+                                            </button>
                                         @endforeach
+                                    </div>
+
+                                    <div
+                                        x-show="openIndex !== null"
+                                        x-cloak
+                                        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4"
+                                        @keydown.escape.window="close()"
+                                        role="dialog"
+                                        aria-modal="true"
+                                        aria-label="Water photo"
+                                    >
+                                        <button type="button" class="absolute inset-0 cursor-zoom-out" @click="close()" aria-label="Close photo"></button>
+                                        <div class="relative z-10 max-w-5xl w-full space-y-3" @click.stop>
+                                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                                <div class="flex flex-wrap gap-2">
+                                                    <button type="button" @click="zoomIn()" class="px-3 py-1.5 rounded-md bg-white text-sm font-semibold">Zoom in</button>
+                                                    <button type="button" @click="zoomOut()" class="px-3 py-1.5 rounded-md bg-white text-sm font-semibold">Zoom out</button>
+                                                    <button type="button" @click="resetZoom()" class="px-3 py-1.5 rounded-md bg-white text-sm font-semibold">Reset</button>
+                                                </div>
+                                                <button type="button" @click="close()" class="px-3 py-1.5 rounded-md bg-white text-sm font-semibold">Close</button>
+                                            </div>
+                                            <div class="overflow-auto max-h-[80vh] rounded-lg bg-slate-950/40 p-2 flex justify-center">
+                                                <img
+                                                    :src="photos[openIndex]?.url"
+                                                    alt="{{ $water->name }} photo"
+                                                    class="origin-center transition-transform duration-150 max-w-full h-auto"
+                                                    :style="`transform: scale(${scale})`"
+                                                    draggable="false"
+                                                >
+                                            </div>
+                                        </div>
                                     </div>
                                 @else
                                     <p class="text-sm text-slate-600 mb-3">No approved photos yet.</p>
@@ -602,6 +636,31 @@
 
     @push('scripts')
         <script>
+            function waterPhotoLightbox(photos) {
+                return {
+                    photos: photos || [],
+                    openIndex: null,
+                    scale: 1,
+                    open(index) {
+                        this.openIndex = index;
+                        this.scale = 1;
+                    },
+                    close() {
+                        this.openIndex = null;
+                        this.scale = 1;
+                    },
+                    zoomIn() {
+                        this.scale = Math.min(4, Number((this.scale + 0.35).toFixed(2)));
+                    },
+                    zoomOut() {
+                        this.scale = Math.max(1, Number((this.scale - 0.35).toFixed(2)));
+                    },
+                    resetZoom() {
+                        this.scale = 1;
+                    },
+                };
+            }
+
             document.addEventListener('DOMContentLoaded', () => {
                 const map = L.map('venue-map').setView([{{ $venue->latitude }}, {{ $venue->longitude }}], 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
