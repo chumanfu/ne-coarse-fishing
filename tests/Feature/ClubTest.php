@@ -142,9 +142,14 @@ class ClubTest extends TestCase
             'slug' => 'middlesbrough-angling-club',
             'url' => 'https://www.middlesbroughanglingclub.co.uk/',
         ]);
+        $this->assertDatabaseHas('clubs', [
+            'slug' => 'easington-district-angling-society',
+            'url' => 'https://www.easingtondistrictanglingsociety.co.uk/',
+        ]);
         $this->assertDatabaseHas('venues', ['slug' => 'brasside-lakes']);
         $this->assertDatabaseHas('venues', ['slug' => 'silksworth-lakes']);
         $this->assertDatabaseHas('venues', ['slug' => 'stephensons-lake']);
+        $this->assertDatabaseHas('venues', ['slug' => 'wellfield-lake']);
 
         $durham = Club::query()->where('slug', 'durham-city-angling-club')->first();
         $this->assertNotNull($durham);
@@ -154,5 +159,11 @@ class ClubTest extends TestCase
         $this->assertNotNull($mac);
         $this->assertSame('Middlesbrough', $mac->town);
         $this->assertTrue($mac->is_published);
+
+        $edas = Club::query()->where('slug', 'easington-district-angling-society')->first();
+        $this->assertNotNull($edas);
+        $this->assertSame('Wingate', $edas->town);
+        $this->assertTrue($edas->is_published);
+        $this->assertTrue($edas->venues()->where('slug', 'wellfield-lake')->exists());
     }
 }
