@@ -31,15 +31,17 @@
     </div>
     <div x-show="mapUrl" x-cloak>
         <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">Click the top-down pond image to place the peg.</p>
-        <div class="relative w-full rounded-lg border border-gray-300 overflow-hidden bg-gray-100 select-none cursor-crosshair"
-             @click="place($event)">
-            <img :src="mapUrl" alt="Pond map" class="pointer-events-none block w-full h-auto max-h-96 object-contain mx-auto">
-            <span
-                x-show="mapX !== null && mapY !== null"
-                x-cloak
-                class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
-                :style="mapX !== null && mapY !== null ? `left:${mapX}%; top:${mapY}%;` : ''"
-            ></span>
+        <div class="flex justify-center rounded-lg border border-gray-300 overflow-hidden bg-gray-100">
+            <div class="relative inline-block max-w-full select-none cursor-crosshair"
+                 @click="place($event)">
+                <img :src="mapUrl" alt="Pond map" class="pointer-events-none block max-h-96 max-w-full h-auto w-auto">
+                <span
+                    x-show="mapX !== null && mapY !== null"
+                    x-cloak
+                    class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
+                    :style="mapX !== null && mapY !== null ? `left:${mapX}%; top:${mapY}%;` : ''"
+                ></span>
+            </div>
         </div>
         <p class="text-xs text-gray-500 mt-1" x-show="mapX !== null && mapY !== null" x-cloak x-text="`Position ${Number(mapX).toFixed(1)}%, ${Number(mapY).toFixed(1)}%`"></p>
     </div>

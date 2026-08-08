@@ -170,15 +170,19 @@
                         </p>
                     </template>
                     <div x-show="selectedWaterMapUrl" x-cloak>
-                        <div class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100 select-none cursor-crosshair"
-                             @click="pegMode === 'new' && placePeg($event)">
-                            <img :src="selectedWaterMapUrl" alt="Pond map" class="pointer-events-none block w-full h-auto max-h-72 object-contain mx-auto">
-                            <span
-                                x-show="pegX !== null && pegY !== null"
-                                x-cloak
-                                class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
-                                :style="pegX !== null && pegY !== null ? `left:${pegX}%; top:${pegY}%;` : ''"
-                            ></span>
+                        <div class="flex justify-center rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100">
+                            <div class="relative inline-block max-w-full select-none cursor-crosshair"
+                                 @click="pegMode === 'new' && placePeg($event)">
+                                <img :src="selectedWaterMapUrl"
+                                     alt="Pond map"
+                                     class="pointer-events-none block max-h-72 max-w-full h-auto w-auto">
+                                <span
+                                    x-show="pegX !== null && pegY !== null"
+                                    x-cloak
+                                    class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
+                                    :style="pegX !== null && pegY !== null ? `left:${pegX}%; top:${pegY}%;` : ''"
+                                ></span>
+                            </div>
                         </div>
                         <input type="hidden" name="peg_map_x" :value="pegX ?? ''">
                         <input type="hidden" name="peg_map_y" :value="pegY ?? ''">
