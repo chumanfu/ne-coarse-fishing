@@ -237,6 +237,8 @@ class UserDataExportService
             'water_pegs_created' => $pegsCreated->map(fn (WaterPeg $peg) => [
                 'id' => $peg->id,
                 'label' => method_exists($peg, 'label') ? $peg->label() : ($peg->peg_number ?? null),
+                'map_x' => $peg->map_x,
+                'map_y' => $peg->map_y,
                 'latitude' => $peg->latitude,
                 'longitude' => $peg->longitude,
                 'is_verified' => $peg->is_verified,

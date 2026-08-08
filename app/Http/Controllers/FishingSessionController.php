@@ -168,7 +168,10 @@ class FishingSessionController extends Controller
     private function formData(?Venue $venue, ?FishingSession $session, $user): array
     {
         $pegsJson = Venue::approved()
-            ->with(['waters.pegs' => fn ($q) => $q->visibleTo($user)->orderBy('sort_order')->orderBy('id')])
+            ->with([
+                'waters' => fn ($q) => $q->orderBy('sort_order')->orderBy('id'),
+                'waters.pegs' => fn ($q) => $q->visibleTo($user)->orderBy('sort_order')->orderBy('id'),
+            ])
             ->get()
             ->mapWithKeys(function (Venue $v) {
                 return [(string) $v->id => $v->waters->mapWithKeys(function (Water $water) {
@@ -178,8 +181,8 @@ class FishingSessionController extends Controller
                         'label' => $peg->label(),
                         'name' => $peg->name,
                         'number' => $peg->number,
-                        'lat' => $peg->latitude,
-                        'lng' => $peg->longitude,
+                        'x' => $peg->map_x,
+                        'y' => $peg->map_y,
                         'verified' => $peg->is_verified,
                     ])->values()->all()];
                 })->all()];
@@ -205,8 +208,8 @@ class FishingSessionController extends Controller
                     'label' => $peg->label(),
                     'name' => $peg->name,
                     'number' => $peg->number,
-                    'lat' => $peg->latitude ?? $session->peg_latitude,
-                    'lng' => $peg->longitude ?? $session->peg_longitude,
+                    'x' => $peg->map_x,
+                    'y' => $peg->map_y,
                     'verified' => $peg->is_verified,
                 ];
             }
@@ -217,8 +220,12 @@ class FishingSessionController extends Controller
             'session' => $session,
             'venues' => Venue::approved()->orderBy('name')->get(['id', 'name', 'slug', 'latitude', 'longitude']),
             'species' => Species::orderBy('name')->get(),
-            'watersJson' => Venue::approved()->with('waters:id,venue_id,name')->get()
-                ->mapWithKeys(fn (Venue $v) => [(string) $v->id => $v->waters->map(fn ($w) => ['id' => $w->id, 'name' => $w->name])->values()->all()])
+            'watersJson' => Venue::approved()->with('waters:id,venue_id,name,map_image_path')->get()
+                ->mapWithKeys(fn (Venue $v) => [(string) $v->id => $v->waters->map(fn ($w) => [
+                    'id' => $w->id,
+                    'name' => $w->name,
+                    'map_url' => $w->mapImageUrl(),
+                ])->values()->all()])
                 ->all(),
             'venuesJson' => Venue::approved()->orderBy('name')->get(['id', 'name', 'latitude', 'longitude'])
                 ->mapWithKeys(fn (Venue $v) => [(string) $v->id => [
@@ -256,8 +263,8 @@ class FishingSessionController extends Controller
             'weather' => ['nullable', 'string', 'max:255'],
             'peg_number' => ['nullable', 'string', 'max:50'],
             'peg_name' => ['nullable', 'string', 'max:100'],
-            'peg_latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:peg_longitude'],
-            'peg_longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:peg_latitude'],
+            'peg_map_x' => ['nullable', 'numeric', 'between:0,100', 'required_with:peg_map_y'],
+            'peg_map_y' => ['nullable', 'numeric', 'between:0,100', 'required_with:peg_map_x'],
             'peg_photos' => ['nullable', 'array', 'max:4'],
             'peg_photos.*' => ['image', 'max:5120'],
             'commentary' => ['nullable', 'string'],
@@ -305,39 +312,40 @@ class FishingSessionController extends Controller
                 'water_peg_id' => $peg->id,
                 'water_id' => $peg->water_id,
                 'peg_number' => $peg->label(),
-                'peg_latitude' => $peg->latitude,
-                'peg_longitude' => $peg->longitude,
+                'peg_latitude' => null,
+                'peg_longitude' => null,
             ];
         }
 
         if ($mode === 'new') {
             abort_unless(! empty($validated['water_id']), 422, 'Choose a water before adding a new peg.');
-            abort_unless(isset($validated['peg_latitude'], $validated['peg_longitude']), 422, 'Mark the new peg on the map.');
+            abort_unless(isset($validated['peg_map_x'], $validated['peg_map_y']), 422, 'Mark the new peg on the pond map.');
 
             $water = $venue->waters()->whereKey($validated['water_id'])->firstOrFail();
+            abort_unless($water->hasMapImage(), 422, 'This water needs a pond map image before pegs can be placed.');
+
             $peg = $pegs->createForWater($water, $user, [
                 'name' => $validated['peg_name'] ?? null,
                 'number' => $validated['peg_number'] ?? null,
-                'latitude' => $validated['peg_latitude'],
-                'longitude' => $validated['peg_longitude'],
+                'map_x' => $validated['peg_map_x'],
+                'map_y' => $validated['peg_map_y'],
             ], false, array_values(array_filter($pegPhotos)));
 
             return [
                 'water_peg_id' => $peg->id,
                 'water_id' => $peg->water_id,
                 'peg_number' => $peg->label(),
-                'peg_latitude' => $peg->latitude,
-                'peg_longitude' => $peg->longitude,
+                'peg_latitude' => null,
+                'peg_longitude' => null,
             ];
         }
 
-        // Legacy / freeform map pin without official peg.
         return [
             'water_peg_id' => null,
             'water_id' => $validated['water_id'] ?? null,
             'peg_number' => $validated['peg_number'] ?? null,
-            'peg_latitude' => $validated['peg_latitude'] ?? null,
-            'peg_longitude' => $validated['peg_longitude'] ?? null,
+            'peg_latitude' => null,
+            'peg_longitude' => null,
         ];
     }
 

@@ -62,17 +62,18 @@ class AdminFilamentResourcesTest extends TestCase
             $this->get($resource::getUrl('index'))->assertOk();
         }
 
-        $water = Water::factory()->create();
+        $water = Water::factory()->create([
+            'map_image_path' => 'water-maps/admin-pond.jpg',
+        ]);
         $peg = WaterPeg::factory()->for($water)->create([
-            'latitude' => 54.98,
-            'longitude' => -1.61,
+            'map_x' => 40,
+            'map_y' => 55,
         ]);
 
         $this->get(WaterPegResource::getUrl('edit', ['record' => $peg]))
             ->assertOk()
-            ->assertSee('Location on map', false)
-            ->assertSee('fi-peg-location-map', false)
-            ->assertSee('leaflet', false);
+            ->assertSee('Map X %', false)
+            ->assertSee('Map Y %', false);
     }
 
     public function test_super_admin_dashboard_shows_searchable_activity(): void

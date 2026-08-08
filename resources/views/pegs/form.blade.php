@@ -1,7 +1,13 @@
 @php
     $editing = $peg !== null;
-    $initialLat = old('latitude', $editing ? $peg->latitude : $venue->latitude);
-    $initialLng = old('longitude', $editing ? $peg->longitude : $venue->longitude);
+    $watersPayload = $venue->waters->map(fn ($water) => [
+        'id' => $water->id,
+        'name' => $water->name,
+        'map_url' => $water->mapImageUrl(),
+    ])->values();
+    $initialWaterId = (int) old('water_id', $editing ? $peg->water_id : ($venue->waters->first()?->id ?? 0));
+    $initialX = old('map_x', $editing ? $peg->map_x : null);
+    $initialY = old('map_y', $editing ? $peg->map_y : null);
 @endphp
 
 <x-app-layout>
@@ -10,14 +16,16 @@
             {{ $editing ? 'Edit peg' : 'Add peg' }} · {{ $venue->name }}
         </h1>
         <p class="text-slate-600 mt-1">
-            {{ $editing ? 'Update the peg pin, details, and photos.' : 'Official pegs are visible to all anglers when logging sessions.' }}
+            Place the peg on the pond’s top-down map image. Upload a map for each water on the venue page first if needed.
         </p>
     </x-slot>
 
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
          x-data="managerPegForm({
-            lat: @js((float) $initialLat),
-            lng: @js((float) $initialLng),
+            waters: @js($watersPayload),
+            waterId: @js($initialWaterId),
+            x: @js($initialX !== null ? (float) $initialX : null),
+            y: @js($initialY !== null ? (float) $initialY : null),
          })">
         <form method="POST"
               action="{{ $editing ? route('pegs.update', [$venue, $peg]) : route('pegs.store', $venue) }}"
@@ -30,10 +38,10 @@
 
             <div>
                 <label class="block text-sm font-semibold mb-1">Water / lake</label>
-                <select name="water_id" required class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
+                <select name="water_id" required x-model.number="waterId" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                     <option value="">Select water</option>
                     @foreach ($venue->waters as $water)
-                        <option value="{{ $water->id }}" @selected(old('water_id', $editing ? $peg->water_id : null) == $water->id)>{{ $water->name }}</option>
+                        <option value="{{ $water->id }}">{{ $water->name }}</option>
                     @endforeach
                 </select>
                 @error('water_id') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
@@ -53,16 +61,39 @@
             </div>
 
             <div>
-                <label class="block text-sm font-semibold mb-1">Location on map</label>
-                <p class="text-sm text-slate-600 mb-2">Click the map or drag the marker.</p>
-                <div id="manager-peg-map"
-                     class="w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-200"
-                     style="height: 18rem; min-height: 18rem;"></div>
-                <input type="hidden" name="latitude" :value="lat">
-                <input type="hidden" name="longitude" :value="lng">
-                <p class="text-xs text-slate-500 mt-2" x-text="lat.toFixed(5) + ', ' + lng.toFixed(5)"></p>
-                @error('latitude') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
-                @error('longitude') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
+                <label class="block text-sm font-semibold mb-1">Location on pond map</label>
+                <p class="text-sm text-slate-600 mb-2">Click the top-down image to place the peg pin.</p>
+
+                <template x-if="! selectedWater">
+                    <p class="text-sm text-slate-600 border-2 border-dashed border-slate-300 rounded-lg p-4">Select a water first.</p>
+                </template>
+                <template x-if="selectedWater && ! selectedWater.map_url">
+                    <p class="text-sm text-amber-900 bg-amber-50 border-2 border-amber-400 rounded-lg p-4">
+                        This water does not have a pond map image yet.
+                        <a href="{{ route('venues.show', $venue) }}" class="font-semibold underline">Upload one on the venue page</a>
+                        before placing pegs.
+                    </p>
+                </template>
+                <template x-if="selectedWater && selectedWater.map_url">
+                    <div>
+                        <div class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-200 select-none"
+                             @click="placePeg($event)">
+                            <img :src="selectedWater.map_url" alt="Pond map" class="block w-full h-auto max-h-[28rem] object-contain mx-auto bg-slate-100">
+                            <template x-if="x !== null && y !== null">
+                                <span
+                                    class="absolute h-4 w-4 -ml-2 -mt-2 rounded-full border-2 border-white bg-sky-700 shadow"
+                                    :style="`left:${x}%; top:${y}%;`"
+                                    aria-hidden="true"
+                                ></span>
+                            </template>
+                        </div>
+                        <input type="hidden" name="map_x" :value="x ?? ''">
+                        <input type="hidden" name="map_y" :value="y ?? ''">
+                        <p class="text-xs text-slate-500 mt-2" x-show="x !== null && y !== null" x-text="`Position ${Number(x).toFixed(1)}%, ${Number(y).toFixed(1)}%`"></p>
+                    </div>
+                </template>
+                @error('map_x') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
+                @error('map_y') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div>
@@ -113,48 +144,24 @@
 
     <x-slot name="scripts">
         <script>
-            function managerPegForm({ lat, lng }) {
+            function managerPegForm({ waters, waterId, x, y }) {
                 return {
-                    lat: Number(lat),
-                    lng: Number(lng),
-                    map: null,
-                    marker: null,
-                    init() {
-                        this.$nextTick(() => this.waitForLeaflet());
+                    waters,
+                    waterId: Number(waterId) || '',
+                    x: x === null || x === undefined || x === '' ? null : Number(x),
+                    y: y === null || y === undefined || y === '' ? null : Number(y),
+                    get selectedWater() {
+                        return this.waters.find((water) => Number(water.id) === Number(this.waterId)) || null;
                     },
-                    waitForLeaflet(attempt = 0) {
-                        if (typeof L !== 'undefined') {
-                            this.initMap();
+                    placePeg(event) {
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        if (! rect.width || ! rect.height) {
                             return;
                         }
-                        if (attempt > 50) return;
-                        setTimeout(() => this.waitForLeaflet(attempt + 1), 100);
+
+                        this.x = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
+                        this.y = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
                     },
-                    initMap() {
-                        const el = document.getElementById('manager-peg-map');
-                        if (!el || this.map) return;
-
-                        this.map = L.map(el).setView([this.lat, this.lng], 15);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            maxZoom: 19,
-                            attribution: '&copy; OpenStreetMap'
-                        }).addTo(this.map);
-
-                        this.marker = L.marker([this.lat, this.lng], { draggable: true }).addTo(this.map);
-                        this.marker.on('dragend', () => {
-                            const pos = this.marker.getLatLng();
-                            this.lat = Number(pos.lat.toFixed(7));
-                            this.lng = Number(pos.lng.toFixed(7));
-                        });
-                        this.map.on('click', (e) => {
-                            this.lat = Number(e.latlng.lat.toFixed(7));
-                            this.lng = Number(e.latlng.lng.toFixed(7));
-                            this.marker.setLatLng(e.latlng);
-                        });
-
-                        setTimeout(() => this.map.invalidateSize(), 50);
-                        setTimeout(() => this.map.invalidateSize(), 250);
-                    }
                 };
             }
         </script>

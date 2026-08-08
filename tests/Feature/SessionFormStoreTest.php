@@ -28,8 +28,8 @@ class SessionFormStoreTest extends TestCase
             'weather' => '',
             'peg_number' => '',
             'peg_name' => '',
-            'peg_latitude' => '',
-            'peg_longitude' => '',
+            'peg_map_x' => '',
+            'peg_map_y' => '',
             'commentary' => 'Quiet morning.',
             'tactics_tip' => '',
             'catches' => [

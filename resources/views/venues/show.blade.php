@@ -125,17 +125,11 @@
                         @php
                             $waterPegs = $water->pegs
                                 ->where('is_verified', true)
-                                ->filter(fn ($peg) => $peg->latitude !== null && $peg->longitude !== null)
+                                ->filter(fn ($peg) => $peg->hasMapPosition())
                                 ->values();
-                            $waterPegsPayload = $waterPegs->map(function ($peg) {
-                                return [
-                                    'id' => $peg->id,
-                                    'label' => $peg->label(),
-                                    'lat' => $peg->latitude,
-                                    'lng' => $peg->longitude,
-                                    'description' => $peg->description,
-                                ];
-                            })->values();
+                            $approvedPhotos = $water->photos->where('is_approved', true)->values();
+                            $pendingPhotos = $water->photos->where('is_approved', false)->values();
+                            $canManageWater = auth()->user() && $venue->canManagePegs(auth()->user());
                         @endphp
                         <div class="border-2 border-slate-200 rounded-lg p-4">
                             <h3 class="font-bold text-slate-900">{{ $water->name }}</h3>
@@ -157,18 +151,138 @@
                                     @endforeach
                                 </div>
                             @endif
-                            @if ($waterPegs->isNotEmpty())
-                                <div class="mt-4">
-                                    <p class="text-sm font-semibold text-slate-800 mb-2">Peg map</p>
-                                    <div
-                                        id="water-map-{{ $water->id }}"
-                                        class="w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-200"
-                                        style="height: 16rem; min-height: 16rem;"
-                                        data-pegs='@json($waterPegsPayload)'
-                                    ></div>
-                                    <p class="text-xs text-slate-500 mt-2">{{ $waterPegs->count() }} mapped peg{{ $waterPegs->count() === 1 ? '' : 's' }}</p>
-                                </div>
-                            @endif
+
+                            <div class="mt-4">
+                                <p class="text-sm font-semibold text-slate-800 mb-2">Pond map</p>
+                                @if ($water->hasMapImage())
+                                    <div class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100">
+                                        <img src="{{ $water->mapImageUrl() }}" alt="{{ $water->name }} pond map" class="block w-full h-auto max-h-80 object-contain mx-auto">
+                                        @foreach ($waterPegs as $peg)
+                                            <span
+                                                class="absolute h-3.5 w-3.5 -ml-1.5 -mt-1.5 rounded-full border-2 border-white bg-sky-700 shadow"
+                                                style="left: {{ $peg->map_x }}%; top: {{ $peg->map_y }}%;"
+                                                title="{{ $peg->label() }}"
+                                            ></span>
+                                        @endforeach
+                                    </div>
+                                    @if ($waterPegs->isNotEmpty())
+                                        <p class="text-xs text-slate-500 mt-2">{{ $waterPegs->count() }} mapped peg{{ $waterPegs->count() === 1 ? '' : 's' }}</p>
+                                    @else
+                                        <p class="text-xs text-slate-500 mt-2">No pegs placed on this map yet.</p>
+                                    @endif
+                                @else
+                                    <p class="text-sm text-slate-600 border-2 border-dashed border-slate-300 rounded-lg p-3">
+                                        No top-down pond map yet. Managers upload one so pegs can be placed on the image.
+                                    </p>
+                                @endif
+
+                                @if ($canManageWater)
+                                    <form method="POST"
+                                          action="{{ route('waters.map-image.update', [$venue, $water]) }}"
+                                          enctype="multipart/form-data"
+                                          class="mt-3 flex flex-col sm:flex-row sm:items-end gap-3">
+                                        @csrf
+                                        <div class="flex-1">
+                                            <label class="block text-xs font-semibold text-slate-700 mb-1">
+                                                {{ $water->hasMapImage() ? 'Replace pond map' : 'Upload pond map' }}
+                                            </label>
+                                            <input type="file" name="map_image" accept="image/*" required class="block w-full text-sm">
+                                        </div>
+                                        <button class="px-3 py-2 rounded-md bg-sky-700 text-white text-sm font-semibold hover:bg-sky-800">Save map</button>
+                                    </form>
+                                    @if ($water->hasMapImage())
+                                        <form method="POST"
+                                              action="{{ route('waters.map-image.destroy', [$venue, $water]) }}"
+                                              class="mt-2"
+                                              onsubmit="return confirm('Remove the pond map and clear peg positions?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="text-sm font-semibold text-red-800 hover:underline">Remove map image</button>
+                                        </form>
+                                        <p class="text-xs text-amber-800 mt-1">Uploading a new map clears peg positions so they can be remapped.</p>
+                                    @endif
+                                @endif
+                            </div>
+
+                            <div class="mt-5">
+                                <p class="text-sm font-semibold text-slate-800 mb-2">Angler photos</p>
+                                @if ($approvedPhotos->isNotEmpty())
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                                        @foreach ($approvedPhotos as $photo)
+                                            <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer" class="relative block">
+                                                <img src="{{ $photo->url() }}" alt="{{ $water->name }} photo" class="rounded-md object-cover h-24 w-full border border-slate-300 hover:border-sky-700">
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="text-sm text-slate-600 mb-3">No approved photos yet.</p>
+                                @endif
+
+                                @auth
+                                    <form method="POST"
+                                          action="{{ route('waters.photos.store', [$venue, $water]) }}"
+                                          enctype="multipart/form-data"
+                                          class="flex flex-col sm:flex-row sm:items-end gap-3">
+                                        @csrf
+                                        <div class="flex-1">
+                                            <label class="block text-xs font-semibold text-slate-700 mb-1">Upload a photo of this water</label>
+                                            <input type="file" name="photo" accept="image/*" capture="environment" required class="block w-full text-sm">
+                                        </div>
+                                        <button class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 text-sm font-semibold hover:bg-sky-50">Submit for approval</button>
+                                    </form>
+                                    <p class="text-xs text-slate-500 mt-1">Photos appear publicly once a venue manager approves them.</p>
+                                @else
+                                    <a href="{{ route('login') }}" class="text-sm font-semibold text-sky-800 hover:underline">Log in to upload a photo</a>
+                                @endauth
+
+                                @if ($canManageWater && $pendingPhotos->isNotEmpty())
+                                    <div class="mt-4 space-y-2">
+                                        <p class="text-sm font-semibold text-amber-950">Pending approval</p>
+                                        @foreach ($pendingPhotos as $photo)
+                                            <div class="flex flex-col sm:flex-row sm:items-center gap-3 border-2 border-amber-300 rounded-lg p-2 bg-amber-50/50">
+                                                <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer" class="shrink-0">
+                                                    <img src="{{ $photo->url() }}" alt="" class="h-20 w-28 object-cover rounded border border-slate-300">
+                                                </a>
+                                                <div class="flex-1 text-sm text-slate-700">
+                                                    Uploaded by {{ $photo->uploader?->name ?? 'angler' }}
+                                                </div>
+                                                <div class="flex flex-wrap gap-2">
+                                                    <form method="POST" action="{{ route('waters.photos.approve', [$venue, $water, $photo]) }}">
+                                                        @csrf
+                                                        <button class="px-3 py-2 rounded-md bg-sky-700 text-white text-sm font-semibold hover:bg-sky-800">Approve</button>
+                                                    </form>
+                                                    <form method="POST" action="{{ route('waters.photos.destroy', [$venue, $water, $photo]) }}" onsubmit="return confirm('Reject and delete this photo?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button class="px-3 py-2 rounded-md border-2 border-slate-400 text-sm font-semibold">Reject</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @elseif (auth()->check() && ! $canManageWater)
+                                    @php
+                                        $ownPending = $pendingPhotos->where('user_id', auth()->id())->values();
+                                    @endphp
+                                    @if ($ownPending->isNotEmpty())
+                                        <div class="mt-3">
+                                            <p class="text-xs font-semibold text-slate-700 mb-2">Your photos awaiting approval</p>
+                                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                @foreach ($ownPending as $photo)
+                                                    <div class="relative">
+                                                        <img src="{{ $photo->url() }}" alt="" class="rounded-md object-cover h-24 w-full border border-amber-300 opacity-80">
+                                                        <form method="POST" action="{{ route('waters.photos.destroy', [$venue, $water, $photo]) }}" class="mt-1">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button class="text-xs font-semibold text-red-800 hover:underline">Withdraw</button>
+                                                        </form>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endif
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -282,7 +396,13 @@
                                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                         <div>
                                             <p class="font-semibold text-slate-900">{{ $peg->label() }} <span class="text-slate-500 font-normal">on {{ $peg->water?->name }}</span></p>
-                                            <p class="text-xs text-slate-500">{{ number_format($peg->latitude, 5) }}, {{ number_format($peg->longitude, 5) }}</p>
+                                            <p class="text-xs text-slate-500">
+                                                @if ($peg->hasMapPosition())
+                                                    Map {{ number_format($peg->map_x, 1) }}%, {{ number_format($peg->map_y, 1) }}%
+                                                @else
+                                                    Not placed on pond map yet
+                                                @endif
+                                            </p>
                                         </div>
                                         <div class="flex flex-wrap gap-2">
                                             <a href="{{ route('pegs.edit', [$venue, $peg]) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 text-sm font-semibold">Edit</a>
@@ -320,7 +440,14 @@
                                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 border-2 border-slate-200 rounded-lg px-3 py-2">
                                     <div>
                                         <p class="font-semibold text-slate-900">{{ $peg->label() }} <span class="text-slate-500 font-normal">· {{ $peg->water?->name }}</span></p>
-                                        <p class="text-xs text-slate-500">{{ number_format($peg->latitude, 5) }}, {{ number_format($peg->longitude, 5) }}@if($peg->photos->isNotEmpty()) · {{ $peg->photos->count() }} photo{{ $peg->photos->count() === 1 ? '' : 's' }}@endif</p>
+                                        <p class="text-xs text-slate-500">
+                                            @if ($peg->hasMapPosition())
+                                                Map {{ number_format($peg->map_x, 1) }}%, {{ number_format($peg->map_y, 1) }}%
+                                            @else
+                                                Not placed on pond map yet
+                                            @endif
+                                            @if($peg->photos->isNotEmpty()) · {{ $peg->photos->count() }} photo{{ $peg->photos->count() === 1 ? '' : 's' }}@endif
+                                        </p>
                                         @if ($peg->description)
                                             <p class="text-sm text-slate-700 mt-2 whitespace-pre-line">{{ Str::limit($peg->description, 280) }}</p>
                                         @endif
@@ -484,46 +611,6 @@
                 }).addTo(map);
                 L.marker([{{ $venue->latitude }}, {{ $venue->longitude }}]).addTo(map)
                     .bindPopup(@json($venue->name));
-
-                document.querySelectorAll('[id^="water-map-"]').forEach((el) => {
-                    let pegs = [];
-                    try {
-                        pegs = JSON.parse(el.dataset.pegs || '[]');
-                    } catch (e) {
-                        return;
-                    }
-                    if (!pegs.length) {
-                        return;
-                    }
-
-                    const escapeHtml = (value) => String(value ?? '')
-                        .replace(/&/g, '&amp;')
-                        .replace(/</g, '&lt;')
-                        .replace(/>/g, '&gt;')
-                        .replace(/"/g, '&quot;');
-
-                    const waterMap = L.map(el.id);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        maxZoom: 19,
-                        attribution: '&copy; OpenStreetMap'
-                    }).addTo(waterMap);
-
-                    const bounds = [];
-                    pegs.forEach((peg) => {
-                        const marker = L.marker([peg.lat, peg.lng]).addTo(waterMap);
-                        const popup = peg.description
-                            ? `<strong>${escapeHtml(peg.label)}</strong><br>${escapeHtml(peg.description)}`
-                            : `<strong>${escapeHtml(peg.label)}</strong>`;
-                        marker.bindPopup(popup);
-                        bounds.push([peg.lat, peg.lng]);
-                    });
-
-                    if (bounds.length === 1) {
-                        waterMap.setView(bounds[0], 17);
-                    } else {
-                        waterMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 18 });
-                    }
-                });
             });
         </script>
     @endpush

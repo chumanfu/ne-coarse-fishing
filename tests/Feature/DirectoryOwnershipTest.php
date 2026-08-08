@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\Water;
 use App\Models\WaterPeg;
+use App\Support\Uploads;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -120,26 +121,33 @@ class DirectoryOwnershipTest extends TestCase
         ]);
     }
 
-    public function test_venue_water_section_includes_peg_map_markers(): void
+    public function test_venue_water_section_includes_pond_map_and_pegs(): void
     {
+        Storage::fake(Uploads::diskName());
+
         $venue = Venue::factory()->create([
             'is_approved' => true,
             'latitude' => 54.97,
             'longitude' => -1.61,
         ]);
-        $water = Water::factory()->create(['venue_id' => $venue->id, 'name' => 'Match Lake']);
+        $water = Water::factory()->create([
+            'venue_id' => $venue->id,
+            'name' => 'Match Lake',
+            'map_image_path' => 'water-maps/match.jpg',
+        ]);
+        Storage::disk(Uploads::diskName())->put('water-maps/match.jpg', 'fake');
         WaterPeg::factory()->create([
             'water_id' => $water->id,
             'name' => 'Peg 1',
-            'latitude' => 54.9701,
-            'longitude' => -1.6101,
+            'map_x' => 40,
+            'map_y' => 55,
             'is_verified' => true,
         ]);
 
         $this->get(route('venues.show', $venue))
             ->assertOk()
-            ->assertSee('water-map-'.$water->id, false)
-            ->assertSee('Peg map', false);
+            ->assertSee('Pond map')
+            ->assertSee($water->mapImageUrl(), false);
     }
 
     public function test_only_super_admin_user_resource_can_access_roles(): void

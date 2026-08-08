@@ -43,7 +43,8 @@ class FishingSession extends Model
             return true;
         }
 
-        return $this->peg_latitude !== null && $this->peg_longitude !== null;
+        return $this->waterPeg?->hasMapPosition()
+            || ($this->peg_latitude !== null && $this->peg_longitude !== null);
     }
 
     public function pegLabel(): ?string
@@ -53,6 +54,16 @@ class FishingSession extends Model
         }
 
         return $this->peg_number;
+    }
+
+    public function pegMapX(): ?float
+    {
+        return $this->waterPeg?->map_x;
+    }
+
+    public function pegMapY(): ?float
+    {
+        return $this->waterPeg?->map_y;
     }
 
     public function pegMapLatitude(): ?float
