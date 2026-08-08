@@ -21,6 +21,11 @@ class AdditionalDayTicketVenuesTest extends TestCase
             '--force' => true,
         ])->assertSuccessful();
 
+        $this->artisan('migrate', [
+            '--path' => 'database/migrations/2026_08_08_083500_rename_wingate_ponds_to_eden_meadows_fishery.php',
+            '--force' => true,
+        ])->assertSuccessful();
+
         $expected = [
             'the-oaks-lakes-sessay' => 'The Oaks Lakes',
             'charltons-pond' => "Charlton's Pond",
@@ -28,7 +33,7 @@ class AdditionalDayTicketVenuesTest extends TestCase
             'renny-lakes' => 'Renny Lakes',
             'woodland-lakes' => 'Woodland Lakes',
             'watergate-lake' => 'Watergate Lake',
-            'wingate-ponds' => 'Wingate Ponds',
+            'eden-meadows-fishery' => 'Eden Meadows Fishery',
         ];
 
         foreach ($expected as $slug => $name) {
@@ -47,5 +52,10 @@ class AdditionalDayTicketVenuesTest extends TestCase
                 ->assertOk()
                 ->assertSee($name);
         }
+
+        $eden = Venue::query()->where('slug', 'eden-meadows-fishery')->first();
+        $this->assertNotNull($eden);
+        $this->assertStringContainsString('Wingate Ponds', (string) $eden->overview);
+        $this->assertDatabaseMissing('venues', ['slug' => 'wingate-ponds']);
     }
 }
