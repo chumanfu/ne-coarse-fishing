@@ -146,10 +146,15 @@ class ClubTest extends TestCase
             'slug' => 'easington-district-angling-society',
             'url' => 'https://www.easingtondistrictanglingsociety.co.uk/',
         ]);
+        $this->assertDatabaseHas('clubs', [
+            'slug' => 'birtley-rof-angling-club',
+            'url' => 'https://www.birtleyrofanglingclub.com/',
+        ]);
         $this->assertDatabaseHas('venues', ['slug' => 'brasside-lakes']);
         $this->assertDatabaseHas('venues', ['slug' => 'silksworth-lakes']);
         $this->assertDatabaseHas('venues', ['slug' => 'stephensons-lake']);
         $this->assertDatabaseHas('venues', ['slug' => 'wellfield-lake']);
+        $this->assertDatabaseHas('venues', ['slug' => 'ouston-springs-pond']);
 
         $durham = Club::query()->where('slug', 'durham-city-angling-club')->first();
         $this->assertNotNull($durham);
@@ -165,5 +170,11 @@ class ClubTest extends TestCase
         $this->assertSame('Wingate', $edas->town);
         $this->assertTrue($edas->is_published);
         $this->assertTrue($edas->venues()->where('slug', 'wellfield-lake')->exists());
+
+        $brofac = Club::query()->where('slug', 'birtley-rof-angling-club')->first();
+        $this->assertNotNull($brofac);
+        $this->assertSame('Birtley', $brofac->town);
+        $this->assertTrue($brofac->is_published);
+        $this->assertTrue($brofac->venues()->where('slug', 'ouston-springs-pond')->exists());
     }
 }
