@@ -16,6 +16,7 @@ use App\Filament\Resources\VenuePhotos\VenuePhotoResource;
 use App\Filament\Resources\VenueTactics\VenueTacticResource;
 use App\Filament\Resources\WaterPegs\WaterPegResource;
 use App\Filament\Resources\Waters\WaterResource;
+use App\Filament\Resources\WaterVideos\WaterVideoResource;
 use App\Models\Activity;
 use App\Models\User;
 use App\Models\Venue;
@@ -54,6 +55,7 @@ class AdminFilamentResourcesTest extends TestCase
             TackleShopEditRequestResource::class,
             VenueTacticResource::class,
             VenuePhotoResource::class,
+            WaterVideoResource::class,
             TackleReviewResource::class,
         ];
 
