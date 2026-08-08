@@ -46,21 +46,18 @@
                     $mapY = $session->pegMapY();
                 @endphp
                 @if ($mapUrl && $mapX !== null && $mapY !== null)
-                    <div id="session-peg-view-map" class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100">
-                        <img src="{{ $mapUrl }}" alt="Pond map" class="block w-full h-auto max-h-80 object-contain mx-auto">
+                    <x-pond-map id="session-peg-view-map" :src="$mapUrl" alt="Pond map" max-height-class="max-h-80">
                         <span
-                            class="absolute h-4 w-4 -ml-2 -mt-2 rounded-full border-2 border-white bg-sky-700 shadow"
+                            class="absolute z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow ring-2 ring-sky-900/30"
                             style="left: {{ $mapX }}%; top: {{ $mapY }}%;"
                             title="{{ $session->pegLabel() }}"
                         ></span>
-                    </div>
+                    </x-pond-map>
                     <p class="text-xs text-slate-500 mt-2">
                         Map {{ number_format($mapX, 1) }}%, {{ number_format($mapY, 1) }}%
                     </p>
                 @elseif ($mapUrl)
-                    <div class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100">
-                        <img src="{{ $mapUrl }}" alt="Pond map" class="block w-full h-auto max-h-80 object-contain mx-auto">
-                    </div>
+                    <x-pond-map :src="$mapUrl" alt="Pond map" max-height-class="max-h-80" />
                     <p class="text-xs text-amber-800 mt-2">This peg is not placed on the pond map yet.</p>
                 @else
                     <p class="text-sm text-slate-600">This water does not have a pond map image yet.</p>

@@ -4,6 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+[x-cloak] {
+    display: none !important;
+}
+
 /* Keep directory logos constrained even when utility classes are purged from the build. */
 .directory-logo,
 .tackle-shop-logo {

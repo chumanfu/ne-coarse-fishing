@@ -155,16 +155,15 @@
                             <div class="mt-4">
                                 <p class="text-sm font-semibold text-slate-800 mb-2">Pond map</p>
                                 @if ($water->hasMapImage())
-                                    <div class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100">
-                                        <img src="{{ $water->mapImageUrl() }}" alt="{{ $water->name }} pond map" class="block w-full h-auto max-h-80 object-contain mx-auto">
+                                    <x-pond-map :src="$water->mapImageUrl()" :alt="$water->name.' pond map'" max-height-class="max-h-80">
                                         @foreach ($waterPegs as $peg)
                                             <span
-                                                class="absolute h-3.5 w-3.5 -ml-1.5 -mt-1.5 rounded-full border-2 border-white bg-sky-700 shadow"
+                                                class="absolute z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow ring-2 ring-sky-900/30"
                                                 style="left: {{ $peg->map_x }}%; top: {{ $peg->map_y }}%;"
                                                 title="{{ $peg->label() }}"
                                             ></span>
                                         @endforeach
-                                    </div>
+                                    </x-pond-map>
                                     @if ($waterPegs->isNotEmpty())
                                         <p class="text-xs text-slate-500 mt-2">{{ $waterPegs->count() }} mapped peg{{ $waterPegs->count() === 1 ? '' : 's' }}</p>
                                     @else
