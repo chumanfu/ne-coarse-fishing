@@ -169,25 +169,23 @@
                             This water does not have a pond map image yet. Ask a venue manager to upload one on the venue page before adding pegs.
                         </p>
                     </template>
-                    <template x-if="selectedWaterMapUrl">
-                        <div>
-                            <div class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100 select-none"
-                                 @click="pegMode === 'new' && placePeg($event)">
-                                <img :src="selectedWaterMapUrl" alt="Pond map" class="block w-full h-auto max-h-72 object-contain mx-auto">
-                                <template x-if="pegX !== null && pegY !== null">
-                                    <span
-                                        class="absolute h-4 w-4 -ml-2 -mt-2 rounded-full border-2 border-white bg-sky-700 shadow"
-                                        :style="`left:${pegX}%; top:${pegY}%;`"
-                                    ></span>
-                                </template>
-                            </div>
-                            <input type="hidden" name="peg_map_x" :value="pegX ?? ''">
-                            <input type="hidden" name="peg_map_y" :value="pegY ?? ''">
-                            <p class="text-xs text-slate-500 mt-2" x-show="pegX !== null && pegY !== null" x-cloak>
-                                Position <span x-text="Number(pegX).toFixed(1)"></span>%, <span x-text="Number(pegY).toFixed(1)"></span>%
-                            </p>
+                    <div x-show="selectedWaterMapUrl" x-cloak>
+                        <div class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100 select-none cursor-crosshair"
+                             @click="pegMode === 'new' && placePeg($event)">
+                            <img :src="selectedWaterMapUrl" alt="Pond map" class="pointer-events-none block w-full h-auto max-h-72 object-contain mx-auto">
+                            <span
+                                x-show="pegX !== null && pegY !== null"
+                                x-cloak
+                                class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
+                                :style="pegX !== null && pegY !== null ? `left:${pegX}%; top:${pegY}%;` : ''"
+                            ></span>
                         </div>
-                    </template>
+                        <input type="hidden" name="peg_map_x" :value="pegX ?? ''">
+                        <input type="hidden" name="peg_map_y" :value="pegY ?? ''">
+                        <p class="text-xs text-slate-500 mt-2" x-show="pegX !== null && pegY !== null" x-cloak>
+                            Position <span x-text="Number(pegX).toFixed(1)"></span>%, <span x-text="Number(pegY).toFixed(1)"></span>%
+                        </p>
+                    </div>
                     @error('peg_map_x') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                     @error('peg_map_y') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>

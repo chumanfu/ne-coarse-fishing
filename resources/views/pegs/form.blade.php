@@ -24,8 +24,8 @@
          x-data="managerPegForm({
             waters: @js($watersPayload),
             waterId: @js($initialWaterId),
-            x: @js($initialX !== null ? (float) $initialX : null),
-            y: @js($initialY !== null ? (float) $initialY : null),
+            mapX: @js($initialX !== null ? (float) $initialX : null),
+            mapY: @js($initialY !== null ? (float) $initialY : null),
          })">
         <form method="POST"
               action="{{ $editing ? route('pegs.update', [$venue, $peg]) : route('pegs.store', $venue) }}"
@@ -74,24 +74,22 @@
                         before placing pegs.
                     </p>
                 </template>
-                <template x-if="selectedWater && selectedWater.map_url">
-                    <div>
-                        <div class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-200 select-none"
-                             @click="placePeg($event)">
-                            <img :src="selectedWater.map_url" alt="Pond map" class="block w-full h-auto max-h-[28rem] object-contain mx-auto bg-slate-100">
-                            <template x-if="x !== null && y !== null">
-                                <span
-                                    class="absolute h-4 w-4 -ml-2 -mt-2 rounded-full border-2 border-white bg-sky-700 shadow"
-                                    :style="`left:${x}%; top:${y}%;`"
-                                    aria-hidden="true"
-                                ></span>
-                            </template>
-                        </div>
-                        <input type="hidden" name="map_x" :value="x ?? ''">
-                        <input type="hidden" name="map_y" :value="y ?? ''">
-                        <p class="text-xs text-slate-500 mt-2" x-show="x !== null && y !== null" x-text="`Position ${Number(x).toFixed(1)}%, ${Number(y).toFixed(1)}%`"></p>
+                <div x-show="selectedWater && selectedWater.map_url" x-cloak>
+                    <div class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-200 select-none cursor-crosshair"
+                         @click="placePeg($event)">
+                        <img :src="selectedWater?.map_url" alt="Pond map" class="pointer-events-none block w-full h-auto max-h-[28rem] object-contain mx-auto bg-slate-100">
+                        <span
+                            x-show="mapX !== null && mapY !== null"
+                            x-cloak
+                            class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
+                            :style="mapX !== null && mapY !== null ? `left:${mapX}%; top:${mapY}%;` : ''"
+                            aria-hidden="true"
+                        ></span>
                     </div>
-                </template>
+                    <input type="hidden" name="map_x" :value="mapX ?? ''">
+                    <input type="hidden" name="map_y" :value="mapY ?? ''">
+                    <p class="text-xs text-slate-500 mt-2" x-show="mapX !== null && mapY !== null" x-cloak x-text="`Position ${Number(mapX).toFixed(1)}%, ${Number(mapY).toFixed(1)}%`"></p>
+                </div>
                 @error('map_x') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 @error('map_y') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
@@ -144,12 +142,12 @@
 
     <x-slot name="scripts">
         <script>
-            function managerPegForm({ waters, waterId, x, y }) {
+            function managerPegForm({ waters, waterId, mapX, mapY }) {
                 return {
                     waters,
                     waterId: Number(waterId) || '',
-                    x: x === null || x === undefined || x === '' ? null : Number(x),
-                    y: y === null || y === undefined || y === '' ? null : Number(y),
+                    mapX: mapX === null || mapX === undefined || mapX === '' ? null : Number(mapX),
+                    mapY: mapY === null || mapY === undefined || mapY === '' ? null : Number(mapY),
                     get selectedWater() {
                         return this.waters.find((water) => Number(water.id) === Number(this.waterId)) || null;
                     },
@@ -159,8 +157,8 @@
                             return;
                         }
 
-                        this.x = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
-                        this.y = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
+                        this.mapX = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
+                        this.mapY = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
                     },
                 };
             }

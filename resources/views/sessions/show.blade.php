@@ -49,7 +49,7 @@
                     <div id="session-peg-view-map" class="relative w-full rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100">
                         <img src="{{ $mapUrl }}" alt="Pond map" class="block w-full h-auto max-h-80 object-contain mx-auto">
                         <span
-                            class="absolute h-4 w-4 -ml-2 -mt-2 rounded-full border-2 border-white bg-sky-700 shadow"
+                            class="absolute z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow ring-2 ring-sky-900/30"
                             style="left: {{ $mapX }}%; top: {{ $mapY }}%;"
                             title="{{ $session->pegLabel() }}"
                         ></span>

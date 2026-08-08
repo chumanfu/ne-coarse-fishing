@@ -363,26 +363,29 @@
                                         @if ($mapPreviewUrl)
                                             <div
                                                 x-data="{
-                                                    x: @js($peg['map_x'] !== null && $peg['map_x'] !== '' ? (float) $peg['map_x'] : null),
-                                                    y: @js($peg['map_y'] !== null && $peg['map_y'] !== '' ? (float) $peg['map_y'] : null),
+                                                    mapX: @js($peg['map_x'] !== null && $peg['map_x'] !== '' ? (float) $peg['map_x'] : null),
+                                                    mapY: @js($peg['map_y'] !== null && $peg['map_y'] !== '' ? (float) $peg['map_y'] : null),
                                                     place(event) {
                                                         const rect = event.currentTarget.getBoundingClientRect();
                                                         if (! rect.width || ! rect.height) return;
-                                                        this.x = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
-                                                        this.y = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
-                                                        $wire.setPegLocation({{ $index }}, {{ $pegIndex }}, this.x, this.y);
+                                                        this.mapX = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
+                                                        this.mapY = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
+                                                        $wire.setPegLocation({{ $index }}, {{ $pegIndex }}, this.mapX, this.mapY);
                                                     }
                                                 }"
                                                 style="margin-top: 0.75rem;"
                                             >
                                                 <div @click="place($event)" style="position: relative; width: 100%; border: 2px solid var(--vw-border); border-radius: 0.5rem; overflow: hidden; background: #e2e8f0; cursor: crosshair;">
-                                                    <img src="{{ $mapPreviewUrl }}" alt="Pond map" style="display: block; width: 100%; max-height: 14rem; object-fit: contain; margin: 0 auto;">
-                                                    <template x-if="x !== null && y !== null">
-                                                        <span style="position: absolute; width: 0.9rem; height: 0.9rem; margin-left: -0.45rem; margin-top: -0.45rem; border-radius: 9999px; border: 2px solid #fff; background: #0369a1; box-shadow: 0 1px 2px rgba(0,0,0,.35);"
-                                                              :style="`left:${x}%; top:${y}%;`"></span>
-                                                    </template>
+                                                    <img src="{{ $mapPreviewUrl }}" alt="Pond map" style="display: block; width: 100%; max-height: 14rem; object-fit: contain; margin: 0 auto; pointer-events: none;">
+                                                    <span
+                                                        x-show="mapX !== null && mapY !== null"
+                                                        x-cloak
+                                                        :style="mapX !== null && mapY !== null
+                                                            ? `position:absolute;z-index:10;width:1.1rem;height:1.1rem;left:${mapX}%;top:${mapY}%;transform:translate(-50%,-50%);border-radius:9999px;border:2px solid #fff;background:#0369a1;box-shadow:0 1px 3px rgba(0,0,0,.4);pointer-events:none;`
+                                                            : 'display:none'"
+                                                    ></span>
                                                 </div>
-                                                <p class="hint" style="margin-top: 0.35rem;" x-show="x !== null && y !== null" x-text="`Position ${Number(x).toFixed(1)}%, ${Number(y).toFixed(1)}%`"></p>
+                                                <p class="hint" style="margin-top: 0.35rem;" x-show="mapX !== null && mapY !== null" x-cloak x-text="`Position ${Number(mapX).toFixed(1)}%, ${Number(mapY).toFixed(1)}%`"></p>
                                             </div>
                                         @else
                                             <p class="hint" style="margin-top: 0.75rem;">Upload a pond map image above before placing this peg.</p>

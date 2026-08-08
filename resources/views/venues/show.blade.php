@@ -159,7 +159,7 @@
                                         <img src="{{ $water->mapImageUrl() }}" alt="{{ $water->name }} pond map" class="block w-full h-auto max-h-80 object-contain mx-auto">
                                         @foreach ($waterPegs as $peg)
                                             <span
-                                                class="absolute h-3.5 w-3.5 -ml-1.5 -mt-1.5 rounded-full border-2 border-white bg-sky-700 shadow"
+                                                class="absolute z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow ring-2 ring-sky-900/30"
                                                 style="left: {{ $peg->map_x }}%; top: {{ $peg->map_y }}%;"
                                                 title="{{ $peg->label() }}"
                                             ></span>
