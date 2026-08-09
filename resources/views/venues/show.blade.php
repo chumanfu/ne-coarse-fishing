@@ -14,9 +14,9 @@
                         <span class="text-xs font-bold uppercase tracking-wide bg-orange-100 border border-orange-600 text-orange-950 px-2 py-1 rounded">Pending approval</span>
                     @endunless
                 </div>
-                <h1 class="text-3xl font-bold text-slate-900">{{ $venue->name }}</h1>
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ $venue->name }}</h1>
                 @if ($venue->address)
-                    <p class="text-slate-600 mt-1">{{ $venue->address }}</p>
+                    <p class="text-slate-600 mt-1 dark:text-slate-300">{{ $venue->address }}</p>
                 @endif
             </div>
             <div class="flex flex-wrap gap-2">
@@ -26,38 +26,38 @@
                         @if ($isFavourited)
                             @method('DELETE')
                         @endif
-                        <button type="submit" class="px-3 py-2 rounded-md border-2 font-semibold text-sm {{ $isFavourited ? 'border-amber-600 bg-amber-50 text-amber-950' : 'border-slate-800' }}">
+                        <button type="submit" class="px-3 py-2 rounded-md border-2 font-semibold text-sm {{ $isFavourited ? 'border-amber-600 bg-amber-50 text-amber-950 dark:border-amber-400 dark:bg-slate-800 dark:text-amber-300' : 'border-slate-800 text-slate-900 dark:border-slate-400 dark:text-slate-100' }}">
                             {{ $isFavourited ? '★ Favourited' : '☆ Favourite' }}
                         </button>
                     </form>
                 @else
-                    <a href="{{ route('login') }}" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm">☆ Favourite</a>
+                    <a href="{{ route('login') }}" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm text-slate-900 dark:border-slate-400 dark:text-slate-100">☆ Favourite</a>
                 @endauth
                 @if ($venue->url)
-                    <a href="{{ $venue->url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm">Visit website</a>
+                    <a href="{{ $venue->url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm text-slate-900 dark:border-slate-400 dark:text-slate-100">Visit website</a>
                 @endif
                 @if ($venue->facebook_url)
-                    <a href="{{ $venue->facebook_url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm">Facebook</a>
+                    <a href="{{ $venue->facebook_url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm dark:border-sky-400 dark:text-sky-300">Facebook</a>
                 @endif
-                <a href="{{ route('map.index', ['species' => null]) }}#venue-{{ $venue->id }}" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm">View on map</a>
+                <a href="{{ route('map.index', ['species' => null]) }}#venue-{{ $venue->id }}" class="px-3 py-2 rounded-md border-2 border-slate-800 font-semibold text-sm text-slate-900 dark:border-slate-400 dark:text-slate-100">View on map</a>
                 @auth
                     <a href="{{ route('sessions.create', ['venue' => $venue->slug]) }}" class="px-3 py-2 rounded-md bg-sky-700 text-white font-semibold text-sm">Log a session here</a>
                     @can('suggestEdit', $venue)
-                        <a href="{{ route('venues.suggest-edit', $venue) }}" class="px-3 py-2 rounded-md border-2 border-amber-600 text-amber-950 font-semibold text-sm">Suggest an edit</a>
+                        <a href="{{ route('venues.suggest-edit', $venue) }}" class="px-3 py-2 rounded-md border-2 border-amber-600 text-amber-950 font-semibold text-sm dark:border-amber-400 dark:text-amber-300">Suggest an edit</a>
                     @endcan
                     @can('manage', $venue)
-                        <a href="{{ route('venues.edit', $venue) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm">Edit venue</a>
-                        <a href="{{ route('pegs.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm">Add peg</a>
-                        <a href="{{ route('match-reports.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-emerald-700 text-emerald-900 font-semibold text-sm">Match report</a>
-                        <a href="{{ route('announcements.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-emerald-700 text-emerald-900 font-semibold text-sm">Announcement</a>
+                        <a href="{{ route('venues.edit', $venue) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm dark:border-sky-400 dark:text-sky-300">Edit venue</a>
+                        <a href="{{ route('pegs.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm dark:border-sky-400 dark:text-sky-300">Add peg</a>
+                        <a href="{{ route('match-reports.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-emerald-700 text-emerald-900 font-semibold text-sm dark:border-emerald-400 dark:text-emerald-300">Match report</a>
+                        <a href="{{ route('announcements.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-emerald-700 text-emerald-900 font-semibold text-sm dark:border-emerald-400 dark:text-emerald-300">Announcement</a>
                     @elsecan('claim', $venue)
                         <form method="POST" action="{{ route('venues.claim', $venue) }}" class="inline">
                             @csrf
-                            <button class="px-3 py-2 rounded-md border-2 border-amber-600 text-amber-950 font-semibold text-sm" onclick="return confirm('Claim management of this venue?')">Claim ownership</button>
+                            <button class="px-3 py-2 rounded-md border-2 border-amber-600 text-amber-950 font-semibold text-sm dark:border-amber-400 dark:text-amber-300" onclick="return confirm('Claim management of this venue?')">Claim ownership</button>
                         </form>
                     @endcan
                     @if (auth()->user() && $venue->canManagePegs(auth()->user()) && ! auth()->user()->can('manage', $venue))
-                        <a href="{{ route('pegs.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm">Add peg</a>
+                        <a href="{{ route('pegs.create', $venue) }}" class="px-3 py-2 rounded-md border-2 border-sky-700 text-sky-900 font-semibold text-sm dark:border-sky-400 dark:text-sky-300">Add peg</a>
                     @endif
                 @endauth
             </div>

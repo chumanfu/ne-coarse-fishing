@@ -25,7 +25,9 @@ class DayNightModeTest extends TestCase
         $this->get(route('venues.show', $venue))
             ->assertOk()
             ->assertSee('necf-theme', false)
-            ->assertSee('$store.theme.toggle()', false);
+            ->assertSee('$store.theme.toggle()', false)
+            ->assertSee('dark:text-sky-300', false)
+            ->assertSee('dark:text-emerald-300', false);
 
         $this->get(route('login'))
             ->assertOk()
