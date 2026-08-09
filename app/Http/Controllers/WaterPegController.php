@@ -7,6 +7,7 @@ use App\Models\WaterPeg;
 use App\Services\WaterPegService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class WaterPegController extends Controller
@@ -126,11 +127,11 @@ class WaterPegController extends Controller
             'keep_photo_ids.*' => ['integer'],
         ]);
 
-        abort_unless(
-            filled($validated['number'] ?? null) || filled($validated['name'] ?? null),
-            422,
-            'Give the peg a number and/or name.'
-        );
+        if (! filled($validated['number'] ?? null) && ! filled($validated['name'] ?? null)) {
+            throw ValidationException::withMessages([
+                'number' => 'Give the peg a number and/or name.',
+            ]);
+        }
 
         return $validated;
     }

@@ -176,7 +176,8 @@ class SessionActivityAndPegTest extends TestCase
             ->assertSee('Add peg')
             ->assertSee('Location on pond map')
             ->assertSee('Zoom in')
-            ->assertSee('Only suppress click-to-place when actually panning', false);
+            ->assertSee('placeAtClientPoint', false)
+            ->assertSee('viewport pointer capture', false);
 
         $this->actingAs($manager)
             ->from(route('pegs.create', $venue))

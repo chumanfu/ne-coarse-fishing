@@ -52,6 +52,7 @@
                     <label class="block text-sm font-semibold mb-1">Peg number</label>
                     <input name="number" value="{{ old('number', $editing ? $peg->number : '') }}" placeholder="e.g. 12" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                     @error('number') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
+                    <p class="text-xs text-slate-500 mt-1">Provide a number and/or a name.</p>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-1">Peg name</label>
@@ -92,14 +93,13 @@
                         @pointermove="onPointerMove($event)"
                         @pointerup="onPointerUp($event)"
                         @pointercancel="onPointerUp($event)"
-                        @pointerleave="onPointerUp($event)"
                     >
                         <div
                             class="flex justify-center origin-center will-change-transform"
                             :style="`transform: translate(${panX}px, ${panY}px) scale(${scale});`"
                             :class="scale > 1 ? 'cursor-grab' : 'cursor-crosshair'"
                         >
-                            <div class="relative inline-block max-w-full" @click="placePeg($event)">
+                            <div x-ref="mapLayer" class="relative inline-block max-w-full">
                                 <img :src="selectedWater?.map_url"
                                      alt="Pond map"
                                      draggable="false"
@@ -114,10 +114,12 @@
                             </div>
                         </div>
                     </div>
-                    <input type="hidden" name="map_x" :value="mapX ?? ''">
-                    <input type="hidden" name="map_y" :value="mapY ?? ''">
                     <p class="text-xs text-slate-500" x-show="mapX !== null && mapY !== null" x-cloak x-text="`Position ${Number(mapX).toFixed(1)}%, ${Number(mapY).toFixed(1)}%`"></p>
                 </div>
+
+                {{-- Always in the form DOM so Alpine can bind values even before a map is shown. --}}
+                <input type="hidden" name="map_x" :value="mapX ?? ''">
+                <input type="hidden" name="map_y" :value="mapY ?? ''">
                 @error('map_x') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 @error('map_y') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
@@ -170,7 +172,7 @@
 
     <x-slot name="scripts">
         <script>
-            function managerPegForm({ waters, waterId, mapX, mapY }) {
+            window.managerPegForm = window.managerPegForm || function managerPegForm({ waters, waterId, mapX, mapY }) {
                 return {
                     waters,
                     waterId: Number(waterId) || '',
@@ -191,6 +193,10 @@
                     },
                     init() {
                         this.$watch('waterId', (value, oldValue) => {
+                            // Skip Alpine's initial sync so edit coords are not wiped.
+                            if (oldValue === undefined || oldValue === null || oldValue === '') {
+                                return;
+                            }
                             if (Number(value) === Number(oldValue)) {
                                 return;
                             }
@@ -225,6 +231,10 @@
                         if (event.button !== undefined && event.button !== 0) {
                             return;
                         }
+                        // Ignore zoom control buttons / other chrome inside the form.
+                        if (event.target.closest('button, a, input, select, textarea, label')) {
+                            return;
+                        }
                         this.dragging = true;
                         this.dragMoved = false;
                         this.pointerId = event.pointerId;
@@ -238,8 +248,6 @@
                         }
                         const dx = event.clientX - this.lastX;
                         const dy = event.clientY - this.lastY;
-                        // Only suppress click-to-place when actually panning a zoomed map.
-                        // Tiny trackpad jitter at scale 1 used to block peg placement entirely.
                         if (this.scale > 1 && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
                             this.dragMoved = true;
                         }
@@ -254,21 +262,39 @@
                         if (this.pointerId !== null && event.pointerId !== this.pointerId) {
                             return;
                         }
+
+                        // Place on pointerup — viewport pointer capture prevents reliable child clicks.
+                        const shouldPlace = this.dragging && ! this.dragMoved;
                         this.dragging = false;
                         this.pointerId = null;
+
+                        if (shouldPlace) {
+                            this.placeAtClientPoint(event.clientX, event.clientY);
+                        }
                     },
-                    placePeg(event) {
-                        if (this.dragMoved) {
+                    placeAtClientPoint(clientX, clientY) {
+                        const layer = this.$refs.mapLayer;
+                        if (! layer) {
                             return;
                         }
 
-                        const rect = event.currentTarget.getBoundingClientRect();
+                        const rect = layer.getBoundingClientRect();
                         if (! rect.width || ! rect.height) {
                             return;
                         }
 
-                        this.mapX = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
-                        this.mapY = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
+                        // Ignore taps in the letterbox around the image.
+                        if (
+                            clientX < rect.left
+                            || clientX > rect.right
+                            || clientY < rect.top
+                            || clientY > rect.bottom
+                        ) {
+                            return;
+                        }
+
+                        this.mapX = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+                        this.mapY = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100));
                     },
                 };
             }
