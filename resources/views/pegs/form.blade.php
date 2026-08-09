@@ -62,7 +62,7 @@
 
             <div>
                 <label class="block text-sm font-semibold mb-1">Location on pond map</label>
-                <p class="text-sm text-slate-600 mb-2">Click the top-down image to place the peg pin.</p>
+                <p class="text-sm text-slate-600 mb-2">Zoom in for precision, then click the top-down image to place the peg pin.</p>
 
                 <template x-if="! selectedWater">
                     <p class="text-sm text-slate-600 border-2 border-dashed border-slate-300 rounded-lg p-4">Select a water first.</p>
@@ -74,25 +74,46 @@
                         before placing pegs.
                     </p>
                 </template>
-                <div x-show="selectedWater && selectedWater.map_url" x-cloak>
-                    <div class="flex justify-center rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-200">
-                        <div class="relative inline-block max-w-full select-none cursor-crosshair"
-                             @click="placePeg($event)">
-                            <img :src="selectedWater?.map_url"
-                                 alt="Pond map"
-                                 class="pointer-events-none block max-h-[28rem] max-w-full h-auto w-auto bg-slate-100">
-                            <span
-                                x-show="mapX !== null && mapY !== null"
-                                x-cloak
-                                class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
-                                :style="mapX !== null && mapY !== null ? `left:${mapX}%; top:${mapY}%;` : ''"
-                                aria-hidden="true"
-                            ></span>
+                <div x-show="selectedWater && selectedWater.map_url" x-cloak class="space-y-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" @click="zoomIn()" class="px-3 py-1.5 rounded-md border-2 border-slate-400 bg-white text-sm font-semibold hover:bg-slate-50">Zoom in</button>
+                        <button type="button" @click="zoomOut()" class="px-3 py-1.5 rounded-md border-2 border-slate-400 bg-white text-sm font-semibold hover:bg-slate-50">Zoom out</button>
+                        <button type="button" @click="resetView()" class="px-3 py-1.5 rounded-md border-2 border-slate-400 bg-white text-sm font-semibold hover:bg-slate-50">Reset</button>
+                        <p class="text-xs text-slate-500">Scroll to zoom · drag to pan when zoomed · click to place</p>
+                    </div>
+                    <div
+                        class="relative overflow-hidden rounded-lg border-2 border-slate-400 bg-slate-100 touch-none select-none"
+                        style="min-height: 12rem;"
+                        @wheel.prevent="onWheel($event)"
+                        @pointerdown="onPointerDown($event)"
+                        @pointermove="onPointerMove($event)"
+                        @pointerup="onPointerUp($event)"
+                        @pointercancel="onPointerUp($event)"
+                        @pointerleave="onPointerUp($event)"
+                    >
+                        <div
+                            class="flex justify-center origin-center will-change-transform"
+                            :style="`transform: translate(${panX}px, ${panY}px) scale(${scale});`"
+                            :class="scale > 1 ? 'cursor-grab' : 'cursor-crosshair'"
+                        >
+                            <div class="relative inline-block max-w-full" @click="placePeg($event)">
+                                <img :src="selectedWater?.map_url"
+                                     alt="Pond map"
+                                     draggable="false"
+                                     class="pointer-events-none block max-h-[28rem] max-w-full h-auto w-auto bg-slate-100">
+                                <span
+                                    x-show="mapX !== null && mapY !== null"
+                                    x-cloak
+                                    class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
+                                    :style="mapX !== null && mapY !== null ? `left:${mapX}%; top:${mapY}%;` : ''"
+                                    aria-hidden="true"
+                                ></span>
+                            </div>
                         </div>
                     </div>
                     <input type="hidden" name="map_x" :value="mapX ?? ''">
                     <input type="hidden" name="map_y" :value="mapY ?? ''">
-                    <p class="text-xs text-slate-500 mt-2" x-show="mapX !== null && mapY !== null" x-cloak x-text="`Position ${Number(mapX).toFixed(1)}%, ${Number(mapY).toFixed(1)}%`"></p>
+                    <p class="text-xs text-slate-500" x-show="mapX !== null && mapY !== null" x-cloak x-text="`Position ${Number(mapX).toFixed(1)}%, ${Number(mapY).toFixed(1)}%`"></p>
                 </div>
                 @error('map_x') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 @error('map_y') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
@@ -152,10 +173,87 @@
                     waterId: Number(waterId) || '',
                     mapX: mapX === null || mapX === undefined || mapX === '' ? null : Number(mapX),
                     mapY: mapY === null || mapY === undefined || mapY === '' ? null : Number(mapY),
+                    scale: 1,
+                    panX: 0,
+                    panY: 0,
+                    minScale: 1,
+                    maxScale: 5,
+                    dragging: false,
+                    dragMoved: false,
+                    pointerId: null,
+                    lastX: 0,
+                    lastY: 0,
                     get selectedWater() {
                         return this.waters.find((water) => Number(water.id) === Number(this.waterId)) || null;
                     },
+                    init() {
+                        this.$watch('waterId', () => {
+                            this.mapX = null;
+                            this.mapY = null;
+                            this.resetView();
+                        });
+                    },
+                    zoomIn() {
+                        this.setScale(this.scale + 0.35);
+                    },
+                    zoomOut() {
+                        this.setScale(this.scale - 0.35);
+                    },
+                    resetView() {
+                        this.scale = 1;
+                        this.panX = 0;
+                        this.panY = 0;
+                    },
+                    setScale(next) {
+                        this.scale = Math.min(this.maxScale, Math.max(this.minScale, Number(Number(next).toFixed(2))));
+                        if (this.scale === 1) {
+                            this.panX = 0;
+                            this.panY = 0;
+                        }
+                    },
+                    onWheel(event) {
+                        const delta = event.deltaY > 0 ? -0.2 : 0.2;
+                        this.setScale(this.scale + delta);
+                    },
+                    onPointerDown(event) {
+                        if (event.button !== undefined && event.button !== 0) {
+                            return;
+                        }
+                        this.dragging = true;
+                        this.dragMoved = false;
+                        this.pointerId = event.pointerId;
+                        this.lastX = event.clientX;
+                        this.lastY = event.clientY;
+                        event.currentTarget.setPointerCapture?.(event.pointerId);
+                    },
+                    onPointerMove(event) {
+                        if (! this.dragging || this.pointerId !== event.pointerId) {
+                            return;
+                        }
+                        const dx = event.clientX - this.lastX;
+                        const dy = event.clientY - this.lastY;
+                        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                            this.dragMoved = true;
+                        }
+                        if (this.scale > 1) {
+                            this.panX += dx;
+                            this.panY += dy;
+                        }
+                        this.lastX = event.clientX;
+                        this.lastY = event.clientY;
+                    },
+                    onPointerUp(event) {
+                        if (this.pointerId !== null && event.pointerId !== this.pointerId) {
+                            return;
+                        }
+                        this.dragging = false;
+                        this.pointerId = null;
+                    },
                     placePeg(event) {
+                        if (this.dragMoved) {
+                            return;
+                        }
+
                         const rect = event.currentTarget.getBoundingClientRect();
                         if (! rect.width || ! rect.height) {
                             return;

@@ -174,7 +174,9 @@ class SessionActivityAndPegTest extends TestCase
             ->get(route('pegs.create', $venue))
             ->assertOk()
             ->assertSee('Add peg')
-            ->assertSee('Location on pond map');
+            ->assertSee('Location on pond map')
+            ->assertSee('Zoom in')
+            ->assertSee($water->mapImageUrl(), false);
 
         $this->actingAs($manager)
             ->post(route('pegs.store', $venue), [
