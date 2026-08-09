@@ -205,7 +205,7 @@
                         }
                         const dx = event.clientX - this.lastX;
                         const dy = event.clientY - this.lastY;
-                        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                        if (this.scale > 1 && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
                             this.dragMoved = true;
                         }
                         if (this.scale > 1) {

@@ -158,7 +158,8 @@
                     }
                     const dx = event.clientX - this.lastX;
                     const dy = event.clientY - this.lastY;
-                    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                    // Only suppress click-to-place when actually panning a zoomed map.
+                    if (this.scale > 1 && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
                         this.dragMoved = true;
                     }
                     if (this.scale > 1) {

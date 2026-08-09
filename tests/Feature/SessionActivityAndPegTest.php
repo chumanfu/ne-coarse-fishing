@@ -176,7 +176,19 @@ class SessionActivityAndPegTest extends TestCase
             ->assertSee('Add peg')
             ->assertSee('Location on pond map')
             ->assertSee('Zoom in')
-            ->assertSee($water->mapImageUrl(), false);
+            ->assertSee('Only suppress click-to-place when actually panning', false);
+
+        $this->actingAs($manager)
+            ->from(route('pegs.create', $venue))
+            ->post(route('pegs.store', $venue), [
+                'water_id' => $water->id,
+                'number' => '9',
+                'name' => 'Boilie Point',
+                'map_x' => '',
+                'map_y' => '',
+            ])
+            ->assertRedirect(route('pegs.create', $venue))
+            ->assertSessionHasErrors(['map_x', 'map_y']);
 
         $this->actingAs($manager)
             ->post(route('pegs.store', $venue), [
