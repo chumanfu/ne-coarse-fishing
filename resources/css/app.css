@@ -8,51 +8,128 @@
     display: none !important;
 }
 
-/* Site-wide night mode for common public UI chrome (pages use many hardcoded light utilities). */
+/* Site-wide night mode for common public UI chrome (pages use many hardcoded light utilities).
+   Header lives outside <main>, so remaps must cover both. */
 html.dark {
     color-scheme: dark;
 }
 
-html.dark main :where(.bg-white) {
+html.dark :is(header, main) :where(.bg-white) {
     background-color: rgb(15 23 42); /* slate-900 */
 }
 
-html.dark main :where(.bg-slate-50),
-html.dark main :where(.bg-slate-100) {
+html.dark :is(header, main) :where(.bg-slate-50),
+html.dark :is(header, main) :where(.bg-slate-100),
+html.dark :is(header, main) :where(.bg-amber-50),
+html.dark :is(header, main) :where(.bg-sky-50),
+html.dark :is(header, main) :where(.bg-emerald-50),
+html.dark :is(header, main) :where(.bg-fuchsia-50),
+html.dark :is(header, main) :where(.bg-orange-100),
+html.dark :is(header, main) :where(.bg-emerald-100) {
     background-color: rgb(30 41 59); /* slate-800 */
 }
 
-html.dark main :where(.border-slate-200),
-html.dark main :where(.border-slate-300),
-html.dark main :where(.border-slate-400) {
-    border-color: rgb(51 65 85); /* slate-700 */
+html.dark :is(header, main) :where(.border-slate-200),
+html.dark :is(header, main) :where(.border-slate-300),
+html.dark :is(header, main) :where(.border-slate-400),
+html.dark :is(header, main) :where(.border-slate-600),
+html.dark :is(header, main) :where(.border-slate-800) {
+    border-color: rgb(148 163 184); /* slate-400 — readable outline buttons */
 }
 
-html.dark main :where(.text-slate-900),
-html.dark main :where(.text-slate-800) {
+html.dark :is(header, main) :where(.text-slate-900),
+html.dark :is(header, main) :where(.text-slate-800) {
     color: rgb(241 245 249); /* slate-100 */
 }
 
-html.dark main :where(.text-slate-700),
-html.dark main :where(.text-slate-600) {
+html.dark :is(header, main) :where(.text-slate-700),
+html.dark :is(header, main) :where(.text-slate-600) {
     color: rgb(203 213 225); /* slate-300 */
 }
 
-html.dark main :where(.text-slate-500) {
+html.dark :is(header, main) :where(.text-slate-500) {
     color: rgb(148 163 184); /* slate-400 */
 }
 
-html.dark main :where(input):not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='submit']):not([type='button']),
-html.dark main :where(select),
-html.dark main :where(textarea) {
+/* Outline / badge accent text — keep hue, lift lightness for dark backgrounds */
+html.dark :is(header, main) :where(.text-sky-900),
+html.dark :is(header, main) :where(.text-sky-800) {
+    color: rgb(125 211 252); /* sky-300 */
+}
+
+html.dark :is(header, main) :where(.text-emerald-900),
+html.dark :is(header, main) :where(.text-emerald-800) {
+    color: rgb(110 231 183); /* emerald-300 */
+}
+
+html.dark :is(header, main) :where(.text-amber-950),
+html.dark :is(header, main) :where(.text-amber-900),
+html.dark :is(header, main) :where(.text-amber-800) {
+    color: rgb(252 211 77); /* amber-300 */
+}
+
+html.dark :is(header, main) :where(.text-orange-950),
+html.dark :is(header, main) :where(.text-orange-900) {
+    color: rgb(253 186 116); /* orange-300 */
+}
+
+html.dark :is(header, main) :where(.text-fuchsia-950),
+html.dark :is(header, main) :where(.text-fuchsia-900) {
+    color: rgb(240 171 252); /* fuchsia-300 */
+}
+
+html.dark :is(header, main) :where(.text-red-800),
+html.dark :is(header, main) :where(.text-red-700) {
+    color: rgb(252 165 165); /* red-300 */
+}
+
+html.dark :is(header, main) :where(.border-sky-700),
+html.dark :is(header, main) :where(.border-sky-300) {
+    border-color: rgb(56 189 248); /* sky-400 */
+}
+
+html.dark :is(header, main) :where(.border-emerald-700),
+html.dark :is(header, main) :where(.border-emerald-600) {
+    border-color: rgb(52 211 153); /* emerald-400 */
+}
+
+html.dark :is(header, main) :where(.border-amber-600),
+html.dark :is(header, main) :where(.border-amber-500) {
+    border-color: rgb(251 191 36); /* amber-400 */
+}
+
+html.dark :is(header, main) :where(.border-fuchsia-600) {
+    border-color: rgb(232 121 249); /* fuchsia-400 */
+}
+
+html.dark :is(header, main) :where(.border-orange-600) {
+    border-color: rgb(251 146 60); /* orange-400 */
+}
+
+html.dark :is(header, main) :where(.hover\:bg-sky-50:hover),
+html.dark :is(header, main) :where(.hover\:bg-emerald-50:hover),
+html.dark :is(header, main) :where(.hover\:bg-fuchsia-50:hover),
+html.dark :is(header, main) :where(.hover\:bg-slate-50:hover),
+html.dark :is(header, main) :where(.hover\:bg-amber-50:hover) {
+    background-color: rgb(30 41 59); /* slate-800 */
+}
+
+html.dark :is(header, main) :where(input):not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='submit']):not([type='button']),
+html.dark :is(header, main) :where(select),
+html.dark :is(header, main) :where(textarea) {
     background-color: rgb(15 23 42);
     color: rgb(241 245 249);
     border-color: rgb(71 85 105);
 }
 
-html.dark main :where(input::placeholder),
-html.dark main :where(textarea::placeholder) {
+html.dark :is(header, main) :where(input::placeholder),
+html.dark :is(header, main) :where(textarea::placeholder) {
     color: rgb(148 163 184);
+}
+
+/* Buttons that only set a dark border and inherit body text */
+html.dark :is(header, main) :where(a, button).border-slate-800 {
+    color: rgb(241 245 249);
 }
 
 /* Keep directory logos constrained even when utility classes are purged from the build. */
