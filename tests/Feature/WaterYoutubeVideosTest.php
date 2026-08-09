@@ -76,7 +76,8 @@ class WaterYoutubeVideosTest extends TestCase
             ->assertSee('Angler videos')
             ->assertSee('dQw4w9WgXcQ')
             ->assertSee('youtube-nocookie.com')
-            ->assertSee('waterVideoCarousel');
+            ->assertSee('waterVideoRow')
+            ->assertSee('i.ytimg.com/vi/dQw4w9WgXcQ', false);
     }
 
     public function test_rejects_invalid_youtube_urls(): void
@@ -96,7 +97,7 @@ class WaterYoutubeVideosTest extends TestCase
         $this->assertDatabaseCount('water_videos', 0);
     }
 
-    public function test_carousel_receives_multiple_approved_videos(): void
+    public function test_video_row_shows_multiple_thumbnails(): void
     {
         Role::findOrCreate('fishery_manager');
 
@@ -108,7 +109,7 @@ class WaterYoutubeVideosTest extends TestCase
         ]);
         $water = Water::factory()->for($venue)->create();
 
-        foreach (['aaaaaaaaaaa', 'bbbbbbbbbbb'] as $i => $id) {
+        foreach (['aaaaaaaaaaa', 'bbbbbbbbbbb', 'ccccccccccc'] as $i => $id) {
             $water->videos()->create([
                 'user_id' => $manager->id,
                 'youtube_url' => 'https://youtu.be/'.$id,
@@ -124,9 +125,12 @@ class WaterYoutubeVideosTest extends TestCase
         $this->get(route('venues.show', $venue))
             ->assertOk()
             ->assertSee('Clip 1')
+            ->assertSee('Clip 2')
+            ->assertSee('Clip 3')
             ->assertSee('aaaaaaaaaaa')
             ->assertSee('bbbbbbbbbbb')
-            ->assertSee('Previous video')
-            ->assertSee('Next video');
+            ->assertSee('Scroll videos left')
+            ->assertSee('Scroll videos right')
+            ->assertSee('Play Clip 1');
     }
 }

@@ -63,9 +63,11 @@ class WaterVideo extends Model
         ])->save();
     }
 
-    public function embedUrl(): string
+    public function embedUrl(bool $autoplay = false): string
     {
-        return 'https://www.youtube-nocookie.com/embed/'.$this->youtube_id;
+        $url = 'https://www.youtube-nocookie.com/embed/'.$this->youtube_id.'?rel=0';
+
+        return $autoplay ? $url.'&autoplay=1' : $url;
     }
 
     public function thumbnailUrl(): string
