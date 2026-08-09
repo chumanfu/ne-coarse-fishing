@@ -63,6 +63,9 @@
             <div>
                 <label class="block text-sm font-semibold mb-1">Location on pond map</label>
                 <p class="text-sm text-slate-600 mb-2">Zoom in for precision, then click the top-down image to place the peg pin.</p>
+                @error('map_x')
+                    <p class="text-red-700 text-sm mb-2 font-semibold">Click the pond map to place the peg before saving.</p>
+                @enderror
 
                 <template x-if="! selectedWater">
                     <p class="text-sm text-slate-600 border-2 border-dashed border-slate-300 rounded-lg p-4">Select a water first.</p>
@@ -187,7 +190,10 @@
                         return this.waters.find((water) => Number(water.id) === Number(this.waterId)) || null;
                     },
                     init() {
-                        this.$watch('waterId', () => {
+                        this.$watch('waterId', (value, oldValue) => {
+                            if (Number(value) === Number(oldValue)) {
+                                return;
+                            }
                             this.mapX = null;
                             this.mapY = null;
                             this.resetView();
@@ -232,7 +238,9 @@
                         }
                         const dx = event.clientX - this.lastX;
                         const dy = event.clientY - this.lastY;
-                        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                        // Only suppress click-to-place when actually panning a zoomed map.
+                        // Tiny trackpad jitter at scale 1 used to block peg placement entirely.
+                        if (this.scale > 1 && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
                             this.dragMoved = true;
                         }
                         if (this.scale > 1) {
