@@ -3,7 +3,7 @@
 @if ($compact)
     <a
         href="{{ url($activity->url) }}"
-        {{ $attributes->merge(['class' => 'flex flex-col gap-1.5 bg-white border-2 border-slate-200 rounded-lg px-3 py-2.5 hover:border-sky-700 transition']) }}
+        {{ $attributes->merge(['class' => 'flex flex-col gap-1.5 bg-white border-2 border-slate-200 rounded-lg px-3 py-2.5 hover:border-sky-700 transition dark:bg-slate-900 dark:border-slate-700 dark:hover:border-sky-500']) }}
     >
         <div class="flex items-center justify-between gap-2">
             <span class="shrink-0 text-xs font-bold uppercase tracking-wide bg-sky-50 border border-sky-300 text-sky-900 px-2 py-1 rounded w-fit">

@@ -4,7 +4,7 @@
     /** @var \App\Models\Club $club */
 @endphp
 
-<article {{ $attributes->class('bg-white border-2 border-slate-300 rounded-xl p-5 hover:border-sky-700 transition flex flex-col overflow-hidden') }}>
+<article {{ $attributes->class('bg-white border-2 border-slate-300 rounded-xl p-5 hover:border-sky-700 transition flex flex-col overflow-hidden dark:bg-slate-900 dark:border-slate-700 dark:hover:border-sky-500') }}>
     <div class="flex items-start justify-between gap-3">
         <div class="flex items-center gap-3 min-w-0">
             @if ($club->logoUrl())
