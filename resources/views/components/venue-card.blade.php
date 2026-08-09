@@ -7,7 +7,7 @@
     $favourited = $isFavourited || (auth()->check() && $venue->isFavouritedBy(auth()->user()));
 @endphp
 
-<div {{ $attributes->merge(['class' => 'relative bg-white border-2 border-slate-300 rounded-xl overflow-hidden hover:border-sky-700 transition']) }}>
+<div {{ $attributes->merge(['class' => 'relative bg-white border-2 border-slate-300 rounded-xl overflow-hidden hover:border-sky-700 transition dark:bg-slate-900 dark:border-slate-700 dark:hover:border-sky-500']) }}>
     <a href="{{ route('venues.show', $venue) }}" class="block">
         @if ($venue->relationLoaded('photos') && $venue->photos->isNotEmpty())
             <img src="{{ $venue->photos->first()->url() }}" alt="" class="w-full h-36 object-cover border-b-2 border-slate-200">
@@ -15,18 +15,18 @@
         <div class="p-5">
             <div class="flex items-start justify-between gap-3 pe-10">
                 <div>
-                    <h3 class="font-bold text-lg text-slate-900">{{ $venue->name }}</h3>
+                    <h3 class="font-bold text-lg text-slate-900 dark:text-slate-100">{{ $venue->name }}</h3>
                     @if ($venue->address)
-                        <p class="text-sm text-slate-600 mt-1">{{ $venue->address }}</p>
+                        <p class="text-sm text-slate-600 mt-1 dark:text-slate-400">{{ $venue->address }}</p>
                     @endif
                 </div>
                 @if ($venue->manager_verified)
-                    <span class="shrink-0 text-xs font-bold uppercase tracking-wide bg-emerald-100 text-emerald-900 border border-emerald-600 px-2 py-1 rounded">Verified</span>
+                    <span class="shrink-0 text-xs font-bold uppercase tracking-wide bg-emerald-100 text-emerald-900 border border-emerald-600 px-2 py-1 rounded dark:bg-emerald-950 dark:text-emerald-100 dark:border-emerald-500">Verified</span>
                 @endif
             </div>
-            <p class="text-sm text-slate-700 mt-3 line-clamp-3">{{ $venue->overview ?: 'Community-submitted venue awaiting a full write-up.' }}</p>
+            <p class="text-sm text-slate-700 mt-3 line-clamp-3 dark:text-slate-300">{{ $venue->overview ?: 'Community-submitted venue awaiting a full write-up.' }}</p>
             <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-                <span class="bg-slate-100 border border-slate-300 px-2 py-1 rounded">{{ $venue->ticketTypeLabel() }}</span>
+                <span class="bg-slate-100 border border-slate-300 px-2 py-1 rounded dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">{{ $venue->ticketTypeLabel() }}</span>
                 @if ($venue->is_complex)
                     <span class="bg-amber-50 border border-amber-500 text-amber-950 px-2 py-1 rounded">Complex</span>
                 @endif

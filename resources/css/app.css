@@ -8,6 +8,53 @@
     display: none !important;
 }
 
+/* Site-wide night mode for common public UI chrome (pages use many hardcoded light utilities). */
+html.dark {
+    color-scheme: dark;
+}
+
+html.dark main :where(.bg-white) {
+    background-color: rgb(15 23 42); /* slate-900 */
+}
+
+html.dark main :where(.bg-slate-50),
+html.dark main :where(.bg-slate-100) {
+    background-color: rgb(30 41 59); /* slate-800 */
+}
+
+html.dark main :where(.border-slate-200),
+html.dark main :where(.border-slate-300),
+html.dark main :where(.border-slate-400) {
+    border-color: rgb(51 65 85); /* slate-700 */
+}
+
+html.dark main :where(.text-slate-900),
+html.dark main :where(.text-slate-800) {
+    color: rgb(241 245 249); /* slate-100 */
+}
+
+html.dark main :where(.text-slate-700),
+html.dark main :where(.text-slate-600) {
+    color: rgb(203 213 225); /* slate-300 */
+}
+
+html.dark main :where(.text-slate-500) {
+    color: rgb(148 163 184); /* slate-400 */
+}
+
+html.dark main :where(input):not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='submit']):not([type='button']),
+html.dark main :where(select),
+html.dark main :where(textarea) {
+    background-color: rgb(15 23 42);
+    color: rgb(241 245 249);
+    border-color: rgb(71 85 105);
+}
+
+html.dark main :where(input::placeholder),
+html.dark main :where(textarea::placeholder) {
+    color: rgb(148 163 184);
+}
+
 /* Keep directory logos constrained even when utility classes are purged from the build. */
 .directory-logo,
 .tackle-shop-logo {
