@@ -55,17 +55,13 @@
         @pointermove="onPointerMove($event)"
         @pointerup="onPointerUp($event)"
         @pointercancel="onPointerUp($event)"
-        @pointerleave="onPointerUp($event)"
     >
         <div
             class="flex justify-center origin-center will-change-transform"
             :style="`transform: translate(${panX}px, ${panY}px) scale(${scale});`"
             :class="scale > 1 ? 'cursor-grab' : 'cursor-crosshair'"
         >
-            <div
-                class="relative inline-block max-w-full"
-                @click="place($event)"
-            >
+            <div x-ref="mapLayer" class="relative inline-block max-w-full">
                 <img
                     src="{{ $src }}"
                     alt="{{ $alt }}"
@@ -145,6 +141,9 @@
                     if (event.button !== undefined && event.button !== 0) {
                         return;
                     }
+                    if (event.target.closest('button, a, input, select, textarea, label')) {
+                        return;
+                    }
                     this.dragging = true;
                     this.dragMoved = false;
                     this.pointerId = event.pointerId;
@@ -158,7 +157,6 @@
                     }
                     const dx = event.clientX - this.lastX;
                     const dy = event.clientY - this.lastY;
-                    // Only suppress click-to-place when actually panning a zoomed map.
                     if (this.scale > 1 && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
                         this.dragMoved = true;
                     }
@@ -173,21 +171,38 @@
                     if (this.pointerId !== null && event.pointerId !== this.pointerId) {
                         return;
                     }
+
+                    // Place on pointerup — viewport pointer capture prevents reliable child clicks.
+                    const shouldPlace = this.dragging && ! this.dragMoved;
                     this.dragging = false;
                     this.pointerId = null;
+
+                    if (shouldPlace) {
+                        this.placeAtClientPoint(event.clientX, event.clientY);
+                    }
                 },
-                place(event) {
-                    if (this.dragMoved) {
+                placeAtClientPoint(clientX, clientY) {
+                    const layer = this.$refs.mapLayer;
+                    if (! layer) {
                         return;
                     }
 
-                    const rect = event.currentTarget.getBoundingClientRect();
+                    const rect = layer.getBoundingClientRect();
                     if (! rect.width || ! rect.height) {
                         return;
                     }
 
-                    this.mapX = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
-                    this.mapY = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
+                    if (
+                        clientX < rect.left
+                        || clientX > rect.right
+                        || clientY < rect.top
+                        || clientY > rect.bottom
+                    ) {
+                        return;
+                    }
+
+                    this.mapX = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+                    this.mapY = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100));
 
                     const x = Number(this.mapX.toFixed(4));
                     const y = Number(this.mapY.toFixed(4));
