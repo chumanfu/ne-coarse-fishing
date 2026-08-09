@@ -319,65 +319,107 @@
                                 @endif
                             </div>
 
-                            <div class="mt-5"
-                                 x-data="waterVideoCarousel(@js($approvedVideos->map(fn ($video) => [
-                                     'embed' => $video->embedUrl(),
-                                     'title' => $video->title,
-                                     'watch' => $video->watchUrl(),
-                                 ])->values()->all()))">
+                            <div class="mt-5" x-data="waterVideoRow()">
                                 <p class="text-sm font-semibold text-slate-800 mb-2">Angler videos</p>
                                 @if ($approvedVideos->isNotEmpty())
-                                    <div class="mb-3">
-                                        <div class="relative overflow-hidden rounded-lg border-2 border-slate-300 bg-slate-950">
-                                            <div class="aspect-video">
-                                                <iframe
-                                                    :src="videos[index].embed"
-                                                    :title="videos[index].title || '{{ $water->name }} video'"
-                                                    class="h-full w-full"
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                                    allowfullscreen
-                                                    loading="lazy"
-                                                    referrerpolicy="strict-origin-when-cross-origin"
-                                                ></iframe>
-                                            </div>
-                                            <template x-if="videos.length > 1">
-                                                <div>
-                                                    <button type="button"
-                                                            @click="prev()"
-                                                            class="absolute left-2 top-1/2 -translate-y-1/2 rounded-md bg-white/90 px-2 py-1 text-sm font-semibold text-slate-900 shadow hover:bg-white"
-                                                            aria-label="Previous video">
-                                                        Prev
-                                                    </button>
-                                                    <button type="button"
-                                                            @click="next()"
-                                                            class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-white/90 px-2 py-1 text-sm font-semibold text-slate-900 shadow hover:bg-white"
-                                                            aria-label="Next video">
-                                                        Next
-                                                    </button>
+                                    <div class="relative mb-3 rounded-lg border-2 border-slate-800 bg-slate-950 px-2 py-3 sm:px-3">
+                                        @if ($approvedVideos->count() > 2)
+                                            <button type="button"
+                                                    @click="scroll(-1)"
+                                                    class="absolute left-1 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-slate-900/90 p-2 text-white shadow-lg ring-1 ring-white/20 hover:bg-slate-800 sm:inline-flex"
+                                                    aria-label="Scroll videos left">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5" aria-hidden="true">
+                                                    <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                            <button type="button"
+                                                    @click="scroll(1)"
+                                                    class="absolute right-1 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-slate-900/90 p-2 text-white shadow-lg ring-1 ring-white/20 hover:bg-slate-800 sm:inline-flex"
+                                                    aria-label="Scroll videos right">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5" aria-hidden="true">
+                                                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        @endif
+
+                                        <div
+                                            x-ref="rail"
+                                            class="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory px-1 pb-1 [scrollbar-width:thin]"
+                                            role="list"
+                                            aria-label="{{ $water->name }} videos"
+                                        >
+                                            @foreach ($approvedVideos as $video)
+                                                <button
+                                                    type="button"
+                                                    role="listitem"
+                                                    @click="open({
+                                                        embed: @js($video->embedUrl(autoplay: true)),
+                                                        title: @js($video->title ?: 'YouTube video'),
+                                                        watch: @js($video->watchUrl()),
+                                                    })"
+                                                    class="group w-[42%] shrink-0 snap-start text-left sm:w-[30%] lg:w-[22%]"
+                                                >
+                                                    <div class="relative aspect-video overflow-hidden rounded-md bg-slate-800 ring-1 ring-white/10 transition duration-200 group-hover:z-10 group-hover:scale-105 group-hover:ring-2 group-hover:ring-sky-400">
+                                                        <img
+                                                            src="{{ $video->thumbnailUrl() }}"
+                                                            alt=""
+                                                            class="h-full w-full object-cover transition duration-200 group-hover:brightness-110"
+                                                            loading="lazy"
+                                                        >
+                                                        <span class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></span>
+                                                        <span class="absolute inset-0 flex items-center justify-center">
+                                                            <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-sky-700/95 text-white shadow-lg ring-2 ring-white/30 transition group-hover:scale-110">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="ml-0.5 h-5 w-5" aria-hidden="true">
+                                                                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                                                                </svg>
+                                                            </span>
+                                                        </span>
+                                                        <span class="sr-only">Play {{ $video->title ?: 'video' }}</span>
+                                                    </div>
+                                                    <p class="mt-2 truncate text-sm font-semibold text-white">
+                                                        {{ $video->title ?: 'YouTube video' }}
+                                                    </p>
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        x-show="active !== null"
+                                        x-cloak
+                                        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4"
+                                        @keydown.escape.window="close()"
+                                        role="dialog"
+                                        aria-modal="true"
+                                        aria-label="Play water video"
+                                    >
+                                        <button type="button" class="absolute inset-0 cursor-default" @click="close()" aria-label="Close video"></button>
+                                        <div class="relative z-10 w-full max-w-4xl space-y-3" @click.stop>
+                                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                                <p class="text-base font-semibold text-white" x-text="active?.title"></p>
+                                                <div class="flex flex-wrap gap-2">
+                                                    <a :href="active?.watch"
+                                                       target="_blank"
+                                                       rel="noopener noreferrer"
+                                                       class="rounded-md bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20">
+                                                        Open on YouTube
+                                                    </a>
+                                                    <button type="button" @click="close()" class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-slate-900">Close</button>
                                                 </div>
-                                            </template>
-                                        </div>
-                                        <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
-                                            <p class="text-sm text-slate-700" x-text="videos[index]?.title || 'YouTube video'"></p>
-                                            <a :href="videos[index]?.watch"
-                                               target="_blank"
-                                               rel="noopener noreferrer"
-                                               class="text-sm font-semibold text-sky-800 hover:underline">
-                                                Open on YouTube
-                                            </a>
-                                        </div>
-                                        <template x-if="videos.length > 1">
-                                            <div class="mt-2 flex flex-wrap items-center justify-center gap-2" role="tablist" aria-label="Video slides">
-                                                <template x-for="(video, i) in videos" :key="i">
-                                                    <button type="button"
-                                                            @click="go(i)"
-                                                            class="h-2.5 w-2.5 rounded-full border border-slate-400"
-                                                            :class="i === index ? 'bg-sky-700 border-sky-700' : 'bg-white'"
-                                                            :aria-label="'Show video ' + (i + 1)"
-                                                            :aria-current="i === index ? 'true' : 'false'"></button>
+                                            </div>
+                                            <div class="aspect-video overflow-hidden rounded-lg bg-black ring-1 ring-white/20">
+                                                <template x-if="active">
+                                                    <iframe
+                                                        :src="active.embed"
+                                                        :title="active.title"
+                                                        class="h-full w-full"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                        allowfullscreen
+                                                        referrerpolicy="strict-origin-when-cross-origin"
+                                                    ></iframe>
                                                 </template>
                                             </div>
-                                        </template>
+                                        </div>
                                     </div>
                                 @else
                                     <p class="text-sm text-slate-600 mb-3">No approved videos yet.</p>
@@ -812,24 +854,22 @@
                 };
             }
 
-            function waterVideoCarousel(videos) {
+            function waterVideoRow() {
                 return {
-                    videos: videos || [],
-                    index: 0,
-                    next() {
-                        if (! this.videos.length) {
+                    active: null,
+                    open(video) {
+                        this.active = video;
+                    },
+                    close() {
+                        this.active = null;
+                    },
+                    scroll(direction) {
+                        const rail = this.$refs.rail;
+                        if (! rail) {
                             return;
                         }
-                        this.index = (this.index + 1) % this.videos.length;
-                    },
-                    prev() {
-                        if (! this.videos.length) {
-                            return;
-                        }
-                        this.index = (this.index - 1 + this.videos.length) % this.videos.length;
-                    },
-                    go(i) {
-                        this.index = i;
+                        const amount = Math.max(280, Math.round(rail.clientWidth * 0.8));
+                        rail.scrollBy({ left: direction * amount, behavior: 'smooth' });
                     },
                 };
             }
