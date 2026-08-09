@@ -93,6 +93,25 @@ class TackleShopTest extends TestCase
         $this->assertStringContainsString('/images/tackle-shops/billys-fishing-tackle.svg', (string) $shop->logoUrl());
     }
 
+    public function test_willy_worms_is_seeded_as_featured_hybrid_shop(): void
+    {
+        $shop = TackleShop::query()->where('slug', 'willy-worms')->first();
+
+        $this->assertNotNull($shop);
+        $this->assertSame('Willy Worms', $shop->name);
+        $this->assertSame('https://willyworms.co.uk/', $shop->url);
+        $this->assertSame('hybrid', $shop->location_type);
+        $this->assertTrue($shop->is_featured);
+        $this->assertTrue($shop->is_published);
+        $this->assertSame('images/tackle-shops/willy-worms.png', $shop->logo_path);
+
+        $this->get(route('tackle-shops.show', $shop))
+            ->assertOk()
+            ->assertSee('Willy Worms')
+            ->assertSee('https://willyworms.co.uk/', false)
+            ->assertSee('Baxter Hall Farm');
+    }
+
     public function test_unpublished_shop_is_not_publicly_viewable(): void
     {
         $shop = TackleShop::factory()->unpublished()->create();
