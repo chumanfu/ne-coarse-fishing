@@ -102,13 +102,11 @@
                             <a href="{{ route('venues.edit', $venue) }}" class="text-sm font-semibold text-sky-800 hover:underline">Manage photos</a>
                         @endcan
                     </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        @foreach ($venue->photos as $photo)
-                            <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
-                                <img src="{{ $photo->url() }}" alt="{{ $venue->name }} photo" class="rounded-lg object-cover h-40 w-full border border-slate-300 hover:border-sky-700">
-                            </a>
-                        @endforeach
-                    </div>
+                    <x-photo-gallery
+                        :photos="$venue->photos"
+                        :alt="$venue->name.' photo'"
+                        label="Venue photo"
+                    />
                 </section>
             @elseif (auth()->user()?->can('manage', $venue))
                 <section class="bg-white border-2 border-dashed border-slate-300 rounded-xl p-5">
@@ -205,50 +203,16 @@
                                 @endif
                             </div>
 
-                            <div class="mt-5"
-                                 x-data="waterPhotoLightbox(@js($approvedPhotos->map(fn ($photo) => ['url' => $photo->url()])->values()->all()))">
+                            <div class="mt-5">
                                 <p class="text-sm font-semibold text-slate-800 mb-2">Angler photos</p>
                                 @if ($approvedPhotos->isNotEmpty())
-                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-                                        @foreach ($approvedPhotos as $index => $photo)
-                                            <button type="button"
-                                                    @click="open({{ $index }})"
-                                                    class="relative block text-left">
-                                                <img src="{{ $photo->url() }}" alt="{{ $water->name }} photo" class="rounded-md object-cover h-24 w-full border border-slate-300 hover:border-sky-700">
-                                            </button>
-                                        @endforeach
-                                    </div>
-
-                                    <div
-                                        x-show="openIndex !== null"
-                                        x-cloak
-                                        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4"
-                                        @keydown.escape.window="close()"
-                                        role="dialog"
-                                        aria-modal="true"
-                                        aria-label="Water photo"
-                                    >
-                                        <button type="button" class="absolute inset-0 cursor-zoom-out" @click="close()" aria-label="Close photo"></button>
-                                        <div class="relative z-10 max-w-5xl w-full space-y-3" @click.stop>
-                                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                                <div class="flex flex-wrap gap-2">
-                                                    <button type="button" @click="zoomIn()" class="px-3 py-1.5 rounded-md bg-white text-sm font-semibold">Zoom in</button>
-                                                    <button type="button" @click="zoomOut()" class="px-3 py-1.5 rounded-md bg-white text-sm font-semibold">Zoom out</button>
-                                                    <button type="button" @click="resetZoom()" class="px-3 py-1.5 rounded-md bg-white text-sm font-semibold">Reset</button>
-                                                </div>
-                                                <button type="button" @click="close()" class="px-3 py-1.5 rounded-md bg-white text-sm font-semibold">Close</button>
-                                            </div>
-                                            <div class="overflow-auto max-h-[80vh] rounded-lg bg-slate-950/40 p-2 flex justify-center">
-                                                <img
-                                                    :src="photos[openIndex]?.url"
-                                                    alt="{{ $water->name }} photo"
-                                                    class="origin-center transition-transform duration-150 max-w-full h-auto"
-                                                    :style="`transform: scale(${scale})`"
-                                                    draggable="false"
-                                                >
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <x-photo-gallery
+                                        :photos="$approvedPhotos"
+                                        :alt="$water->name.' photo'"
+                                        label="Water photo"
+                                        thumb-class="rounded-md object-cover h-24 w-full border border-slate-300 hover:border-sky-700"
+                                        grid-class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3"
+                                    />
                                 @else
                                     <p class="text-sm text-slate-600 mb-3">No approved photos yet.</p>
                                 @endif
@@ -275,9 +239,13 @@
                                         <p class="text-sm font-semibold text-amber-950">Pending approval</p>
                                         @foreach ($pendingPhotos as $photo)
                                             <div class="flex flex-col sm:flex-row sm:items-center gap-3 border-2 border-amber-300 rounded-lg p-2 bg-amber-50/50">
-                                                <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer" class="shrink-0">
-                                                    <img src="{{ $photo->url() }}" alt="" class="h-20 w-28 object-cover rounded border border-slate-300">
-                                                </a>
+                                                <button
+                                                    type="button"
+                                                    class="shrink-0"
+                                                    @click="$store.photoLightbox.open(@js([['url' => $photo->url(), 'alt' => $water->name.' photo']]), 0, 'Pending water photo')"
+                                                >
+                                                    <img src="{{ $photo->url() }}" alt="" class="h-20 w-28 object-cover rounded border border-slate-300 hover:border-sky-700">
+                                                </button>
                                                 <div class="flex-1 text-sm text-slate-700">
                                                     Uploaded by {{ $photo->uploader?->name ?? 'angler' }}
                                                 </div>
@@ -305,7 +273,13 @@
                                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                                 @foreach ($ownPending as $photo)
                                                     <div class="relative">
-                                                        <img src="{{ $photo->url() }}" alt="" class="rounded-md object-cover h-24 w-full border border-amber-300 opacity-80">
+                                                        <button
+                                                            type="button"
+                                                            class="block w-full text-left"
+                                                            @click="$store.photoLightbox.open(@js($ownPending->map(fn ($item) => ['url' => $item->url(), 'alt' => $water->name.' photo'])->values()->all()), {{ $loop->index }}, 'Pending water photo')"
+                                                        >
+                                                            <img src="{{ $photo->url() }}" alt="" class="rounded-md object-cover h-24 w-full border border-amber-300 opacity-80 hover:opacity-100 hover:border-sky-700">
+                                                        </button>
                                                         <form method="POST" action="{{ route('waters.photos.destroy', [$venue, $water, $photo]) }}" class="mt-1">
                                                             @csrf
                                                             @method('DELETE')
@@ -644,13 +618,13 @@
                                         </div>
                                     </div>
                                     @if ($peg->photos->isNotEmpty())
-                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                            @foreach ($peg->photos as $photo)
-                                                <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
-                                                    <img src="{{ $photo->url() }}" alt="{{ $peg->label() }} photo" class="rounded-md object-cover h-24 w-full border border-slate-300">
-                                                </a>
-                                            @endforeach
-                                        </div>
+                                        <x-photo-gallery
+                                            :photos="$peg->photos"
+                                            :alt="$peg->label().' photo'"
+                                            label="Peg photo"
+                                            thumb-class="rounded-md object-cover h-24 w-full border border-slate-300 hover:border-sky-700"
+                                            grid-class="grid grid-cols-2 sm:grid-cols-4 gap-2"
+                                        />
                                     @endif
                                 </div>
                             @endforeach
@@ -712,13 +686,13 @@
                                     <p class="text-sm text-slate-700 whitespace-pre-line mb-3">{{ $peg->description }}</p>
                                 @endif
                                 @if ($peg->photos->isNotEmpty())
-                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                        @foreach ($peg->photos as $photo)
-                                            <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
-                                                <img src="{{ $photo->url() }}" alt="{{ $peg->label() }} photo" class="rounded-md object-cover h-28 w-full border border-slate-300 hover:border-sky-700">
-                                            </a>
-                                        @endforeach
-                                    </div>
+                                    <x-photo-gallery
+                                        :photos="$peg->photos"
+                                        :alt="$peg->label().' photo'"
+                                        label="Peg photo"
+                                        thumb-class="rounded-md object-cover h-28 w-full border border-slate-300 hover:border-sky-700"
+                                        grid-class="grid grid-cols-2 sm:grid-cols-4 gap-2"
+                                    />
                                 @endif
                             </div>
                         @endforeach
@@ -829,31 +803,6 @@
 
     @push('scripts')
         <script>
-            function waterPhotoLightbox(photos) {
-                return {
-                    photos: photos || [],
-                    openIndex: null,
-                    scale: 1,
-                    open(index) {
-                        this.openIndex = index;
-                        this.scale = 1;
-                    },
-                    close() {
-                        this.openIndex = null;
-                        this.scale = 1;
-                    },
-                    zoomIn() {
-                        this.scale = Math.min(4, Number((this.scale + 0.35).toFixed(2)));
-                    },
-                    zoomOut() {
-                        this.scale = Math.max(1, Number((this.scale - 0.35).toFixed(2)));
-                    },
-                    resetZoom() {
-                        this.scale = 1;
-                    },
-                };
-            }
-
             function waterVideoRow() {
                 return {
                     active: null,

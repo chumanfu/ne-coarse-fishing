@@ -39,14 +39,26 @@
 @if ($review && $review->photos->isNotEmpty())
     <div>
         <label class="block text-sm font-semibold mb-2">Existing photos</label>
+        @php
+            $reviewPhotoGallery = $review->photos->map(fn ($item) => [
+                'url' => $item->url(),
+                'alt' => 'Review photo',
+            ])->values()->all();
+        @endphp
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             @foreach ($review->photos as $photo)
-                <label class="relative block rounded-lg border-2 border-slate-300 overflow-hidden">
-                    <img src="{{ $photo->url() }}" alt="" class="h-28 w-full object-cover">
-                    <span class="absolute inset-x-0 bottom-0 bg-slate-900/75 text-white text-xs font-semibold px-2 py-1 flex items-center gap-2">
+                <div class="relative rounded-lg border-2 border-slate-300 overflow-hidden">
+                    <button
+                        type="button"
+                        class="block w-full text-left"
+                        @click="$store.photoLightbox.open(@js($reviewPhotoGallery), {{ $loop->index }}, 'Review photo')"
+                    >
+                        <img src="{{ $photo->url() }}" alt="" class="h-28 w-full object-cover hover:opacity-95">
+                    </button>
+                    <label class="absolute inset-x-0 bottom-0 bg-slate-900/75 text-white text-xs font-semibold px-2 py-1 flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" name="remove_photo_ids[]" value="{{ $photo->id }}"> Remove
-                    </span>
-                </label>
+                    </label>
+                </div>
             @endforeach
         </div>
     </div>

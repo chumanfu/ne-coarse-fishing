@@ -32,13 +32,11 @@
         @if ($review->photos->isNotEmpty())
             <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
                 <h2 class="font-bold text-lg mb-3">Photos</h2>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    @foreach ($review->photos as $photo)
-                        <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
-                            <img src="{{ $photo->url() }}" alt="" class="rounded-lg object-cover h-40 w-full border border-slate-300">
-                        </a>
-                    @endforeach
-                </div>
+                <x-photo-gallery
+                    :photos="$review->photos"
+                    :alt="$review->displayName().' photo'"
+                    label="Review photo"
+                />
             </section>
         @endif
 

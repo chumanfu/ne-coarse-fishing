@@ -246,10 +246,22 @@
                          }">
                         <p class="text-sm text-slate-600 mb-2">Mark any to remove, then save. You can also add more below.</p>
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            @php
+                                $sessionPhotoGallery = $session->photos->map(fn ($item) => [
+                                    'url' => $item->url(),
+                                    'alt' => 'Session photo',
+                                ])->values()->all();
+                            @endphp
                             @foreach ($session->photos as $photo)
                                 <figure class="relative rounded-lg border-2 overflow-hidden bg-slate-100"
                                         :class="removed.includes({{ $photo->id }}) ? 'border-red-400 opacity-50' : 'border-slate-300'">
-                                    <img src="{{ $photo->url() }}" alt="Session photo" class="object-cover h-28 w-full">
+                                    <button
+                                        type="button"
+                                        class="block w-full text-left"
+                                        @click="$store.photoLightbox.open(@js($sessionPhotoGallery), {{ $loop->index }}, 'Session photo')"
+                                    >
+                                        <img src="{{ $photo->url() }}" alt="Session photo" class="object-cover h-28 w-full hover:opacity-95">
+                                    </button>
                                     <button type="button"
                                             @click="toggle({{ $photo->id }})"
                                             class="absolute inset-x-0 bottom-0 text-white text-sm font-semibold py-1.5"

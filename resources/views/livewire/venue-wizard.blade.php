@@ -145,17 +145,39 @@
 
                         @if ($this->existingPhotos->isNotEmpty() || count($newPhotos))
                             <div class="venue-wizard-photo-grid">
+                                @php
+                                    $wizardGallery = collect($this->existingPhotos)
+                                        ->map(fn ($photo) => ['url' => $photo->url(), 'alt' => 'Venue photo'])
+                                        ->concat(collect($newPhotos)->map(fn ($photo) => ['url' => $photo->temporaryUrl(), 'alt' => 'New venue photo']))
+                                        ->values()
+                                        ->all();
+                                    $galleryOffset = 0;
+                                @endphp
                                 @foreach ($this->existingPhotos as $photo)
                                     <figure wire:key="existing-photo-{{ $photo->id }}" class="venue-wizard-photo-card">
-                                        <img src="{{ $photo->url() }}" alt="Venue photo">
+                                        <button
+                                            type="button"
+                                            class="block w-full text-left"
+                                            @click="$store.photoLightbox.open(@js($wizardGallery), {{ $galleryOffset }}, 'Venue photo')"
+                                        >
+                                            <img src="{{ $photo->url() }}" alt="Venue photo">
+                                        </button>
                                         <button type="button" wire:click="removeExistingPhoto({{ $photo->id }})" class="venue-wizard-photo-remove">Remove</button>
                                     </figure>
+                                    @php $galleryOffset++; @endphp
                                 @endforeach
                                 @foreach ($newPhotos as $index => $photo)
                                     <figure wire:key="new-photo-{{ $index }}" class="venue-wizard-photo-card is-new">
-                                        <img src="{{ $photo->temporaryUrl() }}" alt="New venue photo">
+                                        <button
+                                            type="button"
+                                            class="block w-full text-left"
+                                            @click="$store.photoLightbox.open(@js($wizardGallery), {{ $galleryOffset }}, 'Venue photo')"
+                                        >
+                                            <img src="{{ $photo->temporaryUrl() }}" alt="New venue photo">
+                                        </button>
                                         <button type="button" wire:click="removeNewPhoto({{ $index }})" class="venue-wizard-photo-remove">Remove</button>
                                     </figure>
+                                    @php $galleryOffset++; @endphp
                                 @endforeach
                             </div>
                         @endif
