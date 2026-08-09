@@ -22,7 +22,9 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\Water;
 use App\Models\WaterPeg;
+use App\Support\Uploads;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -33,6 +35,7 @@ class AdminFilamentResourcesTest extends TestCase
 
     public function test_super_admin_can_open_new_admin_resource_indexes(): void
     {
+        Storage::fake(Uploads::diskName());
         Role::findOrCreate('super_admin');
         Role::findOrCreate('angler');
 
@@ -67,6 +70,7 @@ class AdminFilamentResourcesTest extends TestCase
         $water = Water::factory()->create([
             'map_image_path' => 'water-maps/admin-pond.jpg',
         ]);
+        Storage::disk(Uploads::diskName())->put('water-maps/admin-pond.jpg', 'fake');
         $peg = WaterPeg::factory()->for($water)->create([
             'map_x' => 40,
             'map_y' => 55,
@@ -75,7 +79,15 @@ class AdminFilamentResourcesTest extends TestCase
         $this->get(WaterPegResource::getUrl('edit', ['record' => $peg]))
             ->assertOk()
             ->assertSee('Map X %', false)
-            ->assertSee('Map Y %', false);
+            ->assertSee('Map Y %', false)
+            ->assertSee($water->mapImageUrl(), false)
+            ->assertSee('Zoom in')
+            ->assertSee('pondMapPlacer')
+            ->assertDontSee('Upload a pond map image on the water record first', false);
+
+        $this->get(WaterPegResource::getUrl('create'))
+            ->assertOk()
+            ->assertSee('Select a water first to place the peg on its pond map');
     }
 
     public function test_super_admin_dashboard_shows_searchable_activity(): void
