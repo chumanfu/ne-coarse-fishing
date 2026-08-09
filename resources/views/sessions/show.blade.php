@@ -63,12 +63,13 @@
                     <p class="text-sm text-slate-600">This water does not have a pond map image yet.</p>
                 @endif
                 @if ($session->waterPeg?->photos?->isNotEmpty())
-                    <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        @foreach ($session->waterPeg->photos as $photo)
-                            <a href="{{ $photo->url() }}" target="_blank" rel="noopener noreferrer">
-                                <img src="{{ $photo->url() }}" alt="Peg {{ $session->pegLabel() }} photo" class="rounded-lg object-cover h-28 w-full border border-slate-300 hover:border-sky-700">
-                            </a>
-                        @endforeach
+                    <div class="mt-4">
+                        <x-photo-gallery
+                            :photos="$session->waterPeg->photos"
+                            :alt="'Peg '.($session->pegLabel() ?? '').' photo'"
+                            label="Peg photo"
+                            thumb-class="rounded-lg object-cover h-28 w-full border border-slate-300 hover:border-sky-700"
+                        />
                     </div>
                     @unless ($session->waterPeg->is_verified)
                         <p class="text-xs text-amber-800 mt-2 font-semibold">Peg photos awaiting venue owner verification.</p>
@@ -118,11 +119,11 @@
         @if ($session->photos->isNotEmpty())
             <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
                 <h2 class="font-bold text-lg mb-3">Photos</h2>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    @foreach ($session->photos as $photo)
-                        <img src="{{ $photo->url() }}" alt="Session photo" class="rounded-lg object-cover h-40 w-full border border-slate-300">
-                    @endforeach
-                </div>
+                <x-photo-gallery
+                    :photos="$session->photos"
+                    alt="Session photo"
+                    label="Session photo"
+                />
             </section>
         @endif
 

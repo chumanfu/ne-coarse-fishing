@@ -139,9 +139,13 @@
             <p class="text-sm font-semibold text-slate-800 mb-2">Peg photos</p>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <template x-for="(photo, index) in (selectedPeg?.photos || [])" :key="'ph-'+index">
-                    <a :href="photo.url" target="_blank" rel="noopener noreferrer">
+                    <button
+                        type="button"
+                        class="relative block w-full text-left"
+                        @click="$store.photoLightbox.open(selectedPeg.photos, index, 'Peg photo')"
+                    >
                         <img :src="photo.url" alt="" class="rounded-md object-cover h-20 w-full border border-slate-300 hover:border-sky-700">
-                    </a>
+                    </button>
                 </template>
             </div>
         </div>

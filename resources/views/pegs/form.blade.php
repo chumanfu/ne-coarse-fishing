@@ -146,7 +146,13 @@
                         @foreach ($peg->photos as $photo)
                             <div class="relative rounded-md overflow-hidden border-2 border-slate-300"
                                  :class="kept.includes({{ $photo->id }}) ? '' : 'opacity-40 ring-2 ring-red-500'">
-                                <img src="{{ $photo->url() }}" alt="" class="h-24 w-full object-cover">
+                                <button
+                                    type="button"
+                                    class="block w-full text-left"
+                                    @click="$store.photoLightbox.open(@js($peg->photos->map(fn ($item) => ['url' => $item->url(), 'alt' => 'Peg photo'])->values()->all()), {{ $loop->index }}, 'Peg photo')"
+                                >
+                                    <img src="{{ $photo->url() }}" alt="" class="h-24 w-full object-cover hover:opacity-95">
+                                </button>
                                 <button type="button"
                                         @click="toggle({{ $photo->id }})"
                                         class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-xs font-semibold py-1"
