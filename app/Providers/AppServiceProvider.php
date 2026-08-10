@@ -2,15 +2,12 @@
 
 namespace App\Providers;
 
-use App\Listeners\SendWelcomeMessage;
 use App\Models\Club;
 use App\Models\SiteAnnouncement;
 use App\Models\TackleShop;
 use App\Models\Venue;
 use App\Models\User;
 use App\Services\ActivityLogger;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
@@ -25,8 +22,6 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        Event::listen(Registered::class, SendWelcomeMessage::class);
-
         Gate::before(function ($user, string $ability) {
             if ($user instanceof User && $user->hasRole('super_admin')) {
                 return true;
