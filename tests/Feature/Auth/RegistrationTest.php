@@ -75,11 +75,20 @@ class RegistrationTest extends TestCase
         $this->assertStringContainsString('Fishing sessions', $message->body);
         $this->assertStringContainsString('Tight lines', $message->body);
 
+        $this->assertSame(
+            1,
+            Message::query()
+                ->where('is_from_admin', true)
+                ->whereHas('thread', fn ($q) => $q->where('user_id', $user->id)->where('subject', 'Welcome to NE Coarse Fishing'))
+                ->count()
+        );
+
         Mail::assertQueued(MessageReplyNotification::class, function (MessageReplyNotification $mail) use ($user) {
             return $mail->hasTo($user->email)
                 && $mail->forAdmin === false
                 && $mail->thread->subject === 'Welcome to NE Coarse Fishing';
         });
+        Mail::assertQueued(MessageReplyNotification::class, 1);
     }
 
     public function test_registration_and_claims_appear_in_activity_feed_for_other_users(): void
@@ -105,6 +114,14 @@ class RegistrationTest extends TestCase
             'user_id' => $other->id,
             'title' => 'Other Angler joined NE Coarse Fishing',
         ]);
+
+        $this->assertSame(
+            1,
+            Activity::query()
+                ->where('type', Activity::TYPE_USER_REGISTERED)
+                ->where('user_id', $other->id)
+                ->count()
+        );
 
         $venue = Venue::factory()->create(['is_approved' => true, 'manager_id' => null]);
 
