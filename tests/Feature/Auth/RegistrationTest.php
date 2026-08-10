@@ -21,7 +21,11 @@ class RegistrationTest extends TestCase
     {
         $response = $this->get('/register');
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertSee('dark:text-slate-200', false)
+            ->assertSee('dark:text-slate-300', false)
+            ->assertSee('Already registered?')
+            ->assertSee('Club memberships');
     }
 
     public function test_new_users_can_register(): void
