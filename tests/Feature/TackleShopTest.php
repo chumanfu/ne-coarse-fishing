@@ -112,6 +112,25 @@ class TackleShopTest extends TestCase
             ->assertSee('Baxter Hall Farm');
     }
 
+    public function test_birds_tackle_is_seeded_as_featured_hybrid_shop(): void
+    {
+        $shop = TackleShop::query()->where('slug', 'birds-tackle')->first();
+
+        $this->assertNotNull($shop);
+        $this->assertSame('Birds Tackle', $shop->name);
+        $this->assertSame('https://www.birdstackle.co.uk/', $shop->url);
+        $this->assertSame('hybrid', $shop->location_type);
+        $this->assertTrue($shop->is_featured);
+        $this->assertTrue($shop->is_published);
+        $this->assertSame('images/tackle-shops/birds-tackle.png', $shop->logo_path);
+
+        $this->get(route('tackle-shops.show', $shop))
+            ->assertOk()
+            ->assertSee('Birds Tackle')
+            ->assertSee('https://www.birdstackle.co.uk/', false)
+            ->assertSee('Coal Yard');
+    }
+
     public function test_unpublished_shop_is_not_publicly_viewable(): void
     {
         $shop = TackleShop::factory()->unpublished()->create();
