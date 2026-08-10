@@ -137,6 +137,34 @@ class ClubTest extends TestCase
     {
         $this->assertDatabaseHas('clubs', ['slug' => 'hetton-lyons-angling-club']);
         $this->assertDatabaseHas('clubs', ['slug' => 'darlington-anglers-club']);
+        $this->assertDatabaseHas('clubs', [
+            'slug' => 'darlington-anglers-club',
+            'url' => 'https://darlingtonanglersclub.org.uk/',
+            'logo_path' => 'images/clubs/darlington-anglers-club.png',
+            'facebook_url' => 'https://www.facebook.com/darlingtonanglers/',
+        ]);
+        $this->assertDatabaseHas('venues', ['slug' => 'cleasby-lake']);
+        $this->assertDatabaseHas('venues', ['slug' => 'river-tees-darlington-anglers']);
+
+        $dac = Club::query()->where('slug', 'darlington-anglers-club')->first();
+        $this->assertNotNull($dac);
+        $this->assertTrue($dac->venues()->where('slug', 'cleasby-lake')->exists());
+        $this->assertTrue($dac->venues()->where('slug', 'river-tees-darlington-anglers')->exists());
+        $this->assertStringContainsString('/images/clubs/darlington-anglers-club.png', (string) $dac->logoUrl());
+
+        $tees = \App\Models\Venue::query()->where('slug', 'river-tees-darlington-anglers')->first();
+        $this->assertNotNull($tees);
+        $this->assertTrue($tees->waters()->where('name', 'High Coniscliffe')->exists());
+        $this->assertTrue($tees->waters()->where('name', 'Blackwell')->exists());
+        $this->assertTrue($tees->waters()->where('name', 'The Holmes')->exists());
+        $this->assertTrue($tees->waters()->where('name', 'Nags Head & Oxney Flatts')->exists());
+
+        $this->get(route('clubs.show', $dac))
+            ->assertOk()
+            ->assertSee('Darlington Anglers Club')
+            ->assertSee('Cleasby Lake')
+            ->assertSee('River Tees (Darlington Anglers)')
+            ->assertSee('images/clubs/darlington-anglers-club.png', false);
         $this->assertDatabaseHas('clubs', ['slug' => 'northumbrian-anglers-federation']);
         $this->assertDatabaseHas('clubs', [
             'slug' => 'middlesbrough-angling-club',
