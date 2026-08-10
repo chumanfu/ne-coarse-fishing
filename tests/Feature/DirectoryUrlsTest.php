@@ -65,5 +65,10 @@ class DirectoryUrlsTest extends TestCase
             'https://willyworms.co.uk/',
             TackleShop::query()->where('slug', 'willy-worms')->value('url')
         );
+
+        $this->assertSame(
+            'https://www.birdstackle.co.uk/',
+            TackleShop::query()->where('slug', 'birds-tackle')->value('url')
+        );
     }
 }
