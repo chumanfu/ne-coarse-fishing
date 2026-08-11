@@ -1,5 +1,10 @@
 <x-app-layout>
     <x-slot name="header">
+        <x-breadcrumbs :items="[
+            ['label' => 'Venues', 'url' => route('venues.index')],
+            ['label' => $session->venue->name, 'url' => route('venues.show', $session->venue)],
+            ['label' => $session->fished_at->format('d M Y')],
+        ]" />
         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900">{{ $session->venue->name }}</h1>
@@ -127,6 +132,5 @@
             </section>
         @endif
 
-        <a href="{{ route('venues.show', $session->venue) }}" class="inline-flex font-semibold text-sky-800 hover:underline">Back to venue</a>
     </div>
 </x-app-layout>
