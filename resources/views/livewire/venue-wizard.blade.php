@@ -221,6 +221,17 @@
                             <input type="checkbox" wire:model="manager_verified">
                             Manager verified badge
                         </label>
+                        <div style="margin-top: 0.75rem;">
+                            <label>Contact email</label>
+                            <p class="hint">Used to invite the fishery to claim this listing.</p>
+                            <input type="email" wire:model="contactEmail" placeholder="secretary@example.com">
+                            @error('contactEmail') <p class="error">{{ $message }}</p> @enderror
+                        </div>
+                        @if ($this->venue?->invite_sent_at)
+                            <p class="hint" style="margin-top: 0.75rem;">
+                                Claim invite sent {{ $this->venue->invite_sent_at->format('j M Y, H:i') }}.
+                            </p>
+                        @endif
                     </div>
                 @endif
 

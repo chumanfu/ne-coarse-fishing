@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TackleShops\Schemas;
 
 use App\Models\TackleShop;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -40,6 +41,15 @@ class TackleShopForm
                 TextInput::make('latitude')->numeric()->step(0.0000001),
                 TextInput::make('longitude')->numeric()->step(0.0000001),
                 TextInput::make('phone')->tel()->maxLength(50),
+                TextInput::make('contact_email')
+                    ->label('Contact email')
+                    ->email()
+                    ->maxLength(255)
+                    ->helperText('Used to invite the shop to claim this listing.'),
+                DateTimePicker::make('invite_sent_at')
+                    ->label('Invite sent at')
+                    ->seconds(false)
+                    ->helperText('Set automatically when an invite is emailed, or mark manually if contacted outside the system.'),
                 TextInput::make('sort_order')->numeric()->default(0)->required(),
                 Textarea::make('overview')->rows(4)->columnSpanFull(),
                 Toggle::make('is_featured')->label('Featured on home page'),

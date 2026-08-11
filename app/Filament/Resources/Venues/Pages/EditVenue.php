@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Venues\Pages;
 use App\Filament\Resources\Venues\VenueResource;
 use App\Models\Venue;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 
@@ -52,6 +53,52 @@ class EditVenue extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('markInviteSent')
+                ->label('Mark invite sent')
+                ->icon('heroicon-o-check-circle')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Mark claim invite as sent?')
+                ->modalDescription('Records that this venue has already been invited, without sending an email. Use this for fisheries contacted outside the system.')
+                ->action(function (): void {
+                    /** @var Venue $venue */
+                    $venue = $this->record;
+                    $venue->markInviteSent();
+
+                    Notification::make()
+                        ->title('Invite marked as sent')
+                        ->success()
+                        ->send();
+                }),
+            Action::make('sendClaimInvite')
+                ->label('Send claim invite')
+                ->icon('heroicon-o-envelope')
+                ->color('primary')
+                ->requiresConfirmation()
+                ->modalHeading('Send claim invite email?')
+                ->modalDescription(fn (): string => filled($this->record->contact_email)
+                    ? 'An invite will be emailed to '.$this->record->contact_email.'.'
+                    : 'This venue has no contact email. Add one in the wizard before sending.')
+                ->action(function (): void {
+                    /** @var Venue $venue */
+                    $venue = $this->record;
+
+                    if (! $venue->sendClaimInvite()) {
+                        Notification::make()
+                            ->title('No contact email')
+                            ->body('Add a contact email before sending a claim invite.')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    Notification::make()
+                        ->title('Claim invite sent')
+                        ->body('Emailed '.$venue->contact_email.'.')
+                        ->success()
+                        ->send();
+                }),
             Action::make('delete')
                 ->label('Delete')
                 ->color('danger')

@@ -31,11 +31,22 @@ class TackleShopsTable
                     ->formatStateUsing(fn (?string $state): string => TackleShop::LOCATION_TYPES[$state] ?? (string) $state)
                     ->sortable(),
                 TextColumn::make('town')->placeholder('—')->searchable()->toggleable(),
+                TextColumn::make('contact_email')
+                    ->label('Contact email')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('url')
                     ->label('Website')
                     ->url(fn (TackleShop $record): string => $record->url, shouldOpenInNewTab: true)
                     ->limit(30)
                     ->searchable(),
+                TextColumn::make('invite_sent_at')
+                    ->label('Invite sent')
+                    ->dateTime()
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(),
                 IconColumn::make('is_featured')->boolean()->label('Home'),
                 IconColumn::make('is_published')->boolean()->label('Live'),
                 TextColumn::make('sort_order')->sortable()->toggleable(isToggledHiddenByDefault: true),
@@ -44,6 +55,9 @@ class TackleShopsTable
                 SelectFilter::make('location_type')->options(TackleShop::LOCATION_TYPES),
                 TernaryFilter::make('is_featured')->label('Featured'),
                 TernaryFilter::make('is_published')->label('Published'),
+                TernaryFilter::make('invite_sent_at')
+                    ->label('Invite sent')
+                    ->nullable(),
             ])
             ->recordActions([
                 EditAction::make(),

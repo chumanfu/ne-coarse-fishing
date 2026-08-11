@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Mail\VenueClaimInvite;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class Venue extends Model
@@ -41,6 +43,8 @@ class Venue extends Model
         'latitude',
         'longitude',
         'address',
+        'contact_email',
+        'invite_sent_at',
         'url',
         'facebook_url',
         'what3words',
@@ -66,7 +70,27 @@ class Venue extends Model
             'is_complex' => 'boolean',
             'is_approved' => 'boolean',
             'manager_verified' => 'boolean',
+            'invite_sent_at' => 'datetime',
         ];
+    }
+
+    public function markInviteSent(): void
+    {
+        $this->forceFill(['invite_sent_at' => now()])->save();
+    }
+
+    public function sendClaimInvite(): bool
+    {
+        if (blank($this->contact_email)) {
+            return false;
+        }
+
+        Mail::to($this->contact_email, $this->name)
+            ->send(new VenueClaimInvite($this));
+
+        $this->markInviteSent();
+
+        return true;
     }
 
     protected static function booted(): void

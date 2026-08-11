@@ -54,6 +54,8 @@ class VenueWizard extends Component
 
     public string $address = '';
 
+    public string $contactEmail = '';
+
     public string $url = '';
 
     public string $facebookUrl = '';
@@ -379,6 +381,7 @@ class VenueWizard extends Component
             if ($this->admin) {
                 $payload['is_approved'] = $this->is_approved;
                 $payload['manager_verified'] = $this->manager_verified;
+                $payload['contact_email'] = $this->contactEmail ?: null;
             }
 
             if ($existingVenue) {
@@ -655,6 +658,7 @@ class VenueWizard extends Component
                 'waters.*.species.*' => ['integer', 'exists:species,id'],
                 'facilities' => ['nullable', 'array'],
                 'facilities.*' => ['string', 'in:'.implode(',', array_keys(Venue::FACILITIES))],
+                'contactEmail' => $this->admin ? ['nullable', 'email', 'max:255'] : null,
                 'waters.*.pegs' => ['nullable', 'array'],
                 'waters.*.pegs.*.name' => ['nullable', 'string', 'max:100'],
                 'waters.*.pegs.*.number' => ['nullable', 'string', 'max:50'],
@@ -703,6 +707,7 @@ class VenueWizard extends Component
         $this->slugPreview = $venue->slug;
         $this->overview = (string) $venue->overview;
         $this->address = (string) $venue->address;
+        $this->contactEmail = (string) $venue->contact_email;
         $this->url = (string) $venue->url;
         $this->facebookUrl = (string) $venue->facebook_url;
         $this->what3words = (string) $venue->what3words;
