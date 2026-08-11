@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Mail\ClubClaimInvite;
+use App\Support\Uploads;
 use Database\Factories\ClubFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,8 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use App\Support\Uploads;
 
 class Club extends Model
 {
@@ -27,6 +29,8 @@ class Club extends Model
         'town',
         'address',
         'phone',
+        'contact_email',
+        'invite_sent_at',
         'is_featured',
         'sort_order',
         'is_published',
@@ -41,7 +45,27 @@ class Club extends Model
             'is_published' => 'boolean',
             'manager_verified' => 'boolean',
             'sort_order' => 'integer',
+            'invite_sent_at' => 'datetime',
         ];
+    }
+
+    public function markInviteSent(): void
+    {
+        $this->forceFill(['invite_sent_at' => now()])->save();
+    }
+
+    public function sendClaimInvite(): bool
+    {
+        if (blank($this->contact_email)) {
+            return false;
+        }
+
+        Mail::to($this->contact_email, $this->name)
+            ->send(new ClubClaimInvite($this));
+
+        $this->markInviteSent();
+
+        return true;
     }
 
     protected static function booted(): void

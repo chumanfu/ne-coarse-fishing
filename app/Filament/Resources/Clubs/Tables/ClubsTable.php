@@ -25,6 +25,11 @@ class ClubsTable
                     ->height(40),
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('town')->placeholder('—')->searchable()->toggleable(),
+                TextColumn::make('contact_email')
+                    ->label('Contact email')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('url')
                     ->label('Website')
                     ->url(fn (Club $record): ?string => $record->url, shouldOpenInNewTab: true)
@@ -32,6 +37,12 @@ class ClubsTable
                     ->placeholder('—')
                     ->searchable(),
                 TextColumn::make('members_count')->counts('members')->label('Members'),
+                TextColumn::make('invite_sent_at')
+                    ->label('Invite sent')
+                    ->dateTime()
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(),
                 IconColumn::make('is_featured')->boolean()->label('Home'),
                 IconColumn::make('is_published')->boolean()->label('Live'),
                 TextColumn::make('sort_order')->sortable()->toggleable(isToggledHiddenByDefault: true),
@@ -39,6 +50,9 @@ class ClubsTable
             ->filters([
                 TernaryFilter::make('is_featured')->label('Featured'),
                 TernaryFilter::make('is_published')->label('Published'),
+                TernaryFilter::make('invite_sent_at')
+                    ->label('Invite sent')
+                    ->nullable(),
             ])
             ->recordActions([
                 EditAction::make(),

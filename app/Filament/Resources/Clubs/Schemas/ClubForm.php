@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Clubs\Schemas;
 
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -36,6 +37,15 @@ class ClubForm
                 TextInput::make('town')->maxLength(255),
                 TextInput::make('address')->maxLength(255)->columnSpanFull(),
                 TextInput::make('phone')->tel()->maxLength(50),
+                TextInput::make('contact_email')
+                    ->label('Contact email')
+                    ->email()
+                    ->maxLength(255)
+                    ->helperText('Used to invite the club to claim this listing.'),
+                DateTimePicker::make('invite_sent_at')
+                    ->label('Invite sent at')
+                    ->seconds(false)
+                    ->helperText('Set automatically when an invite is emailed, or mark manually if contacted outside the system.'),
                 TextInput::make('sort_order')->numeric()->default(0)->required(),
                 Textarea::make('overview')->rows(4)->columnSpanFull(),
                 Toggle::make('is_featured')->label('Featured on home page'),
