@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Venues\Tables;
 
-use App\Models\Venue;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -11,6 +10,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class VenuesTable
 {
@@ -51,6 +51,15 @@ class VenuesTable
                 TernaryFilter::make('invite_sent_at')
                     ->label('Invite sent')
                     ->nullable(),
+                TernaryFilter::make('club_link')
+                    ->label('Club link')
+                    ->placeholder('Any')
+                    ->trueLabel('Club waters')
+                    ->falseLabel('Independent')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereHas('clubs'),
+                        false: fn (Builder $query) => $query->whereDoesntHave('clubs'),
+                    ),
             ])
             ->recordActions([
                 Action::make('approve')
