@@ -68,6 +68,14 @@ class VenueForm
                                 'mixed' => 'Mixed',
                             ])
                             ->required(),
+                        Select::make('clubs')
+                            ->label('Owning clubs')
+                            ->relationship('clubs', 'name')
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->helperText('Clubs that own or manage this venue. Shown prominently on the public venue page.')
+                            ->columnSpanFull(),
                         Textarea::make('day_ticket_info')->rows(3),
                         Textarea::make('membership_info')->rows(3),
                         Textarea::make('opening_times')->rows(2),

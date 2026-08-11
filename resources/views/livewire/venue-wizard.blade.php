@@ -227,6 +227,27 @@
                             <input type="email" wire:model="contactEmail" placeholder="secretary@example.com">
                             @error('contactEmail') <p class="error">{{ $message }}</p> @enderror
                         </div>
+                        <div style="margin-top: 0.75rem;">
+                            <label>Owning clubs</label>
+                            <p class="hint">Clubs that own or manage this venue. Shown on the public venue and club pages.</p>
+                            <div class="check-grid">
+                                @forelse ($this->clubOptions as $club)
+                                    <label>
+                                        <input type="checkbox"
+                                               wire:model="clubIds"
+                                               value="{{ $club->id }}">
+                                        {{ $club->name }}
+                                        @unless ($club->is_published)
+                                            <span class="hint">(unpublished)</span>
+                                        @endunless
+                                    </label>
+                                @empty
+                                    <p class="hint">No clubs in the directory yet.</p>
+                                @endforelse
+                            </div>
+                            @error('clubIds') <p class="error">{{ $message }}</p> @enderror
+                            @error('clubIds.*') <p class="error">{{ $message }}</p> @enderror
+                        </div>
                         @if ($this->venue?->invite_sent_at)
                             <p class="hint" style="margin-top: 0.75rem;">
                                 Claim invite sent {{ $this->venue->invite_sent_at->format('j M Y, H:i') }}.

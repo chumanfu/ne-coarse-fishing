@@ -15,7 +15,7 @@ class VenueController extends Controller
     {
         $venues = Venue::query()
             ->approved()
-            ->with(['waters.species', 'manager', 'photos'])
+            ->with(['waters.species', 'manager', 'photos', 'clubs' => fn ($q) => $q->published()->ordered()])
             ->when($request->user(), function ($query) use ($request) {
                 $query->withExists([
                     'favouritedBy as is_favourited' => fn ($q) => $q->where('favourite_venues.user_id', $request->user()->id),

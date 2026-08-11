@@ -14,7 +14,7 @@ class VenueFavouriteController extends Controller
         $venues = $request->user()
             ->favouriteVenues()
             ->approved()
-            ->with(['waters.species', 'manager', 'photos'])
+            ->with(['waters.species', 'manager', 'photos', 'clubs' => fn ($q) => $q->published()->ordered()])
             ->orderBy('name')
             ->paginate(12);
 

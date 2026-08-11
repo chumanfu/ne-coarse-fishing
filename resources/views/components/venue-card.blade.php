@@ -30,6 +30,9 @@
                 @if ($venue->is_complex)
                     <span class="bg-amber-50 border border-amber-500 text-amber-950 px-2 py-1 rounded">Complex</span>
                 @endif
+                @if ($venue->relationLoaded('clubs') ? $venue->clubs->isNotEmpty() : (($venue->clubs_count ?? 0) > 0))
+                    <span class="bg-sky-50 border border-sky-300 text-sky-900 px-2 py-1 rounded">Club owned</span>
+                @endif
                 @foreach ($venue->allSpecies()->take(4) as $species)
                     <span class="bg-sky-50 border border-sky-300 text-sky-900 px-2 py-1 rounded">{{ $species->name }}</span>
                 @endforeach
