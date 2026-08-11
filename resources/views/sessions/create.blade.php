@@ -107,7 +107,7 @@
                             <input type="radio" name="peg_mode" value="existing" x-model="pegMode"> Existing peg
                         </label>
                         <label class="inline-flex items-center gap-2">
-                            <input type="radio" name="peg_mode" value="new" x-model="pegMode" @change="ensureMap()"> Add new peg
+                            <input type="radio" name="peg_mode" value="new" x-model="pegMode"> Add new peg
                         </label>
                         <label class="inline-flex items-center gap-2">
                             <input type="radio" name="peg_mode" value="none" x-model="pegMode"> No peg
@@ -119,12 +119,13 @@
                     <select name="water_peg_id" x-model="waterPegId" @change="selectExistingPeg()" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                         <option value="">Select peg</option>
                         <template x-for="peg in currentPegs" :key="'peg-' + peg.id">
-                            <option :value="String(peg.id)" :selected="String(waterPegId) === String(peg.id)" x-text="peg.label + (peg.verified ? '' : ' (your pending peg)')"></option>
+                            <option :value="String(peg.id)" :selected="String(waterPegId) === String(peg.id)" x-text="peg.label + (peg.verified ? '' : ' (your pending peg)') + (peg.x == null || peg.y == null ? ' (no map pin)' : '')"></option>
                         </template>
                     </select>
                     <p class="text-xs text-slate-500 mt-2" x-show="!venueId">Select a venue first to see its pegs.</p>
-                    <p class="text-xs text-slate-500 mt-2" x-show="venueId && isWholeVenue && currentPegs.length > 0">Showing pegs from every water at this venue. Pick a specific water to narrow the list.</p>
+                    <p class="text-xs text-slate-500 mt-2" x-show="venueId && isWholeVenue && currentPegs.length > 0">Showing pegs from every water at this venue. Pick a specific water to use the pond map, or choose a peg from the list.</p>
                     <p class="text-xs text-slate-500 mt-2" x-show="venueId && currentPegs.length === 0">No pegs listed yet — add a new one (choose a specific water first).</p>
+                    <p class="text-xs text-slate-500 mt-2" x-show="venueId && !isWholeVenue && selectedWaterMapUrl && mappedPegs.length > 0">You can also click a peg pin on the pond map below.</p>
                 </div>
 
                 <div x-show="pegMode === 'new'" x-cloak class="grid sm:grid-cols-2 gap-3">
@@ -150,11 +151,12 @@
                     @error('peg_photos.*') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>
 
-                <div x-show="(pegMode === 'new' && !isWholeVenue) || (pegMode === 'existing' && waterPegId)" x-cloak>
+                <div x-show="showPegMap" x-cloak>
                     <div class="flex flex-wrap items-end justify-between gap-3 mb-2">
                         <div>
-                            <label class="block text-sm font-semibold mb-1" x-text="pegMode === 'new' ? 'Mark peg on pond map' : 'Peg location'"></label>
+                            <label class="block text-sm font-semibold mb-1" x-text="pegMode === 'new' ? 'Mark peg on pond map' : 'Select peg on pond map'"></label>
                             <p class="text-sm text-slate-600" x-show="pegMode === 'new'">Click the top-down pond image to place the peg.</p>
+                            <p class="text-sm text-slate-600" x-show="pegMode === 'existing'">Click a pin to select that peg, or use the dropdown above.</p>
                         </div>
                         <button type="button"
                                 @click="clearPegLocation()"
@@ -171,22 +173,43 @@
                     </template>
                     <div x-show="selectedWaterMapUrl" x-cloak>
                         <div class="flex justify-center rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100">
-                            <div class="relative inline-block max-w-full select-none cursor-crosshair"
+                            <div class="relative inline-block max-w-full select-none"
+                                 :class="pegMode === 'new' ? 'cursor-crosshair' : 'cursor-default'"
                                  @click="pegMode === 'new' && placePeg($event)">
                                 <img :src="selectedWaterMapUrl"
                                      alt="Pond map"
                                      class="pointer-events-none block max-h-72 max-w-full h-auto w-auto">
+
+                                <template x-for="peg in existingMapPins" :key="'pin-' + peg.id">
+                                    <button
+                                        type="button"
+                                        class="absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40 hover:scale-125 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-sky-700"
+                                        :class="String(waterPegId) === String(peg.id) ? 'scale-125 ring-amber-400 bg-amber-500' : ''"
+                                        :style="`left:${peg.x}%; top:${peg.y}%;`"
+                                        :title="peg.label"
+                                        :aria-label="'Select peg ' + peg.label"
+                                        :aria-pressed="String(waterPegId) === String(peg.id) ? 'true' : 'false'"
+                                        @click.stop="selectPegFromMap(peg)"
+                                    ></button>
+                                </template>
+
                                 <span
-                                    x-show="pegX !== null && pegY !== null"
+                                    x-show="pegMode === 'new' && pegX !== null && pegY !== null"
                                     x-cloak
                                     class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
                                     :style="pegX !== null && pegY !== null ? `left:${pegX}%; top:${pegY}%;` : ''"
                                 ></span>
                             </div>
                         </div>
-                        <input type="hidden" name="peg_map_x" :value="pegX ?? ''">
-                        <input type="hidden" name="peg_map_y" :value="pegY ?? ''">
-                        <p class="text-xs text-slate-500 mt-2" x-show="pegX !== null && pegY !== null" x-cloak>
+                        <input type="hidden" name="peg_map_x" :value="pegMode === 'new' ? (pegX ?? '') : ''">
+                        <input type="hidden" name="peg_map_y" :value="pegMode === 'new' ? (pegY ?? '') : ''">
+                        <p class="text-xs text-slate-500 mt-2" x-show="pegMode === 'existing' && mappedPegs.length === 0" x-cloak>
+                            No pegs are placed on this pond map yet — pick from the dropdown, or add a new peg.
+                        </p>
+                        <p class="text-xs text-slate-500 mt-2" x-show="pegMode === 'existing' && selectedPegLabel" x-cloak>
+                            Selected: <span class="font-semibold text-slate-700" x-text="selectedPegLabel"></span>
+                        </p>
+                        <p class="text-xs text-slate-500 mt-2" x-show="pegMode === 'new' && pegX !== null && pegY !== null" x-cloak>
                             Position <span x-text="Number(pegX).toFixed(1)"></span>%, <span x-text="Number(pegY).toFixed(1)"></span>%
                         </p>
                     </div>
@@ -316,6 +339,17 @@
                     get selectedWaterMapUrl() {
                         return this.selectedWater?.map_url || null;
                     },
+                    get showPegMap() {
+                        if (this.pegMode === 'new') {
+                            return ! this.isWholeVenue;
+                        }
+
+                        if (this.pegMode === 'existing') {
+                            return ! this.isWholeVenue && Boolean(this.selectedWaterMapUrl);
+                        }
+
+                        return false;
+                    },
                     get currentPegs() {
                         const byWater = this.pegsByVenue[this.venueId] || this.pegsByVenue[String(this.venueId)] || {};
 
@@ -332,6 +366,17 @@
                         }
 
                         return byWater[this.waterId] || byWater[String(this.waterId)] || [];
+                    },
+                    get mappedPegs() {
+                        return this.currentPegs.filter((peg) => peg.x !== null && peg.x !== undefined && peg.y !== null && peg.y !== undefined);
+                    },
+                    get existingMapPins() {
+                        return this.pegMode === 'existing' ? this.mappedPegs : [];
+                    },
+                    get selectedPegLabel() {
+                        const peg = this.currentPegs.find((item) => String(item.id) === String(this.waterPegId));
+
+                        return peg?.label || '';
                     },
                     init() {
                         const desiredWaterId = this.waterId ? String(this.waterId) : 'all';
@@ -398,6 +443,21 @@
                         if (!peg) return;
 
                         if (this.isWholeVenue && peg.water_id) {
+                            this.waterId = String(peg.water_id);
+                        }
+
+                        this.pegX = peg.x === null || peg.x === undefined ? null : Number(peg.x);
+                        this.pegY = peg.y === null || peg.y === undefined ? null : Number(peg.y);
+                    },
+                    selectPegFromMap(peg) {
+                        if (! peg) {
+                            return;
+                        }
+
+                        this.pegMode = 'existing';
+                        this.waterPegId = String(peg.id);
+
+                        if (peg.water_id) {
                             this.waterId = String(peg.water_id);
                         }
 
