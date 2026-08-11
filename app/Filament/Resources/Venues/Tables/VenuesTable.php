@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Venues\Tables;
 
+use App\Models\Venue;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -19,8 +20,19 @@ class VenuesTable
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('ticket_type')->badge(),
+                TextColumn::make('contact_email')
+                    ->label('Contact email')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('creator.name')->label('Submitted by'),
                 TextColumn::make('manager.name')->label('Manager')->placeholder('—'),
+                TextColumn::make('invite_sent_at')
+                    ->label('Invite sent')
+                    ->dateTime()
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(),
                 IconColumn::make('is_approved')->boolean()->label('Approved'),
                 IconColumn::make('manager_verified')->boolean()->label('Verified'),
                 TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
@@ -28,6 +40,9 @@ class VenuesTable
             ->defaultSort('created_at', 'desc')
             ->filters([
                 TernaryFilter::make('is_approved')->label('Approved'),
+                TernaryFilter::make('invite_sent_at')
+                    ->label('Invite sent')
+                    ->nullable(),
             ])
             ->recordActions([
                 Action::make('approve')

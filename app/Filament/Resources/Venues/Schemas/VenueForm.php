@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Venues\Schemas;
 
 use App\Models\Venue;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -34,6 +35,15 @@ class VenueForm
                         TextInput::make('latitude')->numeric()->required(),
                         TextInput::make('longitude')->numeric()->required(),
                         TextInput::make('address')->maxLength(255)->columnSpanFull(),
+                        TextInput::make('contact_email')
+                            ->label('Contact email')
+                            ->email()
+                            ->maxLength(255)
+                            ->helperText('Used to invite the fishery to claim this listing.'),
+                        DateTimePicker::make('invite_sent_at')
+                            ->label('Invite sent at')
+                            ->seconds(false)
+                            ->helperText('Set automatically when an invite is emailed, or mark manually if contacted outside the system.'),
                         TextInput::make('url')
                             ->label('Website URL')
                             ->url()

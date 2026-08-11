@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use App\Mail\TackleShopClaimInvite;
+use App\Support\Uploads;
 use Database\Factories\TackleShopFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use App\Support\Uploads;
 
 class TackleShop extends Model
 {
@@ -33,6 +35,8 @@ class TackleShop extends Model
         'latitude',
         'longitude',
         'phone',
+        'contact_email',
+        'invite_sent_at',
         'location_type',
         'is_featured',
         'sort_order',
@@ -50,7 +54,27 @@ class TackleShop extends Model
             'is_published' => 'boolean',
             'manager_verified' => 'boolean',
             'sort_order' => 'integer',
+            'invite_sent_at' => 'datetime',
         ];
+    }
+
+    public function markInviteSent(): void
+    {
+        $this->forceFill(['invite_sent_at' => now()])->save();
+    }
+
+    public function sendClaimInvite(): bool
+    {
+        if (blank($this->contact_email)) {
+            return false;
+        }
+
+        Mail::to($this->contact_email, $this->name)
+            ->send(new TackleShopClaimInvite($this));
+
+        $this->markInviteSent();
+
+        return true;
     }
 
     public function scopeMappable(Builder $query): Builder
