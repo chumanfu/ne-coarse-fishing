@@ -24,12 +24,17 @@ use App\Http\Controllers\VenueController;
 use App\Http\Controllers\VenueEditRequestController;
 use App\Http\Controllers\VenueFavouriteController;
 use App\Http\Controllers\VenueTacticController;
+use App\Http\Controllers\WaterMapImageController;
+use App\Http\Controllers\WaterPegController;
+use App\Http\Controllers\WaterPhotoController;
+use App\Http\Controllers\WaterVideoController;
 use App\Models\Activity;
 use App\Models\Club;
 use App\Models\MessageThread;
 use App\Models\TackleReview;
 use App\Models\TackleShop;
 use App\Models\Venue;
+use App\Services\HomeWeatherService;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -128,6 +133,7 @@ Route::get('/', function () {
         'tackleReviews' => $tackleReviews,
         'mapMarkers' => $mapMarkers,
         'venueCount' => Venue::approved()->count(),
+        'weatherLocations' => app(HomeWeatherService::class)->locations(),
     ]);
 })->name('home');
 
@@ -186,22 +192,22 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tackle-shops/{tackleShop:slug}/suggest-edit', [TackleShopEditRequestController::class, 'create'])->name('tackle-shops.suggest-edit');
     Route::post('/tackle-shops/{tackleShop:slug}/suggest-edit', [TackleShopEditRequestController::class, 'store'])->name('tackle-shops.suggest-edit.store');
     Route::post('/tackle-shops/{tackleShop:slug}/claim', [TackleShopClaimController::class, 'store'])->name('tackle-shops.claim');
-    Route::get('/venues/{venue:slug}/pegs/create', [\App\Http\Controllers\WaterPegController::class, 'create'])->name('pegs.create');
-    Route::post('/venues/{venue:slug}/pegs', [\App\Http\Controllers\WaterPegController::class, 'store'])->name('pegs.store');
-    Route::get('/venues/{venue:slug}/pegs/{waterPeg}/edit', [\App\Http\Controllers\WaterPegController::class, 'edit'])->name('pegs.edit');
-    Route::put('/venues/{venue:slug}/pegs/{waterPeg}', [\App\Http\Controllers\WaterPegController::class, 'update'])->name('pegs.update');
-    Route::post('/venues/{venue:slug}/pegs/{waterPeg}/verify', [\App\Http\Controllers\WaterPegController::class, 'verify'])->name('pegs.verify');
-    Route::delete('/venues/{venue:slug}/pegs/{waterPeg}', [\App\Http\Controllers\WaterPegController::class, 'destroy'])->name('pegs.destroy');
+    Route::get('/venues/{venue:slug}/pegs/create', [WaterPegController::class, 'create'])->name('pegs.create');
+    Route::post('/venues/{venue:slug}/pegs', [WaterPegController::class, 'store'])->name('pegs.store');
+    Route::get('/venues/{venue:slug}/pegs/{waterPeg}/edit', [WaterPegController::class, 'edit'])->name('pegs.edit');
+    Route::put('/venues/{venue:slug}/pegs/{waterPeg}', [WaterPegController::class, 'update'])->name('pegs.update');
+    Route::post('/venues/{venue:slug}/pegs/{waterPeg}/verify', [WaterPegController::class, 'verify'])->name('pegs.verify');
+    Route::delete('/venues/{venue:slug}/pegs/{waterPeg}', [WaterPegController::class, 'destroy'])->name('pegs.destroy');
 
-    Route::post('/venues/{venue:slug}/waters/{water}/map-image', [\App\Http\Controllers\WaterMapImageController::class, 'update'])->name('waters.map-image.update');
-    Route::delete('/venues/{venue:slug}/waters/{water}/map-image', [\App\Http\Controllers\WaterMapImageController::class, 'destroy'])->name('waters.map-image.destroy');
-    Route::post('/venues/{venue:slug}/waters/{water}/photos', [\App\Http\Controllers\WaterPhotoController::class, 'store'])->name('waters.photos.store');
-    Route::post('/venues/{venue:slug}/waters/{water}/photos/{waterPhoto}/approve', [\App\Http\Controllers\WaterPhotoController::class, 'approve'])->name('waters.photos.approve');
-    Route::delete('/venues/{venue:slug}/waters/{water}/photos/{waterPhoto}', [\App\Http\Controllers\WaterPhotoController::class, 'destroy'])->name('waters.photos.destroy');
+    Route::post('/venues/{venue:slug}/waters/{water}/map-image', [WaterMapImageController::class, 'update'])->name('waters.map-image.update');
+    Route::delete('/venues/{venue:slug}/waters/{water}/map-image', [WaterMapImageController::class, 'destroy'])->name('waters.map-image.destroy');
+    Route::post('/venues/{venue:slug}/waters/{water}/photos', [WaterPhotoController::class, 'store'])->name('waters.photos.store');
+    Route::post('/venues/{venue:slug}/waters/{water}/photos/{waterPhoto}/approve', [WaterPhotoController::class, 'approve'])->name('waters.photos.approve');
+    Route::delete('/venues/{venue:slug}/waters/{water}/photos/{waterPhoto}', [WaterPhotoController::class, 'destroy'])->name('waters.photos.destroy');
 
-    Route::post('/venues/{venue:slug}/waters/{water}/videos', [\App\Http\Controllers\WaterVideoController::class, 'store'])->name('waters.videos.store');
-    Route::post('/venues/{venue:slug}/waters/{water}/videos/{waterVideo}/approve', [\App\Http\Controllers\WaterVideoController::class, 'approve'])->name('waters.videos.approve');
-    Route::delete('/venues/{venue:slug}/waters/{water}/videos/{waterVideo}', [\App\Http\Controllers\WaterVideoController::class, 'destroy'])->name('waters.videos.destroy');
+    Route::post('/venues/{venue:slug}/waters/{water}/videos', [WaterVideoController::class, 'store'])->name('waters.videos.store');
+    Route::post('/venues/{venue:slug}/waters/{water}/videos/{waterVideo}/approve', [WaterVideoController::class, 'approve'])->name('waters.videos.approve');
+    Route::delete('/venues/{venue:slug}/waters/{water}/videos/{waterVideo}', [WaterVideoController::class, 'destroy'])->name('waters.videos.destroy');
 
     Route::get('/venues/{venue:slug}/match-reports/create', [MatchReportController::class, 'create'])->name('match-reports.create');
     Route::post('/venues/{venue:slug}/match-reports', [MatchReportController::class, 'store'])->name('match-reports.store');
