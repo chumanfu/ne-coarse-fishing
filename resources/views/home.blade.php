@@ -43,6 +43,42 @@
 
     <section class="home-board border-t border-slate-200 bg-slate-50" aria-label="Home board">
         <div class="home-board__inner max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
+            <section class="home-weather mb-8" aria-labelledby="home-weather-heading">
+                <div class="home-board__panel">
+                    <div class="home-board__panel-head">
+                        <div>
+                            <h2 id="home-weather-heading" class="home-board__title">Weather along the bank</h2>
+                            <p class="home-board__lead">Live conditions from Berwick down to Thirsk.</p>
+                        </div>
+                    </div>
+
+                    @if (count($weatherLocations) > 0)
+                        <ul class="home-weather__grid">
+                            @foreach ($weatherLocations as $place)
+                                <li class="home-weather__place">
+                                    <span class="home-weather__icon home-weather__icon--{{ $place['icon'] }}" aria-hidden="true"></span>
+                                    <div class="home-weather__meta">
+                                        <p class="home-weather__name">{{ $place['name'] }}</p>
+                                        <p class="home-weather__condition">{{ $place['condition'] }}</p>
+                                        @if (! empty($place['outlook']))
+                                            <p class="home-weather__outlook">{{ $place['outlook'] }}</p>
+                                        @endif
+                                    </div>
+                                    <div class="home-weather__figures">
+                                        <p class="home-weather__temp">{{ $place['temperature_c'] }}°C</p>
+                                        <p class="home-weather__wind">{{ $place['wind_mph'] }} mph</p>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <p class="text-sm text-slate-600">
+                            Weather is unavailable right now — check again shortly before you head out.
+                        </p>
+                    @endif
+                </div>
+            </section>
+
             <div class="home-board__grid grid gap-8 xl:grid-cols-12 xl:gap-6 2xl:gap-8 xl:items-start">
 
                 {{-- Column 1: Latest activity --}}
@@ -359,6 +395,121 @@
                     position: sticky;
                     top: 1rem;
                 }
+            }
+
+            .home-weather__grid {
+                display: grid;
+                gap: 0.65rem;
+                grid-template-columns: 1fr;
+                margin: 0;
+                padding: 0;
+                list-style: none;
+            }
+            @media (min-width: 640px) {
+                .home-weather__grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+            }
+            @media (min-width: 1024px) {
+                .home-weather__grid {
+                    grid-template-columns: repeat(4, minmax(0, 1fr));
+                }
+            }
+            @media (min-width: 1280px) {
+                .home-weather__grid {
+                    grid-template-columns: repeat(7, minmax(0, 1fr));
+                }
+            }
+            .home-weather__place {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.55rem;
+                padding: 0.65rem 0.7rem;
+                border: 2px solid #e2e8f0;
+                border-radius: 0.65rem;
+                background: #f8fafc;
+            }
+            .home-weather__icon {
+                width: 1.65rem;
+                height: 1.65rem;
+                flex-shrink: 0;
+                margin-top: 0.1rem;
+                border-radius: 999px;
+                border: 2px solid #94a3b8;
+                background: #e2e8f0;
+                position: relative;
+            }
+            .home-weather__icon--sun {
+                border-color: #ca8a04;
+                background: radial-gradient(circle at 50% 50%, #fde047 0 42%, #fef9c3 43% 100%);
+            }
+            .home-weather__icon--sun-cloud {
+                border-color: #64748b;
+                background:
+                    radial-gradient(circle at 30% 35%, #fde047 0 28%, transparent 29%),
+                    linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
+            }
+            .home-weather__icon--cloud {
+                border-color: #64748b;
+                background: linear-gradient(180deg, #e2e8f0 0%, #94a3b8 100%);
+            }
+            .home-weather__icon--rain {
+                border-color: #0369a1;
+                background:
+                    linear-gradient(180deg, #e2e8f0 0 45%, transparent 45%),
+                    repeating-linear-gradient(135deg, transparent 0 3px, #38bdf8 3px 5px),
+                    #bae6fd;
+            }
+            .home-weather__icon--snow {
+                border-color: #64748b;
+                background:
+                    radial-gradient(circle at 30% 55%, #fff 0 12%, transparent 13%),
+                    radial-gradient(circle at 65% 70%, #fff 0 10%, transparent 11%),
+                    linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%);
+            }
+            .home-weather__icon--thunder {
+                border-color: #a16207;
+                background:
+                    linear-gradient(135deg, transparent 42%, #facc15 42% 52%, transparent 52%),
+                    linear-gradient(180deg, #94a3b8 0%, #475569 100%);
+            }
+            .home-weather__meta {
+                min-width: 0;
+                flex: 1;
+            }
+            .home-weather__name {
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: #0f172a;
+                line-height: 1.2;
+            }
+            .home-weather__condition {
+                margin-top: 0.15rem;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: #475569;
+            }
+            .home-weather__outlook {
+                margin-top: 0.2rem;
+                font-size: 0.7rem;
+                color: #64748b;
+                line-height: 1.3;
+            }
+            .home-weather__figures {
+                text-align: right;
+                flex-shrink: 0;
+            }
+            .home-weather__temp {
+                font-size: 1.05rem;
+                font-weight: 700;
+                color: #0f172a;
+                line-height: 1.1;
+            }
+            .home-weather__wind {
+                margin-top: 0.15rem;
+                font-size: 0.7rem;
+                font-weight: 600;
+                color: #64748b;
             }
         </style>
         <script>
