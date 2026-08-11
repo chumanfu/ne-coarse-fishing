@@ -37,6 +37,14 @@ class ClubsTable
                     ->placeholder('—')
                     ->searchable(),
                 TextColumn::make('members_count')->counts('members')->label('Members'),
+                TextColumn::make('venues_count')->counts('venues')->label('Waters'),
+                TextColumn::make('venues.name')
+                    ->label('Owned waters')
+                    ->badge()
+                    ->separator(',')
+                    ->limitList(2)
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('invite_sent_at')
                     ->label('Invite sent')
                     ->dateTime()

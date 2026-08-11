@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Filament\Resources\Venues\VenueResource;
+use App\Models\Club;
 use App\Models\Species;
 use App\Models\Venue;
 use App\Models\VenueEditRequest;
@@ -85,6 +86,9 @@ class VenueWizard extends Component
     /** @var list<string> */
     public array $facilities = [];
 
+    /** @var list<int|string> */
+    public array $clubIds = [];
+
     /** @var list<array{id: ?int, name: string, description: string, peg_count: mixed, depth_info: string, map_image_url: ?string, map_image: mixed, species: list<int|string>, pegs: list<array{id: ?int, name: string, number: string, map_x: mixed, map_y: mixed}>}> */
     public array $waters = [];
 
@@ -162,6 +166,14 @@ class VenueWizard extends Component
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, Club>
+     */
+    public function getClubOptionsProperty()
+    {
+        return Club::query()->ordered()->get(['id', 'name', 'is_published']);
     }
 
     public function searchLocation(GeocodingService $geocoding): void
@@ -403,6 +415,17 @@ class VenueWizard extends Component
 
             if (! $this->editRequest) {
                 $this->syncPhotos($venue);
+            }
+
+            if ($this->admin) {
+                $venue->clubs()->sync(
+                    collect($this->clubIds)
+                        ->filter()
+                        ->map(fn ($id) => (int) $id)
+                        ->unique()
+                        ->values()
+                        ->all()
+                );
             }
 
             return $venue;
@@ -659,6 +682,8 @@ class VenueWizard extends Component
                 'facilities' => ['nullable', 'array'],
                 'facilities.*' => ['string', 'in:'.implode(',', array_keys(Venue::FACILITIES))],
                 'contactEmail' => $this->admin ? ['nullable', 'email', 'max:255'] : null,
+                'clubIds' => $this->admin ? ['nullable', 'array'] : null,
+                'clubIds.*' => $this->admin ? ['integer', 'exists:clubs,id'] : null,
                 'waters.*.pegs' => ['nullable', 'array'],
                 'waters.*.pegs.*.name' => ['nullable', 'string', 'max:100'],
                 'waters.*.pegs.*.number' => ['nullable', 'string', 'max:50'],
@@ -688,11 +713,11 @@ class VenueWizard extends Component
     private function resolveVenueModel(mixed $venue): ?Venue
     {
         if ($venue instanceof Venue) {
-            return $venue->loadMissing(['waters.species', 'photos']);
+            return $venue->loadMissing(['waters.species', 'photos', 'clubs']);
         }
 
         if (is_numeric($venue)) {
-            return Venue::query()->with(['waters.species', 'photos'])->find($venue);
+            return Venue::query()->with(['waters.species', 'photos', 'clubs'])->find($venue);
         }
 
         return null;
@@ -722,6 +747,7 @@ class VenueWizard extends Component
         $this->is_complex = (bool) $venue->is_complex;
         $this->is_approved = (bool) $venue->is_approved;
         $this->manager_verified = (bool) $venue->manager_verified;
+        $this->clubIds = $venue->clubs->pluck('id')->map(fn ($id) => (string) $id)->all();
         $this->existingPhotoIds = $venue->photos->pluck('id')->all();
 
         if ($venue->waters->isNotEmpty()) {

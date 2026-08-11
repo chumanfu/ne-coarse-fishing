@@ -20,6 +20,14 @@ class VenuesTable
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('ticket_type')->badge(),
+                TextColumn::make('clubs_count')->counts('clubs')->label('Clubs'),
+                TextColumn::make('clubs.name')
+                    ->label('Owned by')
+                    ->badge()
+                    ->separator(',')
+                    ->limitList(2)
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('contact_email')
                     ->label('Contact email')
                     ->placeholder('—')

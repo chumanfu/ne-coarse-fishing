@@ -57,6 +57,14 @@ class ClubForm
                     ->preload()
                     ->nullable(),
                 Toggle::make('manager_verified')->label('Manager verified'),
+                Select::make('venues')
+                    ->label('Owned waters')
+                    ->relationship('venues', 'name')
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->helperText('Venues this club owns or manages. Shown on the club and venue public pages.')
+                    ->columnSpanFull(),
             ]);
     }
 }

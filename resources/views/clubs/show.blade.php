@@ -110,8 +110,8 @@
 
         @if ($club->venues->isNotEmpty())
             <div class="bg-white border-2 border-slate-300 rounded-xl p-6">
-                <h2 class="text-lg font-bold text-slate-900 mb-1">Club waters</h2>
-                <p class="text-sm text-slate-600 mb-4">Venues managed by or available to this club.</p>
+                <h2 class="text-lg font-bold text-slate-900 mb-1">Owned waters</h2>
+                <p class="text-sm text-slate-600 mb-4">Venues owned or managed by this club.</p>
                 <div class="grid gap-4 sm:grid-cols-2">
                     @foreach ($club->venues as $venue)
                         <x-venue-card :venue="$venue" />

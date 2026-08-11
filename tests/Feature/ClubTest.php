@@ -129,7 +129,7 @@ class ClubTest extends TestCase
 
         $this->get(route('clubs.show', $club))
             ->assertOk()
-            ->assertSee('Club waters')
+            ->assertSee('Owned waters')
             ->assertSee('Club Mere');
     }
 

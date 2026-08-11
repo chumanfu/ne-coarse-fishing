@@ -18,6 +18,17 @@
                 @if ($venue->address)
                     <p class="text-slate-600 mt-1 dark:text-slate-300">{{ $venue->address }}</p>
                 @endif
+                @if ($venue->clubs->isNotEmpty())
+                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">Owned by</span>
+                        @foreach ($venue->clubs as $club)
+                            <a href="{{ route('clubs.show', $club) }}"
+                               class="text-xs font-bold uppercase tracking-wide bg-sky-50 border border-sky-400 text-sky-950 px-2 py-1 rounded hover:bg-sky-100 dark:bg-sky-950 dark:border-sky-500 dark:text-sky-100 dark:hover:bg-sky-900">
+                                {{ $club->name }}
+                            </a>
+                        @endforeach
+                    </div>
+                @endif
             </div>
             <div class="flex flex-wrap gap-2">
                 @auth
@@ -74,18 +85,14 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid gap-8 lg:grid-cols-3">
         <div class="lg:col-span-2 space-y-6">
-            <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
-                <h2 class="text-xl font-bold mb-3">Overview</h2>
-                <p class="text-slate-800 whitespace-pre-line">{{ $venue->overview ?: 'No overview provided yet.' }}</p>
-            </section>
-
             @if ($venue->clubs->isNotEmpty())
-                <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
-                    <h2 class="text-xl font-bold mb-3">Managed by / club access</h2>
+                <section class="bg-sky-50 border-2 border-sky-300 rounded-xl p-5 dark:bg-sky-950/40 dark:border-sky-700">
+                    <h2 class="text-xl font-bold mb-1 text-slate-900 dark:text-slate-100">Club ownership</h2>
+                    <p class="text-sm text-slate-600 mb-3 dark:text-slate-300">This venue is owned or managed by the following club{{ $venue->clubs->count() === 1 ? '' : 's' }}.</p>
                     <ul class="flex flex-wrap gap-2">
                         @foreach ($venue->clubs as $club)
                             <li>
-                                <a href="{{ route('clubs.show', $club) }}" class="inline-flex text-sm font-semibold bg-sky-50 border border-sky-300 text-sky-900 px-3 py-1.5 rounded hover:bg-sky-100">
+                                <a href="{{ route('clubs.show', $club) }}" class="inline-flex text-sm font-semibold bg-white border border-sky-400 text-sky-950 px-3 py-1.5 rounded hover:bg-sky-100 dark:bg-slate-900 dark:border-sky-500 dark:text-sky-100 dark:hover:bg-sky-950">
                                     {{ $club->name }}
                                 </a>
                             </li>
@@ -93,6 +100,11 @@
                     </ul>
                 </section>
             @endif
+
+            <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
+                <h2 class="text-xl font-bold mb-3">Overview</h2>
+                <p class="text-slate-800 whitespace-pre-line">{{ $venue->overview ?: 'No overview provided yet.' }}</p>
+            </section>
 
             @if ($venue->photos->isNotEmpty())
                 <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
