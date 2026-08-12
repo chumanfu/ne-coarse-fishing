@@ -27,6 +27,13 @@ class VenueController extends Controller
             ->when($request->filled('ticket_type'), function ($query) use ($request) {
                 $query->where('ticket_type', $request->string('ticket_type'));
             })
+            ->when($request->filled('club_link'), function ($query) use ($request) {
+                match ((string) $request->string('club_link')) {
+                    'club' => $query->whereHas('clubs'),
+                    'independent' => $query->whereDoesntHave('clubs'),
+                    default => null,
+                };
+            })
             ->when($request->filled('q'), function ($query) use ($request) {
                 $q = '%'.$request->string('q').'%';
                 $query->where(function ($inner) use ($q) {
@@ -42,7 +49,7 @@ class VenueController extends Controller
         return view('venues.index', [
             'venues' => $venues,
             'species' => Species::orderBy('name')->get(),
-            'filters' => $request->only(['q', 'species', 'ticket_type']),
+            'filters' => $request->only(['q', 'species', 'ticket_type', 'club_link']),
         ]);
     }
 
