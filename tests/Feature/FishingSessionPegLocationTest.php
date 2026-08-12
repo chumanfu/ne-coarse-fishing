@@ -123,6 +123,68 @@ class FishingSessionPegLocationTest extends TestCase
             ->assertOk()
             ->assertSee('Peg')
             ->assertSee('Existing peg')
+            ->assertSee('Select peg on pond map', false)
+            ->assertSee('selectPegFromMap', false)
+            ->assertSee('existingMapPins', false)
             ->assertSee('Mark peg on pond map', false);
+    }
+
+    public function test_create_form_shows_existing_pegs_for_map_selection(): void
+    {
+        Storage::fake(Uploads::diskName());
+
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true, 'name' => 'Map Peg Lakes']);
+        $water = Water::factory()->for($venue)->create([
+            'name' => 'Match Lake',
+            'map_image_path' => 'water-maps/pond.jpg',
+        ]);
+        Storage::disk(Uploads::diskName())->put('water-maps/pond.jpg', 'fake');
+        $peg = WaterPeg::factory()->for($water)->create([
+            'number' => '7',
+            'name' => 'Boilie Bay',
+            'map_x' => 41.5,
+            'map_y' => 62.25,
+            'is_verified' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('sessions.create', ['venue' => $venue->slug]))
+            ->assertOk()
+            ->assertSee('Select peg on pond map', false)
+            ->assertSee('selectPegFromMap', false)
+            ->assertSee((string) $peg->id)
+            ->assertSee('41.5', false)
+            ->assertSee('Boilie Bay');
+    }
+
+    public function test_session_can_use_existing_mapped_peg(): void
+    {
+        Storage::fake(Uploads::diskName());
+
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+        $water = Water::factory()->for($venue)->create([
+            'map_image_path' => 'water-maps/pond.jpg',
+        ]);
+        Storage::disk(Uploads::diskName())->put('water-maps/pond.jpg', 'fake');
+        $peg = WaterPeg::factory()->for($water)->create([
+            'number' => '3',
+            'map_x' => 20,
+            'map_y' => 80,
+            'is_verified' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('sessions.store'), [
+            'venue_id' => $venue->id,
+            'water_id' => $water->id,
+            'fished_at' => now()->toDateString(),
+            'peg_mode' => 'existing',
+            'water_peg_id' => $peg->id,
+        ]);
+
+        $session = FishingSession::query()->where('user_id', $user->id)->first();
+        $response->assertRedirect(route('sessions.show', $session));
+        $this->assertSame($peg->id, $session->water_peg_id);
     }
 }
