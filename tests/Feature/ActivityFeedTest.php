@@ -66,29 +66,77 @@ class ActivityFeedTest extends TestCase
             ->assertSee('Full feed item 6');
     }
 
-    public function test_public_activity_hides_user_signups(): void
+    public function test_public_activity_shows_allowed_entity_activities(): void
     {
         $user = User::factory()->create();
         $venue = Venue::factory()->create(['is_approved' => true]);
 
-        Activity::query()->create([
-            'type' => Activity::TYPE_USER_REGISTERED,
-            'subject_type' => User::class,
-            'subject_id' => $user->id,
-            'user_id' => $user->id,
-            'title' => $user->name.' joined NE Coarse Fishing',
-            'summary' => $user->email,
-            'url' => '/admin/users/'.$user->id.'/edit',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $allowed = [
+            [Activity::TYPE_VENUE, 'Public venue activity'],
+            [Activity::TYPE_PEG, 'Public peg activity'],
+            [Activity::TYPE_CLUB, 'Public club activity'],
+            [Activity::TYPE_TACKLE_SHOP, 'Public tackle shop activity'],
+            [Activity::TYPE_SESSION, 'Public session activity'],
+        ];
+
+        foreach ($allowed as [$type, $title]) {
+            Activity::query()->create([
+                'type' => $type,
+                'subject_type' => Venue::class,
+                'subject_id' => $venue->id,
+                'user_id' => $user->id,
+                'title' => $title,
+                'summary' => null,
+                'url' => '/venues/'.$venue->slug,
+            ]);
+        }
+
+        $response = $this->get(route('activity.index'))->assertOk();
+
+        foreach ($allowed as [, $title]) {
+            $response->assertSee($title);
+        }
+    }
+
+    public function test_public_activity_hides_disallowed_activity_types(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+
+        $disallowed = [
+            [Activity::TYPE_USER_REGISTERED, $user->name.' joined NE Coarse Fishing'],
+            [Activity::TYPE_VENUE_SUBMITTED, 'Venue submitted for review'],
+            [Activity::TYPE_TACTIC, 'Shared tactic activity'],
+            [Activity::TYPE_VENUE_CLAIM, 'Venue claim activity'],
+            [Activity::TYPE_VENUE_EDIT_REQUEST, 'Venue edit suggestion activity'],
+            [Activity::TYPE_CLUB_CLAIM, 'Club claim activity'],
+            [Activity::TYPE_CLUB_EDIT_REQUEST, 'Club edit suggestion activity'],
+            [Activity::TYPE_SHOP_CLAIM, 'Shop claim activity'],
+            [Activity::TYPE_SHOP_EDIT_REQUEST, 'Shop edit suggestion activity'],
+            [Activity::TYPE_MATCH_REPORT, 'Match report activity'],
+            [Activity::TYPE_ANNOUNCEMENT, 'Announcement activity'],
+            [Activity::TYPE_TACKLE_REVIEW, 'Tackle review activity'],
+            [Activity::TYPE_MESSAGE, 'New message activity'],
+        ];
+
+        foreach ($disallowed as [$type, $title]) {
+            Activity::query()->create([
+                'type' => $type,
+                'subject_type' => Venue::class,
+                'subject_id' => $venue->id,
+                'user_id' => $user->id,
+                'title' => $title,
+                'summary' => null,
+                'url' => '/venues/'.$venue->slug,
+            ]);
+        }
 
         Activity::query()->create([
             'type' => Activity::TYPE_SESSION,
             'subject_type' => Venue::class,
             'subject_id' => $venue->id,
             'user_id' => $user->id,
-            'title' => 'Public session activity',
+            'title' => 'Allowed session activity',
             'summary' => null,
             'url' => '/venues/'.$venue->slug,
             'created_at' => now()->subMinute(),
@@ -97,12 +145,18 @@ class ActivityFeedTest extends TestCase
 
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('Public session activity')
-            ->assertDontSee($user->name.' joined NE Coarse Fishing');
+            ->assertSee('Allowed session activity');
+
+        foreach ($disallowed as [, $title]) {
+            $this->get(route('home'))->assertDontSee($title);
+        }
 
         $this->get(route('activity.index'))
             ->assertOk()
-            ->assertSee('Public session activity')
-            ->assertDontSee($user->name.' joined NE Coarse Fishing');
+            ->assertSee('Allowed session activity');
+
+        foreach ($disallowed as [, $title]) {
+            $this->get(route('activity.index'))->assertDontSee($title);
+        }
     }
 }

@@ -70,15 +70,31 @@ class Activity extends Model
     }
 
     /**
+     * Activity types shown on the public site (home + /activity).
+     *
+     * @return list<string>
+     */
+    public static function publicFeedTypes(): array
+    {
+        return [
+            self::TYPE_VENUE,
+            self::TYPE_PEG,
+            self::TYPE_CLUB,
+            self::TYPE_TACKLE_SHOP,
+            self::TYPE_SESSION,
+        ];
+    }
+
+    /**
      * Activities safe to show on the public site (home + /activity).
-     * Sign-ups remain available in the Filament admin activity log.
+     * All other types remain available in the Filament admin activity log.
      *
      * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
      * @return \Illuminate\Database\Eloquent\Builder<static>
      */
     public function scopePublicFeed($query)
     {
-        return $query->where('type', '!=', self::TYPE_USER_REGISTERED);
+        return $query->whereIn('type', self::publicFeedTypes());
     }
 
     /**
