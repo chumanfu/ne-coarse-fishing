@@ -12,6 +12,11 @@
 
 <x-app-layout>
     <x-slot name="header">
+        <x-breadcrumbs :items="[
+            ['label' => 'Venues', 'url' => route('venues.index')],
+            ['label' => $venue->name, 'url' => route('venues.show', $venue)],
+            ['label' => $editing ? 'Edit peg' : 'Add peg'],
+        ]" />
         <h1 class="text-2xl font-bold text-slate-900">
             {{ $editing ? 'Edit peg' : 'Add peg' }} · {{ $venue->name }}
         </h1>

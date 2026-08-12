@@ -25,6 +25,22 @@
     @endphp
 
     <x-slot name="header">
+        @php
+            $sessionBreadcrumbs = [
+                ['label' => 'Venues', 'url' => route('venues.index')],
+            ];
+            $breadcrumbVenue = $editing ? $session->venue : ($venue ?? null);
+            if ($breadcrumbVenue) {
+                $sessionBreadcrumbs[] = [
+                    'label' => $breadcrumbVenue->name,
+                    'url' => route('venues.show', $breadcrumbVenue),
+                ];
+            }
+            $sessionBreadcrumbs[] = [
+                'label' => $editing ? 'Edit session' : 'Log session',
+            ];
+        @endphp
+        <x-breadcrumbs :items="$sessionBreadcrumbs" />
         <h1 class="text-2xl font-bold text-slate-900">{{ $editing ? 'Edit fishing session' : 'Log a fishing session' }}</h1>
         <p class="text-slate-600 mt-1">Capture date, peg, weather, catches, photos and tactics tips for the venue guide.</p>
     </x-slot>

@@ -1,5 +1,9 @@
 <x-app-layout>
     <x-slot name="header">
+        <x-breadcrumbs :items="[
+            ['label' => 'Venues', 'url' => route('venues.index')],
+            ['label' => $venue->name],
+        ]" />
         <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div>
                 <div class="flex flex-wrap items-center gap-2 mb-2">
