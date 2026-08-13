@@ -177,7 +177,9 @@ class SessionActivityAndPegTest extends TestCase
             ->assertSee('Location on pond map')
             ->assertSee('Zoom in')
             ->assertSee('placeAtClientPoint', false)
-            ->assertSee('viewport pointer capture', false);
+            ->assertSee('viewport pointer capture', false)
+            ->assertSee('name="photos[]" accept="image/*" multiple', false)
+            ->assertDontSee('capture=', false);
 
         $this->actingAs($manager)
             ->from(route('pegs.create', $venue))
