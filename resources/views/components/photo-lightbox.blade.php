@@ -6,7 +6,9 @@
     x-data
     x-show="$store.photoLightbox.openIndex !== null"
     x-cloak
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 p-4"
+    {{-- Leaflet map containers do not create a stacking context, so their panes (400) and
+         controls (up to 1000) compete with this overlay in the page root context. --}}
+    class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/80 p-4"
     @keydown.escape.window="$store.photoLightbox.close()"
     @keydown.arrow-left.window="$store.photoLightbox.prev()"
     @keydown.arrow-right.window="$store.photoLightbox.next()"
