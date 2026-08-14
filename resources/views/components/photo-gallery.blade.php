@@ -38,7 +38,7 @@
 @endphp
 
 @if (count($items) > 0)
-    <div {{ $attributes->merge(['class' => $gridClass]) }}>
+    <div x-data {{ $attributes->merge(['class' => $gridClass]) }}>
         @foreach ($items as $index => $photo)
             <button
                 type="button"
