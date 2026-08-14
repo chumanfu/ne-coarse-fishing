@@ -179,7 +179,17 @@
                             @forelse ($featured as $venue)
                                 <a href="{{ route('venues.show', $venue) }}" class="home-board__item group">
                                     @if ($venue->photos->isNotEmpty())
-                                        <img src="{{ $venue->photos->first()->url() }}" alt="" class="home-board__thumb" loading="lazy">
+                                        <img
+                                            src="{{ $venue->photos->first()->url() }}"
+                                            alt="{{ $venue->name }} photo"
+                                            class="home-board__thumb cursor-zoom-in"
+                                            loading="lazy"
+                                            role="button"
+                                            tabindex="0"
+                                            @click.prevent.stop="$store.photoLightbox.open(@js($venue->photos->map(fn ($photo) => ['url' => $photo->url(), 'alt' => $venue->name.' photo'])->values()->all()), 0, @js($venue->name.' photo'))"
+                                            @keydown.enter.prevent.stop="$store.photoLightbox.open(@js($venue->photos->map(fn ($photo) => ['url' => $photo->url(), 'alt' => $venue->name.' photo'])->values()->all()), 0, @js($venue->name.' photo'))"
+                                            @keydown.space.prevent.stop="$store.photoLightbox.open(@js($venue->photos->map(fn ($photo) => ['url' => $photo->url(), 'alt' => $venue->name.' photo'])->values()->all()), 0, @js($venue->name.' photo'))"
+                                        >
                                     @else
                                         <span class="home-board__thumb home-board__thumb--empty" aria-hidden="true"></span>
                                     @endif
@@ -277,7 +287,17 @@
                             @forelse ($tackleReviews as $review)
                                 <a href="{{ route('tackle-reviews.show', $review) }}" class="home-board__item home-board__item--compact group">
                                     @if ($review->photos->isNotEmpty())
-                                        <img src="{{ $review->photos->first()->url() }}" alt="" class="home-board__thumb home-board__thumb--square" loading="lazy">
+                                        <img
+                                            src="{{ $review->photos->first()->url() }}"
+                                            alt="{{ $review->displayName() }} photo"
+                                            class="home-board__thumb home-board__thumb--square cursor-zoom-in"
+                                            loading="lazy"
+                                            role="button"
+                                            tabindex="0"
+                                            @click.prevent.stop="$store.photoLightbox.open(@js($review->photos->map(fn ($photo) => ['url' => $photo->url(), 'alt' => $review->displayName().' photo'])->values()->all()), 0, 'Review photo')"
+                                            @keydown.enter.prevent.stop="$store.photoLightbox.open(@js($review->photos->map(fn ($photo) => ['url' => $photo->url(), 'alt' => $review->displayName().' photo'])->values()->all()), 0, 'Review photo')"
+                                            @keydown.space.prevent.stop="$store.photoLightbox.open(@js($review->photos->map(fn ($photo) => ['url' => $photo->url(), 'alt' => $review->displayName().' photo'])->values()->all()), 0, 'Review photo')"
+                                        >
                                     @endif
                                     <div class="min-w-0 flex-1">
                                         <h3 class="font-bold text-slate-900 group-hover:text-sky-800">{{ $review->displayName() }}</h3>

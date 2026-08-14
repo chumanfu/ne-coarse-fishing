@@ -18,7 +18,16 @@
             @forelse ($reviews as $review)
                 <a href="{{ route('tackle-reviews.show', $review) }}" class="block bg-white border-2 border-slate-300 rounded-xl overflow-hidden hover:border-sky-700 transition">
                     @if ($review->photos->isNotEmpty())
-                        <img src="{{ $review->photos->first()->url() }}" alt="" class="w-full h-40 object-cover border-b-2 border-slate-200">
+                        <img
+                            src="{{ $review->photos->first()->url() }}"
+                            alt="{{ $review->displayName() }} photo"
+                            class="w-full h-40 object-cover border-b-2 border-slate-200 cursor-zoom-in"
+                            role="button"
+                            tabindex="0"
+                            @click.prevent.stop="$store.photoLightbox.open(@js($review->photos->map(fn ($photo) => ['url' => $photo->url(), 'alt' => $review->displayName().' photo'])->values()->all()), 0, 'Review photo')"
+                            @keydown.enter.prevent.stop="$store.photoLightbox.open(@js($review->photos->map(fn ($photo) => ['url' => $photo->url(), 'alt' => $review->displayName().' photo'])->values()->all()), 0, 'Review photo')"
+                            @keydown.space.prevent.stop="$store.photoLightbox.open(@js($review->photos->map(fn ($photo) => ['url' => $photo->url(), 'alt' => $review->displayName().' photo'])->values()->all()), 0, 'Review photo')"
+                        >
                     @endif
                     <div class="p-5">
                         <h2 class="font-bold text-lg text-slate-900">{{ $review->displayName() }}</h2>

@@ -451,10 +451,22 @@
                                             <label>Peg photos</label>
                                             <p class="hint">Optional. Up to 4 photos of this peg.</p>
                                             @if (! empty($peg['existing_photos']))
+                                                @php
+                                                    $pegPhotoGallery = collect($peg['existing_photos'])
+                                                        ->map(fn ($photo) => ['url' => $photo['url'], 'alt' => 'Peg photo'])
+                                                        ->values()
+                                                        ->all();
+                                                @endphp
                                                 <div class="check-grid" style="margin-bottom: 0.5rem;">
                                                     @foreach ($peg['existing_photos'] as $existingPhoto)
                                                         <div style="position: relative;">
-                                                            <img src="{{ $existingPhoto['url'] }}" alt="" style="width: 100%; height: 5rem; object-fit: cover; border-radius: 0.4rem; border: 1px solid var(--vw-border);">
+                                                            <button
+                                                                type="button"
+                                                                style="display: block; width: 100%; cursor: zoom-in;"
+                                                                @click="$store.photoLightbox.open(@js($pegPhotoGallery), {{ $loop->index }}, 'Peg photo')"
+                                                            >
+                                                                <img src="{{ $existingPhoto['url'] }}" alt="Peg photo" style="width: 100%; height: 5rem; object-fit: cover; border-radius: 0.4rem; border: 1px solid var(--vw-border);">
+                                                            </button>
                                                             <button type="button"
                                                                     wire:click="removePegExistingPhoto({{ $index }}, {{ $pegIndex }}, {{ $existingPhoto['id'] }})"
                                                                     class="venue-wizard-btn-danger"

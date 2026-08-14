@@ -9,14 +9,20 @@
         <div class="flex items-center gap-3 min-w-0">
             @if ($club->logoUrl())
                 <div class="directory-logo rounded-lg border border-slate-200 bg-slate-50 p-2">
-                    <img
-                        src="{{ $club->logoUrl() }}"
-                        alt="{{ $club->name }} logo"
-                        width="64"
-                        height="64"
-                        class="directory-logo__img"
-                        loading="lazy"
+                    <button
+                        type="button"
+                        class="block cursor-zoom-in"
+                        @click="$store.photoLightbox.open(@js([['url' => $club->logoUrl(), 'alt' => $club->name.' logo']]), 0, @js($club->name.' logo'))"
                     >
+                        <img
+                            src="{{ $club->logoUrl() }}"
+                            alt="{{ $club->name }} logo"
+                            width="64"
+                            height="64"
+                            class="directory-logo__img"
+                            loading="lazy"
+                        >
+                    </button>
                 </div>
             @endif
             <h3 class="font-bold text-lg text-slate-900 min-w-0">

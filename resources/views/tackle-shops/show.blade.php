@@ -4,13 +4,19 @@
             <div class="flex items-start gap-4 min-w-0">
                 @if ($shop->logoUrl())
                     <div class="tackle-shop-logo tackle-shop-logo--lg rounded-xl border-2 border-slate-300 bg-white p-2">
-                        <img
-                            src="{{ $shop->logoUrl() }}"
-                            alt="{{ $shop->name }} logo"
-                            width="72"
-                            height="72"
-                            class="tackle-shop-logo__img"
+                        <button
+                            type="button"
+                            class="block cursor-zoom-in"
+                            @click="$store.photoLightbox.open(@js([['url' => $shop->logoUrl(), 'alt' => $shop->name.' logo']]), 0, @js($shop->name.' logo'))"
                         >
+                            <img
+                                src="{{ $shop->logoUrl() }}"
+                                alt="{{ $shop->name }} logo"
+                                width="72"
+                                height="72"
+                                class="tackle-shop-logo__img"
+                            >
+                        </button>
                     </div>
                 @endif
                 <div class="min-w-0">

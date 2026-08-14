@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Club;
 use App\Models\FishingSession;
 use App\Models\SessionPhoto;
+use App\Models\TackleShop;
 use App\Models\TackleReview;
 use App\Models\TackleReviewPhoto;
 use App\Models\User;
@@ -112,5 +114,107 @@ class PhotoLightboxTest extends TestCase
             ->assertOk()
             ->assertSee('$store.photoLightbox.open', false)
             ->assertSee('Review photo');
+    }
+
+    public function test_about_page_content_photos_are_clickable_for_lightbox(): void
+    {
+        $this->get(route('about'))
+            ->assertOk()
+            ->assertSee('canal-fishing-vintage.png')
+            ->assertSee('chris-bankside-catch.png')
+            ->assertSee('$store.photoLightbox.open', false)
+            ->assertSee('About photo');
+    }
+
+    public function test_directory_logos_are_clickable_for_lightbox(): void
+    {
+        Storage::fake(Uploads::diskName());
+
+        $club = Club::factory()->create([
+            'name' => 'Lightbox Angling Club',
+            'logo_path' => 'club-logos/lightbox-club.png',
+        ]);
+        $shop = TackleShop::factory()->create([
+            'name' => 'Lightbox Tackle Shop',
+            'logo_path' => 'tackle-shop-logos/lightbox-shop.png',
+        ]);
+
+        $this->get(route('clubs.show', $club))
+            ->assertOk()
+            ->assertSee('$store.photoLightbox.open', false)
+            ->assertSee('Lightbox Angling Club logo');
+
+        $this->get(route('tackle-shops.show', $shop))
+            ->assertOk()
+            ->assertSee('$store.photoLightbox.open', false)
+            ->assertSee('Lightbox Tackle Shop logo');
+
+        $this->get(route('clubs.index'))
+            ->assertOk()
+            ->assertSee('$store.photoLightbox.open', false);
+
+        $this->get(route('tackle-shops.index'))
+            ->assertOk()
+            ->assertSee('$store.photoLightbox.open', false);
+    }
+
+    public function test_photo_directory_thumbnails_are_clickable_for_lightbox(): void
+    {
+        Storage::fake(Uploads::diskName());
+
+        $venue = Venue::factory()->create([
+            'name' => 'Directory Photo Lake',
+            'is_approved' => true,
+        ]);
+        VenuePhoto::query()->create([
+            'venue_id' => $venue->id,
+            'image_path' => 'venue-photos/directory-lake.jpg',
+            'sort_order' => 1,
+        ]);
+
+        $review = TackleReview::factory()->for(User::factory())->create([
+            'title' => 'Directory Photo Rod',
+            'is_published' => true,
+        ]);
+        TackleReviewPhoto::query()->create([
+            'tackle_review_id' => $review->id,
+            'image_path' => 'review-photos/directory-rod.jpg',
+            'sort_order' => 1,
+        ]);
+
+        $this->get(route('venues.index', ['q' => 'Directory Photo Lake']))
+            ->assertOk()
+            ->assertSee('Directory Photo Lake photo')
+            ->assertSee('@click.prevent.stop="$store.photoLightbox.open', false);
+
+        $this->get(route('tackle-reviews.index'))
+            ->assertOk()
+            ->assertSee('Directory Photo Rod photo')
+            ->assertSee('@click.prevent.stop="$store.photoLightbox.open', false);
+    }
+
+    public function test_pond_map_images_do_not_open_the_photo_lightbox(): void
+    {
+        $mapImages = [
+            [resource_path('views/components/pond-map.blade.php'), 'src="{{ $src }}"'],
+            [resource_path('views/components/pond-map-placer.blade.php'), 'src="{{ $src }}"'],
+            [resource_path('views/components/pond-map-explorer.blade.php'), 'src="{{ $src }}"'],
+            [resource_path('views/pegs/form.blade.php'), ':src="selectedWater?.map_url"'],
+            [resource_path('views/sessions/create.blade.php'), ':src="selectedWaterMapUrl"'],
+            [resource_path('views/livewire/venue-wizard.blade.php'), 'src="{{ $water[\'map_image_url\'] }}"'],
+            [resource_path('views/livewire/venue-wizard.blade.php'), 'alt="Pond map"'],
+        ];
+
+        foreach ($mapImages as [$path, $marker]) {
+            $source = file_get_contents($path);
+            preg_match_all('/<img\b[^>]*>/s', $source, $matches);
+            $mapTag = collect($matches[0])->first(
+                fn (string $tag): bool => str_contains($tag, $marker)
+            );
+
+            $this->assertNotNull($mapTag, "Expected a map image in {$path}");
+            $this->assertStringNotContainsString('photoLightbox', $mapTag);
+            $this->assertStringNotContainsString('cursor-zoom-in', $mapTag);
+        }
     }
 }
