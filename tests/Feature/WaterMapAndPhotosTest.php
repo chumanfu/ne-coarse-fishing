@@ -69,6 +69,13 @@ class WaterMapAndPhotosTest extends TestCase
         $water = Water::factory()->for($venue)->create(['name' => 'Specimen Lake']);
 
         $this->actingAs($angler)
+            ->get(route('venues.show', $venue))
+            ->assertOk()
+            ->assertSee('Upload a photo of this water')
+            ->assertSee('accept="image/*"', false)
+            ->assertDontSee('capture=', false);
+
+        $this->actingAs($angler)
             ->post(route('waters.photos.store', [$venue, $water]), [
                 'photo' => UploadedFile::fake()->image('catch.jpg'),
             ])

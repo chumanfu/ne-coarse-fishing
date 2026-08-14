@@ -162,7 +162,7 @@
                 <div x-show="pegMode === 'new' && !isWholeVenue" x-cloak class="mt-3">
                     <label class="block text-sm font-semibold mb-1">Peg photos</label>
                     <p class="text-sm text-slate-600 mb-2">Optional. Photos of a new peg stay pending until the venue owner verifies the peg.</p>
-                    <input type="file" name="peg_photos[]" accept="image/*" capture="environment" multiple class="block w-full text-sm">
+                    <input type="file" name="peg_photos[]" accept="image/*" multiple class="block w-full text-sm">
                     @error('peg_photos') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                     @error('peg_photos.*') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -315,7 +315,7 @@
                         </template>
                     </div>
                 @endif
-                <input type="file" name="photos[]" accept="image/*" capture="environment" multiple class="block w-full text-sm">
+                <input type="file" name="photos[]" accept="image/*" multiple class="block w-full text-sm">
                 @error('photos.*') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 @error('remove_photo_ids') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 @error('remove_photo_ids.*') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror

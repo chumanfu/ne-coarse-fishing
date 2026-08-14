@@ -126,7 +126,10 @@ class FishingSessionPegLocationTest extends TestCase
             ->assertSee('Select peg on pond map', false)
             ->assertSee('selectPegFromMap', false)
             ->assertSee('existingMapPins', false)
-            ->assertSee('Mark peg on pond map', false);
+            ->assertSee('Mark peg on pond map', false)
+            ->assertSee('name="peg_photos[]" accept="image/*" multiple', false)
+            ->assertSee('name="photos[]" accept="image/*" multiple', false)
+            ->assertDontSee('capture=', false);
     }
 
     public function test_create_form_shows_existing_pegs_for_map_selection(): void

@@ -167,7 +167,7 @@
                     </div>
                 @endif
 
-                <input type="file" name="photos[]" accept="image/*" capture="environment" multiple class="block w-full text-sm">
+                <input type="file" name="photos[]" accept="image/*" multiple class="block w-full text-sm">
                 @error('photos') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 @error('photos.*') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
