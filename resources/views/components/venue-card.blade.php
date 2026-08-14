@@ -10,7 +10,16 @@
 <div {{ $attributes->merge(['class' => 'relative bg-white border-2 border-slate-300 rounded-xl overflow-hidden hover:border-sky-700 transition dark:bg-slate-900 dark:border-slate-700 dark:hover:border-sky-500']) }}>
     <a href="{{ route('venues.show', $venue) }}" class="block">
         @if ($venue->relationLoaded('photos') && $venue->photos->isNotEmpty())
-            <img src="{{ $venue->photos->first()->url() }}" alt="" class="w-full h-36 object-cover border-b-2 border-slate-200">
+            <img
+                src="{{ $venue->photos->first()->url() }}"
+                alt="{{ $venue->name }} photo"
+                class="w-full h-36 object-cover border-b-2 border-slate-200 cursor-zoom-in"
+                role="button"
+                tabindex="0"
+                @click.prevent.stop="$store.photoLightbox.open(@js([['url' => $venue->photos->first()->url(), 'alt' => $venue->name.' photo']]), 0, @js($venue->name.' photo'))"
+                @keydown.enter.prevent.stop="$store.photoLightbox.open(@js([['url' => $venue->photos->first()->url(), 'alt' => $venue->name.' photo']]), 0, @js($venue->name.' photo'))"
+                @keydown.space.prevent.stop="$store.photoLightbox.open(@js([['url' => $venue->photos->first()->url(), 'alt' => $venue->name.' photo']]), 0, @js($venue->name.' photo'))"
+            >
         @endif
         <div class="p-5">
             <div class="flex items-start justify-between gap-3 pe-10">

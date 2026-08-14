@@ -58,7 +58,13 @@
     <div>
         <label for="logo" class="block text-sm font-semibold mb-1">Logo</label>
         @if ($shop->logoUrl())
-            <img src="{{ $shop->logoUrl() }}" alt="" class="h-16 w-16 object-contain border border-slate-300 rounded mb-2 bg-white p-1">
+            <button
+                type="button"
+                class="block mb-2 cursor-zoom-in"
+                @click="$store.photoLightbox.open(@js([['url' => $shop->logoUrl(), 'alt' => $shop->name.' logo']]), 0, @js($shop->name.' logo'))"
+            >
+                <img src="{{ $shop->logoUrl() }}" alt="{{ $shop->name }} logo" class="h-16 w-16 object-contain border border-slate-300 rounded bg-white p-1">
+            </button>
         @endif
         <input id="logo" name="logo" type="file" accept="image/*" class="block w-full text-sm">
         <p class="text-xs text-slate-500 mt-1">Uploads are stored on the site uploads disk (S3 in production).</p>
