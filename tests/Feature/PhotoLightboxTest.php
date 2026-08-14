@@ -207,6 +207,29 @@ class PhotoLightboxTest extends TestCase
             ->assertSee('@click.prevent.stop="$store.photoLightbox.open', false);
     }
 
+    public function test_opened_photo_is_sized_to_fit_the_lightbox_frame(): void
+    {
+        $markup = $this->get(route('venues.index'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('photo-lightbox__image', $markup);
+        $this->assertStringContainsString("{ '--photo-zoom': \$store.photoLightbox.scale }", $markup);
+        $this->assertStringNotContainsString('transform: scale(${$store.photoLightbox.scale})', $markup);
+
+        $css = file_get_contents(resource_path('css/app.css'));
+
+        $this->assertMatchesRegularExpression(
+            '/\.photo-lightbox__image\s*\{[^}]*max-height:\s*calc\(var\(--photo-zoom\)\s*\*\s*100%\)/s',
+            $css,
+            'The lightbox photo should be capped to its frame, scaled only by the zoom level.',
+        );
+        $this->assertMatchesRegularExpression(
+            '/\.photo-lightbox__image\s*\{[^}]*object-fit:\s*contain/s',
+            $css,
+        );
+    }
+
     public function test_pond_map_images_do_not_open_the_photo_lightbox(): void
     {
         $mapImages = [

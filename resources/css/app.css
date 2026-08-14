@@ -160,6 +160,20 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     object-fit: contain;
 }
 
+/* Lightbox photo: contained inside its scrolling frame at --photo-zoom: 1, so the whole
+   image is visible on open. Zooming grows the layout box (not a transform) so the frame
+   can scroll to the hidden edges; auto margins keep it centred until it overflows. */
+.photo-lightbox__image {
+    --photo-zoom: 1;
+    margin: auto;
+    width: auto;
+    height: auto;
+    max-width: calc(var(--photo-zoom) * 100%);
+    max-height: calc(var(--photo-zoom) * 100%);
+    object-fit: contain;
+    transition: max-width 150ms ease, max-height 150ms ease;
+}
+
 /* Homepage hero — full-bleed Tyne waterside composition */
 .home-hero {
     --hero-ink: #f8fafc;
