@@ -207,6 +207,18 @@ class PhotoLightboxTest extends TestCase
             ->assertSee('@click.prevent.stop="$store.photoLightbox.open', false);
     }
 
+    public function test_lightbox_overlay_sits_above_leaflet_map_layers(): void
+    {
+        $markup = file_get_contents(resource_path('views/components/photo-lightbox.blade.php'));
+
+        preg_match('/class="fixed inset-0 z-\[(\d+)\]/', $markup, $overlay);
+        $this->assertNotEmpty($overlay, 'Expected a z-index on the lightbox overlay');
+
+        // Leaflet stacks its controls up to z-index 1000 and its map container makes no
+        // stacking context of its own, so a lower overlay is drawn under the map.
+        $this->assertGreaterThan(1000, (int) $overlay[1]);
+    }
+
     public function test_pond_map_images_do_not_open_the_photo_lightbox(): void
     {
         $mapImages = [
