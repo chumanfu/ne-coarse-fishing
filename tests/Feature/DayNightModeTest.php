@@ -10,28 +10,33 @@ class DayNightModeTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_layouts_include_theme_toggle_and_boot_script(): void
+    public function test_public_layouts_force_light_mode_without_a_theme_toggle(): void
     {
         $venue = Venue::factory()->create(['is_approved' => true]);
 
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('necf-theme', false)
-            ->assertSee('Switch to night mode', false)
-            ->assertSee('data-theme-toggle', false)
-            ->assertSee('$store.theme.toggle()', false)
+            ->assertSee("document.documentElement.classList.remove('dark')", false)
+            ->assertSee("document.documentElement.style.colorScheme = 'light'", false)
+            ->assertSee("localStorage.removeItem('necf-theme')", false)
+            ->assertDontSee('data-theme-toggle', false)
+            ->assertDontSee('$store.theme.toggle()', false)
             ->assertSee('dark:bg-slate-950', false);
 
         $this->get(route('venues.show', $venue))
             ->assertOk()
-            ->assertSee('necf-theme', false)
-            ->assertSee('$store.theme.toggle()', false)
+            ->assertSee("localStorage.removeItem('necf-theme')", false)
+            ->assertDontSee('data-theme-toggle', false)
+            ->assertDontSee('$store.theme.toggle()', false)
             ->assertSee('dark:text-sky-300', false)
             ->assertSee('dark:text-emerald-300', false);
 
         $this->get(route('login'))
             ->assertOk()
-            ->assertSee('necf-theme', false)
-            ->assertSee('$store.theme.toggle()', false);
+            ->assertSee("document.documentElement.classList.remove('dark')", false)
+            ->assertSee("document.documentElement.style.colorScheme = 'light'", false)
+            ->assertSee("localStorage.removeItem('necf-theme')", false)
+            ->assertDontSee('data-theme-toggle', false)
+            ->assertDontSee('$store.theme.toggle()', false);
     }
 }

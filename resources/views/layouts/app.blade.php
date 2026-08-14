@@ -7,12 +7,11 @@
     <title>{{ config('app.name', 'NE Coarse Fishing') }}</title>
     <script>
         (function () {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.colorScheme = 'light';
+
             try {
-                var key = 'necf-theme';
-                var stored = localStorage.getItem(key);
-                var dark = stored === 'dark' || (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-                document.documentElement.classList.toggle('dark', dark);
-                document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+                localStorage.removeItem('necf-theme');
             } catch (e) {}
         })();
     </script>
