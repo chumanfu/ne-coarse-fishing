@@ -207,6 +207,38 @@ class PhotoLightboxTest extends TestCase
             ->assertSee('@click.prevent.stop="$store.photoLightbox.open', false);
     }
 
+    public function test_opened_photo_is_contained_in_its_frame_at_its_own_aspect_ratio(): void
+    {
+        $markup = $this->get(route('venues.index'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('photo-lightbox__frame', $markup);
+        $this->assertStringContainsString('photo-lightbox__image', $markup);
+        $this->assertStringContainsString("{ '--photo-zoom': \$store.photoLightbox.scale }", $markup);
+
+        // The frame must own the space left over below the toolbar, otherwise the image has
+        // no definite height to be contained within.
+        $this->assertStringContainsString('min-h-0 flex-1 overflow-auto', $markup);
+
+        // A CSS transform does not grow the scroll area, so zooming used to leave the hidden
+        // edges of the photo unreachable.
+        $this->assertStringNotContainsString('transform: scale(${$store.photoLightbox.scale})', $markup);
+
+        $css = file_get_contents(resource_path('css/app.css'));
+
+        preg_match('/\.photo-lightbox__image\s*\{(.*?)\}/s', $css, $rule);
+        $this->assertNotEmpty($rule, 'Expected a .photo-lightbox__image rule in app.css');
+
+        // `flex: none` plus auto margins stop the frame stretching the <img> box, which is
+        // what squashed portrait photos out of aspect ratio.
+        $this->assertStringContainsString('flex: none', $rule[1]);
+        $this->assertStringContainsString('margin: auto', $rule[1]);
+        $this->assertStringContainsString('object-fit: contain', $rule[1]);
+        $this->assertStringContainsString('max-width: calc(var(--photo-zoom) * 100%)', $rule[1]);
+        $this->assertStringContainsString('max-height: calc(var(--photo-zoom) * 100%)', $rule[1]);
+    }
+
     public function test_lightbox_overlay_sits_above_leaflet_map_layers(): void
     {
         $markup = file_get_contents(resource_path('views/components/photo-lightbox.blade.php'));

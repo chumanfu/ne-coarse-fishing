@@ -160,6 +160,29 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     object-fit: contain;
 }
 
+/* Lightbox photo. The frame is a flex box only so the image's auto margins can centre it:
+   auto margins collapse to zero once the image is bigger than the frame, which keeps the
+   whole image reachable by scrolling when zoomed. `flex: none` and the auto margins also
+   stop flex stretching the <img> box to the frame's height — with the default `object-fit:
+   fill` that stretch squashed portrait photos out of aspect ratio. Zoom grows the layout
+   box rather than using a transform so the frame's scrollbars follow it. */
+.photo-lightbox__frame {
+    display: flex;
+}
+
+.photo-lightbox__image {
+    --photo-zoom: 1;
+    display: block;
+    flex: none;
+    margin: auto;
+    width: auto;
+    height: auto;
+    max-width: calc(var(--photo-zoom) * 100%);
+    max-height: calc(var(--photo-zoom) * 100%);
+    object-fit: contain;
+    transition: max-width 150ms ease, max-height 150ms ease;
+}
+
 /* Homepage hero — full-bleed Tyne waterside composition */
 .home-hero {
     --hero-ink: #f8fafc;
