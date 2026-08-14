@@ -19,7 +19,6 @@
             </div>
 
             <div class="hidden lg:flex lg:items-center lg:gap-3 shrink-0">
-                <x-theme-toggle />
                 @auth
                     <a href="{{ route('venues.create') }}" class="inline-flex items-center px-3.5 py-2 text-sm font-semibold rounded-lg bg-sky-800 text-white hover:bg-sky-900 whitespace-nowrap">
                         Add Venue
@@ -63,7 +62,6 @@
             </div>
 
             <div class="-me-2 flex items-center gap-1 lg:hidden">
-                <x-theme-toggle compact />
                 <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Toggle navigation">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />

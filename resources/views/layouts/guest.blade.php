@@ -9,12 +9,11 @@
 
         <script>
             (function () {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.style.colorScheme = 'light';
+
                 try {
-                    var key = 'necf-theme';
-                    var stored = localStorage.getItem(key);
-                    var dark = stored === 'dark' || (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-                    document.documentElement.classList.toggle('dark', dark);
-                    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+                    localStorage.removeItem('necf-theme');
                 } catch (e) {}
             })();
         </script>
@@ -34,7 +33,6 @@
                         <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-sky-800 text-white font-bold text-sm tracking-tight">NE</span>
                         <span class="font-bold text-slate-900 tracking-tight text-[15px] dark:text-slate-100">{{ config('app.name', 'NE Coarse Fishing') }}</span>
                     </a>
-                    <x-theme-toggle compact />
                 </div>
 
                 <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg dark:bg-slate-900 dark:ring-1 dark:ring-slate-700">
