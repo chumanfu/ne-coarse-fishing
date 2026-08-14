@@ -79,6 +79,7 @@ class PhotoLightboxTest extends TestCase
     {
         Storage::fake(Uploads::diskName());
         Storage::disk(Uploads::diskName())->put('session-photos/bank.jpg', 'fake');
+        Storage::disk(Uploads::diskName())->put('session-photos/catch.jpg', 'fake');
 
         $user = User::factory()->create();
         $venue = Venue::factory()->create(['is_approved' => true]);
@@ -87,11 +88,24 @@ class PhotoLightboxTest extends TestCase
             'fishing_session_id' => $session->id,
             'image_path' => 'session-photos/bank.jpg',
         ]);
+        SessionPhoto::query()->create([
+            'fishing_session_id' => $session->id,
+            'image_path' => 'session-photos/catch.jpg',
+        ]);
 
-        $this->get(route('sessions.show', $session))
+        $response = $this->get(route('sessions.show', $session))
             ->assertOk()
             ->assertSee('Session photo')
+            ->assertSee('<div x-data class="grid grid-cols-2 sm:grid-cols-3 gap-3">', false)
+            ->assertSee('session-photos/bank.jpg')
+            ->assertSee('session-photos/catch.jpg')
             ->assertSee('$store.photoLightbox.open', false);
+
+        $this->assertSame(
+            2,
+            substr_count($response->getContent(), '@click="$store.photoLightbox.open'),
+            'Each session photo should open its position in the shared gallery.',
+        );
     }
 
     public function test_tackle_review_photos_are_clickable_for_lightbox(): void
