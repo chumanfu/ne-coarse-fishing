@@ -173,7 +173,7 @@
                     <div class="flex flex-wrap items-end justify-between gap-3 mb-2">
                         <div>
                             <label class="block text-sm font-semibold mb-1" x-text="pegMode === 'new' ? 'Mark peg on pond map' : 'Select peg on pond map'"></label>
-                            <p class="text-sm text-slate-600" x-show="pegMode === 'new'">Click the top-down pond image to place the peg.</p>
+                            <p class="text-sm text-slate-600" x-show="pegMode === 'new'">Zoom in for precision, then click the top-down pond image to place the peg.</p>
                             <p class="text-sm text-slate-600" x-show="pegMode === 'existing'">Click a pin to select that peg, or use the dropdown above.</p>
                         </div>
                         <button type="button"
@@ -189,34 +189,55 @@
                             This water does not have a pond map image yet. Ask a venue manager to upload one on the venue page before adding pegs.
                         </p>
                     </template>
-                    <div x-show="selectedWaterMapUrl" x-cloak>
-                        <div class="flex justify-center rounded-lg border-2 border-slate-400 overflow-hidden bg-slate-100">
-                            <div class="relative inline-block max-w-full select-none"
-                                 :class="pegMode === 'new' ? 'cursor-crosshair' : 'cursor-default'"
-                                 @click="pegMode === 'new' && placePeg($event)">
-                                <img :src="selectedWaterMapUrl"
-                                     alt="Pond map"
-                                     class="pointer-events-none block max-h-72 max-w-full h-auto w-auto">
+                    <div x-show="selectedWaterMapUrl" x-cloak class="space-y-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" @click="zoomIn()" class="px-3 py-1.5 rounded-md border-2 border-slate-400 bg-white text-sm font-semibold hover:bg-slate-50">Zoom in</button>
+                            <button type="button" @click="zoomOut()" class="px-3 py-1.5 rounded-md border-2 border-slate-400 bg-white text-sm font-semibold hover:bg-slate-50">Zoom out</button>
+                            <button type="button" @click="resetView()" class="px-3 py-1.5 rounded-md border-2 border-slate-400 bg-white text-sm font-semibold hover:bg-slate-50">Reset</button>
+                            <p class="text-xs text-slate-500" x-show="pegMode === 'new'">Scroll to zoom · drag to pan when zoomed · click to place</p>
+                            <p class="text-xs text-slate-500" x-show="pegMode === 'existing'">Scroll to zoom · drag to pan when zoomed · click a pin to select</p>
+                        </div>
+                        <div
+                            class="relative overflow-hidden rounded-lg border-2 border-slate-400 bg-slate-100 touch-none select-none"
+                            style="min-height: 12rem;"
+                            @wheel.prevent="onWheel($event)"
+                            @pointerdown="onPointerDown($event)"
+                            @pointermove="onPointerMove($event)"
+                            @pointerup="onPointerUp($event)"
+                            @pointercancel="onPointerUp($event)"
+                        >
+                            <div
+                                class="flex justify-center origin-center will-change-transform"
+                                :style="`transform: translate(${panX}px, ${panY}px) scale(${scale});`"
+                                :class="pegMode === 'new' && scale <= 1 ? 'cursor-crosshair' : (scale > 1 ? 'cursor-grab' : 'cursor-default')"
+                            >
+                                <div x-ref="mapLayer" class="relative inline-block max-w-full">
+                                    <img :src="selectedWaterMapUrl"
+                                         alt="Pond map"
+                                         draggable="false"
+                                         class="pointer-events-none block max-h-72 max-w-full h-auto w-auto">
 
-                                <template x-for="peg in existingMapPins" :key="'pin-' + peg.id">
-                                    <button
-                                        type="button"
-                                        class="absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40 hover:scale-125 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-sky-700"
-                                        :class="String(waterPegId) === String(peg.id) ? 'scale-125 ring-amber-400 bg-amber-500' : ''"
-                                        :style="`left:${peg.x}%; top:${peg.y}%;`"
-                                        :title="peg.label"
-                                        :aria-label="'Select peg ' + peg.label"
-                                        :aria-pressed="String(waterPegId) === String(peg.id) ? 'true' : 'false'"
-                                        @click.stop="selectPegFromMap(peg)"
-                                    ></button>
-                                </template>
+                                    <template x-for="peg in existingMapPins" :key="'pin-' + peg.id">
+                                        <button
+                                            type="button"
+                                            class="absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40 hover:scale-125 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-sky-700"
+                                            :class="String(waterPegId) === String(peg.id) ? 'scale-125 ring-amber-400 bg-amber-500' : ''"
+                                            :style="`left:${peg.x}%; top:${peg.y}%;`"
+                                            :title="peg.label"
+                                            :aria-label="'Select peg ' + peg.label"
+                                            :aria-pressed="String(waterPegId) === String(peg.id) ? 'true' : 'false'"
+                                            @click.stop="selectPegFromMap(peg)"
+                                            @pointerdown.stop
+                                        ></button>
+                                    </template>
 
-                                <span
-                                    x-show="pegMode === 'new' && pegX !== null && pegY !== null"
-                                    x-cloak
-                                    class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
-                                    :style="pegX !== null && pegY !== null ? `left:${pegX}%; top:${pegY}%;` : ''"
-                                ></span>
+                                    <span
+                                        x-show="pegMode === 'new' && pegX !== null && pegY !== null"
+                                        x-cloak
+                                        class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
+                                        :style="pegX !== null && pegY !== null ? `left:${pegX}%; top:${pegY}%;` : ''"
+                                    ></span>
+                                </div>
                             </div>
                         </div>
                         <input type="hidden" name="peg_map_x" :disabled="pegMode !== 'new'" :value="pegMode === 'new' ? (pegX ?? '') : ''">
@@ -341,6 +362,16 @@
                     waterPegId: waterPegId || '',
                     pegX,
                     pegY,
+                    scale: 1,
+                    panX: 0,
+                    panY: 0,
+                    minScale: 1,
+                    maxScale: 5,
+                    dragging: false,
+                    dragMoved: false,
+                    pointerId: null,
+                    lastX: 0,
+                    lastY: 0,
                     get isWholeVenue() {
                         return ! this.waterId || this.waterId === 'all';
                     },
@@ -444,13 +475,95 @@
                         return null;
                     },
                     placePeg(event) {
-                        const rect = event.currentTarget.getBoundingClientRect();
+                        this.placeAtClientPoint(event.clientX, event.clientY);
+                    },
+                    placeAtClientPoint(clientX, clientY) {
+                        const layer = this.$refs.mapLayer;
+                        if (! layer) {
+                            return;
+                        }
+
+                        const rect = layer.getBoundingClientRect();
                         if (! rect.width || ! rect.height) {
                             return;
                         }
 
-                        this.pegX = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
-                        this.pegY = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
+                        if (
+                            clientX < rect.left
+                            || clientX > rect.right
+                            || clientY < rect.top
+                            || clientY > rect.bottom
+                        ) {
+                            return;
+                        }
+
+                        this.pegX = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+                        this.pegY = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100));
+                    },
+                    zoomIn() {
+                        this.setScale(this.scale + 0.35);
+                    },
+                    zoomOut() {
+                        this.setScale(this.scale - 0.35);
+                    },
+                    resetView() {
+                        this.scale = 1;
+                        this.panX = 0;
+                        this.panY = 0;
+                    },
+                    setScale(next) {
+                        this.scale = Math.min(this.maxScale, Math.max(this.minScale, Number(Number(next).toFixed(2))));
+                        if (this.scale === 1) {
+                            this.panX = 0;
+                            this.panY = 0;
+                        }
+                    },
+                    onWheel(event) {
+                        const delta = event.deltaY > 0 ? -0.2 : 0.2;
+                        this.setScale(this.scale + delta);
+                    },
+                    onPointerDown(event) {
+                        if (event.button !== undefined && event.button !== 0) {
+                            return;
+                        }
+                        if (event.target.closest('button, a, input, select, textarea, label')) {
+                            return;
+                        }
+                        this.dragging = true;
+                        this.dragMoved = false;
+                        this.pointerId = event.pointerId;
+                        this.lastX = event.clientX;
+                        this.lastY = event.clientY;
+                        event.currentTarget.setPointerCapture?.(event.pointerId);
+                    },
+                    onPointerMove(event) {
+                        if (! this.dragging || this.pointerId !== event.pointerId) {
+                            return;
+                        }
+                        const dx = event.clientX - this.lastX;
+                        const dy = event.clientY - this.lastY;
+                        if (this.scale > 1 && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+                            this.dragMoved = true;
+                        }
+                        if (this.scale > 1) {
+                            this.panX += dx;
+                            this.panY += dy;
+                        }
+                        this.lastX = event.clientX;
+                        this.lastY = event.clientY;
+                    },
+                    onPointerUp(event) {
+                        if (this.pointerId !== null && event.pointerId !== this.pointerId) {
+                            return;
+                        }
+
+                        const shouldPlace = this.pegMode === 'new' && this.dragging && ! this.dragMoved;
+                        this.dragging = false;
+                        this.pointerId = null;
+
+                        if (shouldPlace) {
+                            this.placeAtClientPoint(event.clientX, event.clientY);
+                        }
                     },
                     clearPegLocation() {
                         this.pegX = null;
@@ -490,6 +603,7 @@
                         this.waterPegId = '';
                         this.pegX = null;
                         this.pegY = null;
+                        this.resetView();
                     },
                     onWaterChange() {
                         if (this._syncingSelects) {
@@ -500,6 +614,7 @@
                             this.pegX = null;
                             this.pegY = null;
                         }
+                        this.resetView();
                     },
                     addCatch() {
                         this.catches.push({ species_id: '', weight_lb: '', bait: '', quantity: 1 });
