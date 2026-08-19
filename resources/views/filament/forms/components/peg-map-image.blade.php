@@ -41,12 +41,24 @@
              */
 
             /* ── image constraints ─────────────────────────────────────── */
+            /*
+             * The mapLayer wrapper must be block-level so it fills the
+             * available width.  The image then scales to 100 % of that
+             * width while preserving its aspect ratio.  Because the pin
+             * overlay uses left/top percentages, both the div and the
+             * image must be the same size — width:100 % on a block
+             * parent guarantees this.
+             */
+            .fi-pond-map-placer [x-ref="mapLayer"] {
+                display: block;
+                position: relative;
+                max-width: 100%;
+            }
+
             .fi-pond-map-placer img {
                 display: block;
-                max-width: 100%;  /* replaces max-w-full */
-                height: auto;     /* replaces h-auto */
-                width: auto;      /* replaces w-auto */
-                max-height: 24rem; /* replaces max-h-96 (96 × 0.25rem = 24rem) */
+                width: 100%;
+                height: auto;
             }
 
             /* ── peg-location pin ──────────────────────────────────────── */
