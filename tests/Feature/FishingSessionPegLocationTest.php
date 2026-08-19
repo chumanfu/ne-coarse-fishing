@@ -190,4 +190,107 @@ class FishingSessionPegLocationTest extends TestCase
         $response->assertRedirect(route('sessions.show', $session));
         $this->assertSame($peg->id, $session->water_peg_id);
     }
+
+    public function test_new_peg_without_a_water_redirects_back_with_errors(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+
+        $this->actingAs($user)
+            ->from(route('sessions.create'))
+            ->post(route('sessions.store'), [
+                'venue_id' => $venue->id,
+                'water_id' => 'all',
+                'fished_at' => now()->toDateString(),
+                'peg_mode' => 'new',
+                'peg_number' => '12',
+            ])
+            ->assertRedirect(route('sessions.create'))
+            ->assertSessionHasErrors('water_id');
+
+        $this->assertDatabaseCount('fishing_sessions', 0);
+    }
+
+    public function test_new_peg_without_a_map_pin_redirects_back_with_errors(): void
+    {
+        Storage::fake(Uploads::diskName());
+
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+        $water = Water::factory()->for($venue)->create([
+            'map_image_path' => 'water-maps/pond.jpg',
+        ]);
+        Storage::disk(Uploads::diskName())->put('water-maps/pond.jpg', 'fake');
+
+        $this->actingAs($user)
+            ->from(route('sessions.create'))
+            ->post(route('sessions.store'), [
+                'venue_id' => $venue->id,
+                'water_id' => $water->id,
+                'fished_at' => now()->toDateString(),
+                'peg_mode' => 'new',
+                'peg_number' => 'Island',
+                'peg_map_x' => '',
+                'peg_map_y' => '',
+            ])
+            ->assertRedirect(route('sessions.create'))
+            ->assertSessionHasErrors(['peg_map_x', 'peg_map_y']);
+
+        $this->assertDatabaseCount('fishing_sessions', 0);
+        $this->assertSame(0, WaterPeg::query()->where('water_id', $water->id)->count());
+    }
+
+    public function test_new_peg_on_water_without_a_map_redirects_back_with_errors(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+        $water = Water::factory()->for($venue)->create([
+            'map_image_path' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->from(route('sessions.create'))
+            ->post(route('sessions.store'), [
+                'venue_id' => $venue->id,
+                'water_id' => $water->id,
+                'fished_at' => now()->toDateString(),
+                'peg_mode' => 'new',
+                'peg_number' => '4',
+                'peg_map_x' => 40,
+                'peg_map_y' => 60,
+            ])
+            ->assertRedirect(route('sessions.create'))
+            ->assertSessionHasErrors('water_id');
+
+        $this->assertDatabaseCount('fishing_sessions', 0);
+    }
+
+    public function test_existing_peg_saves_when_posted_water_does_not_match(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+        $matchLake = Water::factory()->for($venue)->create(['name' => 'Match Lake']);
+        $specimenLake = Water::factory()->for($venue)->create(['name' => 'Specimen Lake']);
+        $peg = WaterPeg::factory()->for($matchLake)->create([
+            'number' => '3',
+            'is_verified' => true,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from(route('sessions.create'))
+            ->post(route('sessions.store'), [
+                'venue_id' => $venue->id,
+                'water_id' => $specimenLake->id,
+                'fished_at' => now()->toDateString(),
+                'peg_mode' => 'existing',
+                'water_peg_id' => $peg->id,
+            ]);
+
+        $session = FishingSession::query()->where('user_id', $user->id)->first();
+
+        $this->assertNotNull($session);
+        $response->assertRedirect(route('sessions.show', $session));
+        $this->assertSame($peg->id, $session->water_peg_id);
+        $this->assertSame($matchLake->id, $session->water_id);
+    }
 }
