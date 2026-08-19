@@ -14,8 +14,10 @@ use App\Services\WaterPegService;
 use App\Support\Uploads;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class FishingSessionController extends Controller
@@ -59,7 +61,7 @@ class FishingSessionController extends Controller
             $session = FishingSession::create([
                 'user_id' => $request->user()->id,
                 'venue_id' => $venue->id,
-                'water_id' => $validated['water_id'] ?? $pegData['water_id'] ?? null,
+                'water_id' => $pegData['water_id'] ?? $validated['water_id'] ?? null,
                 'water_peg_id' => $pegData['water_peg_id'],
                 'fished_at' => $validated['fished_at'],
                 'duration_hours' => $validated['duration_hours'] ?? null,
@@ -123,7 +125,7 @@ class FishingSessionController extends Controller
 
             $fishingSession->update([
                 'venue_id' => $validated['venue_id'],
-                'water_id' => $validated['water_id'] ?? $pegData['water_id'] ?? null,
+                'water_id' => $pegData['water_id'] ?? $validated['water_id'] ?? null,
                 'water_peg_id' => $pegData['water_peg_id'],
                 'fished_at' => $validated['fished_at'],
                 'duration_hours' => $validated['duration_hours'] ?? null,
@@ -245,6 +247,23 @@ class FishingSessionController extends Controller
             $request->merge(['water_id' => null]);
         }
 
+        $pegMode = $request->input('peg_mode', 'none');
+
+        if ($pegMode !== 'existing') {
+            $request->merge(['water_peg_id' => null]);
+        }
+
+        if ($pegMode !== 'new') {
+            $request->merge([
+                'peg_name' => null,
+                'peg_map_x' => null,
+                'peg_map_y' => null,
+            ]);
+            $request->files->remove('peg_photos');
+        }
+
+        $this->forgetEmptyUploads($request, ['photos', 'peg_photos']);
+
         // The form always posts at least one catch row; drop blank ones before validating.
         $request->merge([
             'catches' => collect($request->input('catches', []))
@@ -253,9 +272,17 @@ class FishingSessionController extends Controller
                 ->all() ?: null,
         ]);
 
+        $addingPeg = $request->input('peg_mode') === 'new';
+
         return $request->validate([
             'venue_id' => ['required', 'exists:venues,id'],
-            'water_id' => ['nullable', 'exists:waters,id'],
+            'water_id' => [
+                Rule::requiredIf($addingPeg),
+                'nullable',
+                Rule::exists('waters', 'id')->where(
+                    fn ($query) => $query->where('venue_id', $request->input('venue_id'))
+                ),
+            ],
             'water_peg_id' => ['nullable', 'integer', 'exists:water_pegs,id'],
             'peg_mode' => ['nullable', Rule::in(['existing', 'new', 'none'])],
             'fished_at' => ['required', 'date', 'before_or_equal:today'],
@@ -263,14 +290,26 @@ class FishingSessionController extends Controller
             'weather' => ['nullable', 'string', 'max:255'],
             'peg_number' => ['nullable', 'string', 'max:50'],
             'peg_name' => ['nullable', 'string', 'max:100'],
-            'peg_map_x' => ['nullable', 'numeric', 'between:0,100', 'required_with:peg_map_y'],
-            'peg_map_y' => ['nullable', 'numeric', 'between:0,100', 'required_with:peg_map_x'],
+            'peg_map_x' => [
+                Rule::requiredIf($addingPeg),
+                'nullable',
+                'numeric',
+                'between:0,100',
+                'required_with:peg_map_y',
+            ],
+            'peg_map_y' => [
+                Rule::requiredIf($addingPeg),
+                'nullable',
+                'numeric',
+                'between:0,100',
+                'required_with:peg_map_x',
+            ],
             'peg_photos' => ['nullable', 'array', 'max:4'],
-            'peg_photos.*' => ['image', 'max:5120'],
+            'peg_photos.*' => ['nullable', 'image', 'max:5120'],
             'commentary' => ['nullable', 'string'],
             'tactics_tip' => ['nullable', 'string', 'max:2000'],
             'photos' => ['nullable', 'array', 'max:6'],
-            'photos.*' => ['image', 'max:5120'],
+            'photos.*' => ['nullable', 'image', 'max:5120'],
             'remove_photo_ids' => ['nullable', 'array'],
             'remove_photo_ids.*' => [
                 'integer',
@@ -285,6 +324,10 @@ class FishingSessionController extends Controller
             'catches.*.weight_lb' => ['nullable', 'numeric', 'min:0', 'max:200'],
             'catches.*.bait' => ['nullable', 'string', 'max:255'],
             'catches.*.quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ], [
+            'water_id.required' => 'Choose a water before adding a new peg.',
+            'peg_map_x.required' => 'Mark the new peg on the pond map.',
+            'peg_map_y.required' => 'Mark the new peg on the pond map.',
         ]);
     }
 
@@ -302,10 +345,12 @@ class FishingSessionController extends Controller
                 ->visibleTo($user)
                 ->whereKey($validated['water_peg_id'])
                 ->whereHas('water', fn ($q) => $q->where('venue_id', $venue->id))
-                ->firstOrFail();
+                ->first();
 
-            if (! empty($validated['water_id'])) {
-                abort_unless((int) $peg->water_id === (int) $validated['water_id'], 422);
+            if (! $peg) {
+                throw ValidationException::withMessages([
+                    'water_peg_id' => 'Select a peg from this venue, or add a new one.',
+                ]);
             }
 
             return [
@@ -318,11 +363,31 @@ class FishingSessionController extends Controller
         }
 
         if ($mode === 'new') {
-            abort_unless(! empty($validated['water_id']), 422, 'Choose a water before adding a new peg.');
-            abort_unless(isset($validated['peg_map_x'], $validated['peg_map_y']), 422, 'Mark the new peg on the pond map.');
+            if (empty($validated['water_id'])) {
+                throw ValidationException::withMessages([
+                    'water_id' => 'Choose a water before adding a new peg.',
+                ]);
+            }
 
-            $water = $venue->waters()->whereKey($validated['water_id'])->firstOrFail();
-            abort_unless($water->hasMapImage(), 422, 'This water needs a pond map image before pegs can be placed.');
+            if (! isset($validated['peg_map_x'], $validated['peg_map_y'])) {
+                throw ValidationException::withMessages([
+                    'peg_map_x' => 'Mark the new peg on the pond map.',
+                    'peg_map_y' => 'Mark the new peg on the pond map.',
+                ]);
+            }
+
+            $water = $venue->waters()->whereKey($validated['water_id'])->first();
+            if (! $water) {
+                throw ValidationException::withMessages([
+                    'water_id' => 'Choose a water that belongs to this venue.',
+                ]);
+            }
+
+            if (! $water->hasMapImage()) {
+                throw ValidationException::withMessages([
+                    'water_id' => 'This water needs a pond map image before pegs can be placed.',
+                ]);
+            }
 
             $peg = $pegs->createForWater($water, $user, [
                 'name' => $validated['peg_name'] ?? null,
@@ -351,9 +416,40 @@ class FishingSessionController extends Controller
 
     private function assertWaterBelongsToVenue(Venue $venue, mixed $waterId): void
     {
-        if (! empty($waterId)) {
-            abort_unless($venue->waters()->whereKey($waterId)->exists(), 422);
+        if (! empty($waterId) && ! $venue->waters()->whereKey($waterId)->exists()) {
+            throw ValidationException::withMessages([
+                'water_id' => 'Choose a water that belongs to this venue.',
+            ]);
         }
+    }
+
+    /** @param  list<string>  $keys */
+    private function forgetEmptyUploads(Request $request, array $keys): void
+    {
+        $newBag = [];
+
+        foreach ($request->files->all() as $key => $files) {
+            if (! in_array($key, $keys, true)) {
+                $newBag[$key] = $files;
+
+                continue;
+            }
+
+            if (! is_array($files)) {
+                $files = $files ? [$files] : [];
+            }
+
+            $valid = array_values(array_filter(
+                $files,
+                fn ($file) => $file instanceof UploadedFile && $file->isValid(),
+            ));
+
+            if ($valid !== []) {
+                $newBag[$key] = $valid;
+            }
+        }
+
+        $request->files->replace($newBag);
     }
 
     /** @param  list<array<string, mixed>>  $catches */

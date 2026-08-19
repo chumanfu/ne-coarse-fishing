@@ -97,6 +97,7 @@
                         <option :value="String(water.id)" :selected="String(waterId) === String(water.id)" x-text="water.name"></option>
                     </template>
                 </select>
+                @error('water_id') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div class="grid sm:grid-cols-2 gap-4">
@@ -132,12 +133,13 @@
                 </div>
 
                 <div x-show="pegMode === 'existing'" x-cloak>
-                    <select name="water_peg_id" x-model="waterPegId" @change="selectExistingPeg()" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
+                    <select name="water_peg_id" x-model="waterPegId" :disabled="pegMode !== 'existing'" @change="selectExistingPeg()" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                         <option value="">Select peg</option>
                         <template x-for="peg in currentPegs" :key="'peg-' + peg.id">
                             <option :value="String(peg.id)" :selected="String(waterPegId) === String(peg.id)" x-text="peg.label + (peg.verified ? '' : ' (your pending peg)') + (peg.x == null || peg.y == null ? ' (no map pin)' : '')"></option>
                         </template>
                     </select>
+                    @error('water_peg_id') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                     <p class="text-xs text-slate-500 mt-2" x-show="!venueId">Select a venue first to see its pegs.</p>
                     <p class="text-xs text-slate-500 mt-2" x-show="venueId && isWholeVenue && currentPegs.length > 0">Showing pegs from every water at this venue. Pick a specific water to use the pond map, or choose a peg from the list.</p>
                     <p class="text-xs text-slate-500 mt-2" x-show="venueId && currentPegs.length === 0">No pegs listed yet — add a new one (choose a specific water first).</p>
@@ -147,11 +149,11 @@
                 <div x-show="pegMode === 'new'" x-cloak class="grid sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-semibold mb-1">Peg number</label>
-                        <input name="peg_number" value="{{ old('peg_number', $editing && ! $session->water_peg_id ? $session->peg_number : '') }}" placeholder="e.g. 12" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
+                        <input name="peg_number" :disabled="pegMode !== 'new'" value="{{ old('peg_number', $editing && ! $session->water_peg_id ? $session->peg_number : '') }}" placeholder="e.g. 12" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold mb-1">Peg name</label>
-                        <input name="peg_name" value="{{ old('peg_name') }}" placeholder="e.g. Island, Car park end" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
+                        <input name="peg_name" :disabled="pegMode !== 'new'" value="{{ old('peg_name') }}" placeholder="e.g. Island, Car park end" class="w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
                     </div>
                 </div>
 
@@ -162,7 +164,7 @@
                 <div x-show="pegMode === 'new' && !isWholeVenue" x-cloak class="mt-3">
                     <label class="block text-sm font-semibold mb-1">Peg photos</label>
                     <p class="text-sm text-slate-600 mb-2">Optional. Photos of a new peg stay pending until the venue owner verifies the peg.</p>
-                    <input type="file" name="peg_photos[]" accept="image/*" multiple class="block w-full text-sm">
+                    <input type="file" name="peg_photos[]" accept="image/*" multiple :disabled="pegMode !== 'new'" class="block w-full text-sm">
                     @error('peg_photos') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                     @error('peg_photos.*') <p class="text-red-700 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -217,8 +219,8 @@
                                 ></span>
                             </div>
                         </div>
-                        <input type="hidden" name="peg_map_x" :value="pegMode === 'new' ? (pegX ?? '') : ''">
-                        <input type="hidden" name="peg_map_y" :value="pegMode === 'new' ? (pegY ?? '') : ''">
+                        <input type="hidden" name="peg_map_x" :disabled="pegMode !== 'new'" :value="pegMode === 'new' ? (pegX ?? '') : ''">
+                        <input type="hidden" name="peg_map_y" :disabled="pegMode !== 'new'" :value="pegMode === 'new' ? (pegY ?? '') : ''">
                         <p class="text-xs text-slate-500 mt-2" x-show="pegMode === 'existing' && mappedPegs.length === 0" x-cloak>
                             No pegs are placed on this pond map yet — pick from the dropdown, or add a new peg.
                         </p>
