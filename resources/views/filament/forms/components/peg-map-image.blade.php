@@ -30,6 +30,49 @@
             hint="Scroll to zoom · drag to pan when zoomed · click to place"
             class="fi-pond-map-placer"
         />
+
+        @assets
+        <style>
+            /*
+             * Filament compiles its own Tailwind bundle that does not include the utility
+             * classes used inside pond-map-placer.blade.php.  The rules below replicate
+             * exactly the Tailwind utilities that the component relies on so that the pond
+             * map image is constrained to its container and the peg-location pin is visible.
+             */
+
+            /* ── image constraints ─────────────────────────────────────── */
+            .fi-pond-map-placer img {
+                display: block;
+                max-width: 100%;  /* replaces max-w-full */
+                height: auto;     /* replaces h-auto */
+                width: auto;      /* replaces w-auto */
+                max-height: 24rem; /* replaces max-h-96 (96 × 0.25rem = 24rem) */
+            }
+
+            /* ── peg-location pin ──────────────────────────────────────── */
+            .fi-pond-map-placer .peg-pin {
+                pointer-events: none;
+                position: absolute;
+                z-index: 10;
+                height: 1.25rem;  /* h-5 */
+                width: 1.25rem;   /* w-5 */
+                transform: translate(-50%, -50%); /* -translate-x-1/2 -translate-y-1/2 */
+                border-radius: 9999px;            /* rounded-full */
+                border-width: 2px;
+                border-style: solid;
+                border-color: #fff;               /* border-white */
+                background-color: #0369a1;        /* bg-sky-700 */
+                box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); /* shadow-md */
+                outline: 2px solid rgb(12 74 110 / 0.4); /* ring-2 ring-sky-900/40 */
+                outline-offset: 0;
+            }
+
+            /* ── x-cloak: hide elements until Alpine has initialised ────── */
+            .fi-pond-map-placer [x-cloak] {
+                display: none !important;
+            }
+        </style>
+        @endassets
         @if (filled($mapUrl))
             <p class="text-xs text-gray-500 dark:text-gray-400">
                 Map source:

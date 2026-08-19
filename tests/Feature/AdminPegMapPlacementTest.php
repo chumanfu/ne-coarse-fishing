@@ -45,6 +45,32 @@ class AdminPegMapPlacementTest extends TestCase
             ->assertDontSee('Upload a pond map image on the water record first');
     }
 
+    public function test_admin_create_form_renders_peg_pin_span_with_correct_classes(): void
+    {
+        Storage::fake(Uploads::diskName());
+        Role::findOrCreate('super_admin');
+
+        $admin = User::factory()->create();
+        $admin->syncRoles(['super_admin']);
+        $water = Water::factory()->create([
+            'name' => 'Test Lake',
+            'map_image_path' => 'water-maps/test.jpg',
+        ]);
+        Storage::disk(Uploads::diskName())->put('water-maps/test.jpg', 'fake');
+
+        $this->actingAs($admin);
+
+        Livewire::actingAs($admin)
+            ->test(CreateWaterPeg::class)
+            ->fillForm(['water_id' => $water->id])
+            // Pin span must carry the peg-pin class so scoped Filament CSS can style it.
+            ->assertSee('peg-pin', false)
+            // Wrapper must carry fi-pond-map-placer so scoped CSS selectors apply.
+            ->assertSee('fi-pond-map-placer', false)
+            // Image must carry max-h-96 (used on public site; Filament CSS override targets it via fi-pond-map-placer img).
+            ->assertSee('max-h-96', false);
+    }
+
     public function test_admin_create_form_warns_when_water_has_no_map(): void
     {
         Role::findOrCreate('super_admin');

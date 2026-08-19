@@ -71,7 +71,7 @@
                 <span
                     x-show="mapX !== null && mapY !== null"
                     x-cloak
-                    class="pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
+                    class="peg-pin pointer-events-none absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-700 shadow-md ring-2 ring-sky-900/40"
                     :style="mapX !== null && mapY !== null ? `left:${mapX}%; top:${mapY}%;` : ''"
                     aria-hidden="true"
                 ></span>

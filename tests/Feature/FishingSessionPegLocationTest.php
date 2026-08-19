@@ -80,7 +80,43 @@ class FishingSessionPegLocationTest extends TestCase
             ->assertOk()
             ->assertSee('Peg location')
             ->assertSee('session-peg-view-map', false)
+            ->assertSee('Zoom in')
+            ->assertSee('pondMapViewer', false)
             ->assertSee('12');
+    }
+
+    public function test_session_show_displays_peg_map_when_water_loaded_via_peg_relationship(): void
+    {
+        Storage::fake(Uploads::diskName());
+
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+        $water = Water::factory()->for($venue)->create([
+            'map_image_path' => 'water-maps/pond.jpg',
+        ]);
+        Storage::disk(Uploads::diskName())->put('water-maps/pond.jpg', 'fake');
+        $peg = WaterPeg::factory()->for($water)->create([
+            'number' => '5',
+            'map_x' => 25.0,
+            'map_y' => 75.0,
+            'is_verified' => true,
+        ]);
+
+        // Session has no direct water_id set — map must come via waterPeg.water
+        $session = FishingSession::factory()
+            ->for($user)
+            ->for($venue)
+            ->create([
+                'water_id' => null,
+                'water_peg_id' => $peg->id,
+                'peg_number' => '5',
+            ]);
+
+        $this->actingAs($user)
+            ->get(route('sessions.show', $session))
+            ->assertOk()
+            ->assertSee('Peg location')
+            ->assertSee('session-peg-view-map', false);
     }
 
     public function test_user_can_update_session_without_peg(): void
@@ -127,6 +163,8 @@ class FishingSessionPegLocationTest extends TestCase
             ->assertSee('selectPegFromMap', false)
             ->assertSee('existingMapPins', false)
             ->assertSee('Mark peg on pond map', false)
+            ->assertSee('Zoom in')
+            ->assertSee('placeAtClientPoint', false)
             ->assertSee('name="peg_photos[]" accept="image/*" multiple', false)
             ->assertSee('name="photos[]" accept="image/*" multiple', false)
             ->assertDontSee('capture=', false);
@@ -156,6 +194,7 @@ class FishingSessionPegLocationTest extends TestCase
             ->assertOk()
             ->assertSee('Select peg on pond map', false)
             ->assertSee('selectPegFromMap', false)
+            ->assertSee('Zoom in')
             ->assertSee((string) $peg->id)
             ->assertSee('41.5', false)
             ->assertSee('Boilie Bay');

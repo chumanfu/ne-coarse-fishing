@@ -92,7 +92,7 @@ class FishingSessionController extends Controller
     {
         $this->authorizeView($fishingSession);
 
-        $fishingSession->load(['venue', 'water', 'waterPeg.photos', 'user', 'catches.species', 'photos', 'venueTactic']);
+        $fishingSession->load(['venue', 'water', 'waterPeg.water', 'waterPeg.photos', 'user', 'catches.species', 'photos', 'venueTactic']);
 
         return view('sessions.show', [
             'session' => $fishingSession,
