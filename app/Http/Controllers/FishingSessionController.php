@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\File\UploadedFile as SymfonyUploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -56,7 +57,7 @@ class FishingSessionController extends Controller
         $this->assertWaterBelongsToVenue($venue, $validated['water_id'] ?? null);
 
         $session = DB::transaction(function () use ($validated, $request, $venue, $tactics, $pegs) {
-            $pegData = $this->resolvePeg($validated, $venue, $request->user(), $pegs, $request->file('peg_photos', []));
+            $pegData = $this->resolvePeg($validated, $venue, $request->user(), $pegs, $this->validUploads($request, 'peg_photos'));
 
             $session = FishingSession::create([
                 'user_id' => $request->user()->id,
@@ -121,7 +122,7 @@ class FishingSessionController extends Controller
         $this->assertWaterBelongsToVenue($venue, $validated['water_id'] ?? null);
 
         DB::transaction(function () use ($validated, $request, $fishingSession, $tactics, $pegs, $venue) {
-            $pegData = $this->resolvePeg($validated, $venue, $request->user(), $pegs, $request->file('peg_photos', []));
+            $pegData = $this->resolvePeg($validated, $venue, $request->user(), $pegs, $this->validUploads($request, 'peg_photos'));
 
             $fishingSession->update([
                 'venue_id' => $validated['venue_id'],
@@ -441,7 +442,7 @@ class FishingSessionController extends Controller
 
             $valid = array_values(array_filter(
                 $files,
-                fn ($file) => $file instanceof UploadedFile && $file->isValid(),
+                fn ($file) => $file instanceof SymfonyUploadedFile && $file->isValid(),
             ));
 
             if ($valid !== []) {
@@ -493,11 +494,30 @@ class FishingSessionController extends Controller
 
     private function storePhotos(Request $request, FishingSession $session): void
     {
-        foreach ($request->file('photos', []) as $photo) {
+        foreach ($this->validUploads($request, 'photos') as $photo) {
             $path = Uploads::store($photo, 'session-photos');
 
             $session->photos()->create(['image_path' => $path]);
         }
+    }
+
+    /** @return list<UploadedFile> */
+    private function validUploads(Request $request, string $key): array
+    {
+        $files = $request->file($key, []);
+
+        if ($files instanceof UploadedFile) {
+            $files = [$files];
+        }
+
+        if (! is_array($files)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $files,
+            fn ($file) => $file instanceof UploadedFile && $file->isValid(),
+        ));
     }
 
     private function authorizeView(FishingSession $session): void

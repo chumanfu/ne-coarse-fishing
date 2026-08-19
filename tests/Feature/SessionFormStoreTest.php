@@ -7,6 +7,7 @@ use App\Models\Species;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\Water;
+use App\Support\Uploads;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -80,6 +81,75 @@ class SessionFormStoreTest extends TestCase
             'quantity' => 2,
         ]);
         $this->assertCount(1, $session->catches);
+    }
+
+    public function test_can_upload_session_photos_on_create(): void
+    {
+        Storage::fake(Uploads::diskName());
+
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+
+        $this->actingAs($user)->post(route('sessions.store'), [
+            'venue_id' => $venue->id,
+            'water_id' => 'all',
+            'peg_mode' => 'none',
+            'fished_at' => now()->toDateString(),
+            'photos' => [
+                UploadedFile::fake()->image('bank.jpg'),
+                UploadedFile::fake()->image('catch.jpg'),
+            ],
+        ])->assertRedirect();
+
+        $session = FishingSession::query()->where('user_id', $user->id)->first();
+
+        $this->assertNotNull($session);
+        $this->assertCount(2, $session->photos);
+        $session->photos->each(fn ($photo) => Storage::disk(Uploads::diskName())->assertExists($photo->image_path));
+    }
+
+    public function test_can_upload_session_photos_on_update(): void
+    {
+        Storage::fake(Uploads::diskName());
+
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create(['is_approved' => true]);
+        $session = FishingSession::factory()->for($user)->for($venue)->create();
+
+        $this->actingAs($user)->patch(route('sessions.update', $session), [
+            'venue_id' => $venue->id,
+            'peg_mode' => 'none',
+            'fished_at' => $session->fished_at->toDateString(),
+            'photos' => [UploadedFile::fake()->image('new.jpg')],
+        ])->assertRedirect(route('sessions.show', $session));
+
+        $session->refresh();
+        $this->assertCount(1, $session->photos);
+        Storage::disk(Uploads::diskName())->assertExists($session->photos->first()->image_path);
+    }
+
+    public function test_forget_empty_uploads_keeps_symfony_uploaded_files(): void
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'necf-session-photo');
+        file_put_contents($tmp, 'fake-image-bytes');
+
+        $symfonyFile = new \Symfony\Component\HttpFoundation\File\UploadedFile(
+            $tmp,
+            'bank.jpg',
+            'image/jpeg',
+            null,
+            true,
+        );
+
+        $request = \Illuminate\Http\Request::create('/sessions', 'POST');
+        $request->files->set('photos', $symfonyFile);
+
+        $controller = app(\App\Http\Controllers\FishingSessionController::class);
+        $method = new \ReflectionMethod($controller, 'forgetEmptyUploads');
+        $method->setAccessible(true);
+        $method->invoke($controller, $request, ['photos']);
+
+        $this->assertCount(1, $request->file('photos', []));
     }
 
     public function test_empty_photo_file_input_does_not_block_save(): void
