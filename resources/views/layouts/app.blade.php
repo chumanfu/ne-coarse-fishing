@@ -16,13 +16,13 @@
         })();
     </script>
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=fraunces:400,500,600,700|source-sans-3:400,500,600,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     @livewireStyles
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="font-sans antialiased bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+<body class="font-sans antialiased bg-paper text-ink">
     <div class="min-h-screen flex flex-col">
         @include('layouts.navigation')
 
@@ -40,7 +40,7 @@
         @endisset
 
         @isset($header)
-            <header class="bg-white border-b-2 border-slate-300 dark:bg-slate-900 dark:border-slate-700">
+            <header class="bg-paper-bright border-b border-[#d6cfc2]">
                 <div class="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8">
                     {{ $header }}
                 </div>

@@ -4,8 +4,138 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   NE Coarse Fishing — bankside design tokens
+   Warm river greens, paper tones, outdoor water blues. Homely, not SaaS.
+--------------------------------------------------------------------------- */
+:root {
+    --ink: #1f2e26;
+    --ink-muted: #4d5f55;
+    --ink-soft: #6b7c73;
+    --paper: #f5f2ea;
+    --paper-bright: #fcfaf5;
+    --paper-deep: #ebe6db;
+    --moss: #3f5c48;
+    --moss-soft: #e6eee8;
+    --moss-dark: #2c4234;
+    --moss-light: #5a7a62;
+    --water: #4a7c8c;
+    --water-soft: #e7f1f4;
+    --water-dark: #356575;
+    --bank: #6b5746;
+    --bank-soft: #f0ebe3;
+    --border-soft: #d6cfc2;
+    --border-mid: #c4bbad;
+    --shadow-soft: 0 1px 2px rgba(31, 46, 38, 0.04), 0 8px 24px rgba(31, 46, 38, 0.06);
+    --shadow-lift: 0 2px 4px rgba(31, 46, 38, 0.05), 0 12px 28px rgba(31, 46, 38, 0.08);
+    color-scheme: light;
+}
+
 [x-cloak] {
     display: none !important;
+}
+
+@layer base {
+    body {
+        background-color: var(--paper);
+        color: var(--ink);
+        background-image:
+            radial-gradient(ellipse 120% 80% at 50% -20%, rgba(74, 124, 140, 0.07), transparent 55%),
+            radial-gradient(ellipse 80% 50% at 100% 50%, rgba(63, 92, 72, 0.04), transparent 45%);
+    }
+
+    h1, h2, h3, .font-display {
+        font-family: Fraunces, Georgia, serif;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+    }
+}
+
+@layer components {
+    .site-eyebrow {
+        margin: 0;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: none;
+        color: var(--moss);
+    }
+
+    .site-section-title {
+        font-family: Fraunces, Georgia, serif;
+        font-size: clamp(1.65rem, 3.5vw, 2.15rem);
+        font-weight: 600;
+        line-height: 1.15;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+    }
+
+    .site-card {
+        background: var(--paper-bright);
+        border: 1px solid var(--border-soft);
+        border-radius: 1rem;
+        box-shadow: var(--shadow-soft);
+        overflow: hidden;
+        transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+    }
+
+    .site-card:hover {
+        border-color: var(--moss-light);
+        box-shadow: var(--shadow-lift);
+    }
+
+    .site-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.65rem 1.15rem;
+        border-radius: 0.65rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+    }
+
+    .site-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .site-btn--primary {
+        background: var(--moss);
+        color: #fff;
+        border: 1px solid var(--moss-dark);
+    }
+
+    .site-btn--primary:hover {
+        background: var(--moss-dark);
+    }
+
+    .site-btn--ghost {
+        background: transparent;
+        color: var(--ink);
+        border: 1px solid var(--border-mid);
+    }
+
+    .site-btn--ghost:hover {
+        border-color: var(--moss);
+        background: var(--moss-soft);
+        color: var(--moss-dark);
+    }
+
+    .site-btn--link {
+        background: transparent;
+        color: var(--water-dark);
+        border: none;
+        padding-inline: 0.25rem;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        text-decoration-thickness: 1px;
+    }
+
+    .site-btn--link:hover {
+        color: var(--moss-dark);
+        transform: none;
+    }
 }
 
 /* Site-wide night mode for common public UI chrome (pages use many hardcoded light utilities).
@@ -185,9 +315,9 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
 
 /* Homepage hero — full-bleed Tyne waterside composition */
 .home-hero {
-    --hero-ink: #f8fafc;
-    --hero-muted: rgba(248, 250, 252, 0.82);
-    --hero-accent: #0e7490;
+    --hero-ink: #f7f4ee;
+    --hero-muted: rgba(247, 244, 238, 0.86);
+    --hero-accent: #7eb8a0;
     position: relative;
     isolation: isolate;
     min-height: min(78vh, 42rem);
@@ -196,7 +326,7 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     justify-content: flex-end;
     color: var(--hero-ink);
     overflow: hidden;
-    background: #0b1c2c;
+    background: #1a2e28;
 }
 
 .home-hero__media {
@@ -218,8 +348,8 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(90deg, rgba(6, 18, 30, 0.88) 0%, rgba(6, 18, 30, 0.55) 42%, rgba(6, 18, 30, 0.18) 72%, rgba(6, 18, 30, 0.35) 100%),
-        linear-gradient(180deg, rgba(6, 18, 30, 0.25) 0%, rgba(6, 18, 30, 0.15) 45%, rgba(6, 18, 30, 0.72) 100%);
+        linear-gradient(90deg, rgba(22, 40, 34, 0.9) 0%, rgba(22, 40, 34, 0.55) 42%, rgba(22, 40, 34, 0.2) 72%, rgba(22, 40, 34, 0.4) 100%),
+        linear-gradient(180deg, rgba(22, 40, 34, 0.2) 0%, rgba(22, 40, 34, 0.12) 45%, rgba(22, 40, 34, 0.78) 100%);
 }
 
 .home-hero__sparkle {
@@ -227,13 +357,13 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     inset: 0;
     pointer-events: none;
     background-image:
-        radial-gradient(circle at 72% 28%, rgba(255, 255, 255, 0.55) 0 1px, transparent 2px),
-        radial-gradient(circle at 78% 42%, rgba(125, 211, 252, 0.55) 0 1.5px, transparent 3px),
-        radial-gradient(circle at 86% 22%, rgba(255, 255, 255, 0.4) 0 1px, transparent 2px),
-        radial-gradient(circle at 90% 48%, rgba(165, 243, 252, 0.45) 0 2px, transparent 4px),
-        radial-gradient(circle at 68% 55%, rgba(255, 255, 255, 0.35) 0 1px, transparent 2px),
-        radial-gradient(circle at 82% 62%, rgba(186, 230, 253, 0.4) 0 1.5px, transparent 3px);
-    opacity: 0.85;
+        radial-gradient(circle at 72% 28%, rgba(255, 252, 245, 0.5) 0 1px, transparent 2px),
+        radial-gradient(circle at 78% 42%, rgba(167, 214, 196, 0.5) 0 1.5px, transparent 3px),
+        radial-gradient(circle at 86% 22%, rgba(255, 255, 255, 0.35) 0 1px, transparent 2px),
+        radial-gradient(circle at 90% 48%, rgba(186, 222, 230, 0.4) 0 2px, transparent 4px),
+        radial-gradient(circle at 68% 55%, rgba(255, 252, 245, 0.3) 0 1px, transparent 2px),
+        radial-gradient(circle at 82% 62%, rgba(167, 214, 196, 0.35) 0 1.5px, transparent 3px);
+    opacity: 0.8;
     animation: home-hero-sparkle 6s ease-in-out infinite alternate;
 }
 
@@ -246,18 +376,19 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
 
 .home-hero__eyebrow {
     margin: 0 0 0.85rem;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: rgba(226, 232, 240, 0.9);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: rgba(196, 220, 205, 0.95);
 }
 
 .home-hero__title {
     margin: 0;
     max-width: 18ch;
-    font-size: clamp(2.15rem, 5vw, 3.4rem);
-    font-weight: 700;
+    font-family: Fraunces, Georgia, serif;
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    font-weight: 600;
     line-height: 1.08;
     letter-spacing: -0.02em;
     text-wrap: balance;
@@ -266,7 +397,7 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
 .home-hero__lead {
     margin: 1.1rem 0 0;
     max-width: 36rem;
-    font-size: clamp(1rem, 1.6vw, 1.125rem);
+    font-size: clamp(1.05rem, 1.6vw, 1.2rem);
     line-height: 1.55;
     color: var(--hero-muted);
 }
@@ -283,9 +414,9 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     align-items: center;
     justify-content: center;
     padding: 0.8rem 1.15rem;
-    border-radius: 0.75rem;
+    border-radius: 0.65rem;
     font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
     transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
@@ -295,26 +426,26 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
 }
 
 .home-hero__btn--primary {
-    background: #ffffff;
-    color: #0f172a;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35), 0 10px 30px rgba(15, 23, 42, 0.25);
+    background: #f7f4ee;
+    color: #1f2e26;
+    box-shadow: 0 0 0 1px rgba(247, 244, 238, 0.25), 0 10px 28px rgba(16, 30, 24, 0.28);
 }
 
 .home-hero__btn--primary:hover {
-    background: #f1f5f9;
+    background: #fff;
 }
 
 .home-hero__btn--ghost {
-    color: #ffffff;
-    border: 1px solid rgba(125, 211, 252, 0.55);
-    background: rgba(14, 116, 144, 0.28);
+    color: #f7f4ee;
+    border: 1px solid rgba(167, 214, 196, 0.45);
+    background: rgba(63, 92, 72, 0.35);
     backdrop-filter: blur(8px);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 252, 245, 0.12);
 }
 
 .home-hero__btn--ghost:hover {
-    background: rgba(14, 116, 144, 0.42);
-    border-color: rgba(186, 230, 253, 0.8);
+    background: rgba(63, 92, 72, 0.5);
+    border-color: rgba(196, 220, 205, 0.75);
 }
 
 .home-hero__stat {
@@ -323,12 +454,13 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     gap: 0.55rem;
     margin: 1.35rem 0 0;
     font-size: 0.95rem;
-    color: rgba(248, 250, 252, 0.92);
+    color: rgba(247, 244, 238, 0.9);
 }
 
 .home-hero__stat em {
     font-style: italic;
     font-weight: 500;
+    font-family: Fraunces, Georgia, serif;
 }
 
 .home-hero__stat-icon {
@@ -337,8 +469,8 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     border-radius: 999px;
     background:
         radial-gradient(circle at center, #fff 0 22%, transparent 23%),
-        conic-gradient(from 0deg, transparent 0 20%, #7dd3fc 0 28%, transparent 0 45%, #fff 0 52%, transparent 0 70%, #67e8f9 0 78%, transparent 0);
-    box-shadow: 0 0 10px rgba(125, 211, 252, 0.55);
+        conic-gradient(from 0deg, transparent 0 20%, #a7d6c4 0 28%, transparent 0 45%, #fff 0 52%, transparent 0 70%, #bae0e8 0 78%, transparent 0);
+    box-shadow: 0 0 10px rgba(167, 214, 196, 0.45);
     animation: home-hero-pulse 2.8s ease-in-out infinite;
 }
 
@@ -353,15 +485,15 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     gap: 0.55rem;
     min-height: 2.6rem;
     padding: 0.55rem 1rem;
-    background: rgba(2, 8, 16, 0.55);
-    border-top: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(18, 32, 28, 0.62);
+    border-top: 1px solid rgba(167, 214, 196, 0.18);
     backdrop-filter: blur(6px);
     font-size: 0.84rem;
-    color: rgba(203, 213, 225, 0.92);
+    color: rgba(220, 230, 222, 0.92);
 }
 
 .home-hero__status strong {
-    color: #ffffff;
+    color: #f7f4ee;
     font-weight: 700;
 }
 
@@ -369,8 +501,8 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     width: 0.9rem;
     height: 0.9rem;
     border-radius: 999px;
-    border: 2px solid rgba(125, 211, 252, 0.85);
-    box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.28);
+    border: 2px solid rgba(167, 214, 196, 0.85);
+    box-shadow: 0 0 0 3px rgba(63, 92, 72, 0.35);
     position: relative;
 }
 
@@ -379,7 +511,7 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     position: absolute;
     inset: 2px;
     border-radius: inherit;
-    background: #67e8f9;
+    background: #a7d6c4;
     animation: home-hero-pulse 2.2s ease-in-out infinite;
 }
 
@@ -429,8 +561,8 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
 
 /* Interior page hero — compact banner for section landing pages */
 .page-hero {
-    --hero-ink: #f8fafc;
-    --hero-muted: rgba(248, 250, 252, 0.82);
+    --hero-ink: #f7f4ee;
+    --hero-muted: rgba(247, 244, 238, 0.86);
     position: relative;
     isolation: isolate;
     min-height: min(44vh, 24rem);
@@ -439,7 +571,7 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     justify-content: flex-end;
     color: var(--hero-ink);
     overflow: hidden;
-    background: #0b1c2c;
+    background: #1a2e28;
 }
 
 .page-hero__media {
@@ -459,8 +591,8 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(90deg, rgba(6, 18, 30, 0.9) 0%, rgba(6, 18, 30, 0.62) 45%, rgba(6, 18, 30, 0.28) 100%),
-        linear-gradient(180deg, rgba(6, 18, 30, 0.2) 0%, rgba(6, 18, 30, 0.65) 100%);
+        linear-gradient(90deg, rgba(22, 40, 34, 0.9) 0%, rgba(22, 40, 34, 0.6) 45%, rgba(22, 40, 34, 0.28) 100%),
+        linear-gradient(180deg, rgba(22, 40, 34, 0.2) 0%, rgba(22, 40, 34, 0.68) 100%);
 }
 
 .page-hero__content {
@@ -472,18 +604,19 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
 
 .page-hero__eyebrow {
     margin: 0 0 0.65rem;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: rgba(226, 232, 240, 0.9);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: rgba(196, 220, 205, 0.95);
 }
 
 .page-hero__title {
     margin: 0;
     max-width: 22ch;
-    font-size: clamp(1.85rem, 4vw, 2.75rem);
-    font-weight: 700;
+    font-family: Fraunces, Georgia, serif;
+    font-size: clamp(1.9rem, 4vw, 2.75rem);
+    font-weight: 600;
     line-height: 1.1;
     letter-spacing: -0.02em;
     text-wrap: balance;
@@ -492,7 +625,7 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
 .page-hero__lead {
     margin: 0.85rem 0 0;
     max-width: 38rem;
-    font-size: clamp(0.98rem, 1.5vw, 1.08rem);
+    font-size: clamp(1rem, 1.5vw, 1.1rem);
     line-height: 1.55;
     color: var(--hero-muted);
 }
@@ -507,7 +640,7 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
 .page-hero__extra {
     margin-top: 1rem;
     font-size: 0.95rem;
-    color: rgba(248, 250, 252, 0.92);
+    color: rgba(247, 244, 238, 0.92);
 }
 
 .page-hero__btn {
@@ -515,9 +648,9 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     align-items: center;
     justify-content: center;
     padding: 0.75rem 1.1rem;
-    border-radius: 0.75rem;
+    border-radius: 0.65rem;
     font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
     transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
@@ -527,26 +660,26 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
 }
 
 .page-hero__btn--primary {
-    background: #ffffff;
-    color: #0f172a;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35), 0 10px 30px rgba(15, 23, 42, 0.25);
+    background: #f7f4ee;
+    color: #1f2e26;
+    box-shadow: 0 0 0 1px rgba(247, 244, 238, 0.25), 0 10px 28px rgba(16, 30, 24, 0.28);
 }
 
 .page-hero__btn--primary:hover {
-    background: #f1f5f9;
+    background: #fff;
 }
 
 .page-hero__btn--ghost {
-    color: #ffffff;
-    border: 1px solid rgba(125, 211, 252, 0.55);
-    background: rgba(14, 116, 144, 0.28);
+    color: #f7f4ee;
+    border: 1px solid rgba(167, 214, 196, 0.45);
+    background: rgba(63, 92, 72, 0.35);
     backdrop-filter: blur(8px);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 252, 245, 0.12);
 }
 
 .page-hero__btn--ghost:hover {
-    background: rgba(14, 116, 144, 0.42);
-    border-color: rgba(186, 230, 253, 0.8);
+    background: rgba(63, 92, 72, 0.5);
+    border-color: rgba(196, 220, 205, 0.75);
 }
 
 @media (max-width: 640px) {
@@ -573,4 +706,240 @@ html.dark :is(header, main) :where(a, button).border-slate-800 {
     .page-hero__image {
         transform: none;
     }
+}
+
+/* ---------------------------------------------------------------------------
+   Home board — activity carousel, map panel, weather strip
+--------------------------------------------------------------------------- */
+.home-board {
+    background:
+        linear-gradient(180deg, rgba(235, 230, 219, 0.65) 0%, transparent 28%),
+        var(--paper);
+}
+
+.home-board__panel {
+    background: var(--paper-bright);
+    border: 1px solid var(--border-soft);
+    border-radius: 1rem;
+    padding: 1.15rem 1.2rem 1.25rem;
+    box-shadow: var(--shadow-soft);
+}
+
+.home-board__panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.95rem;
+}
+
+.home-board__title {
+    font-family: Fraunces, Georgia, serif;
+    font-size: 1.35rem;
+    line-height: 1.25;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.home-board__lead {
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    color: var(--ink-muted);
+}
+
+.home-board__link {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--water-dark);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.home-board__link:hover {
+    color: var(--moss-dark);
+}
+
+.home-activity-carousel {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-mid) transparent;
+}
+
+.home-activity-carousel::-webkit-scrollbar {
+    height: 4px;
+}
+
+.home-activity-carousel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.home-activity-carousel::-webkit-scrollbar-thumb {
+    background: var(--border-mid);
+    border-radius: 99px;
+}
+
+.home-activity-carousel__item {
+    min-width: 13rem;
+}
+
+.home-weather__grid {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: 1fr;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+@media (min-width: 640px) {
+    .home-weather__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .home-weather__grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1280px) {
+    .home-weather__grid {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+}
+
+.home-weather__place {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.65rem 0.7rem;
+    border: 1px solid var(--border-soft);
+    border-radius: 0.75rem;
+    background: var(--bank-soft);
+}
+
+.home-weather__icon {
+    width: 1.65rem;
+    height: 1.65rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    border-radius: 999px;
+    border: 2px solid var(--border-mid);
+    background: var(--paper-deep);
+    position: relative;
+}
+
+.home-weather__icon--sun {
+    border-color: #b45309;
+    background: radial-gradient(circle at 50% 50%, #fde047 0 42%, #fef9c3 43% 100%);
+}
+
+.home-weather__icon--sun-cloud {
+    border-color: var(--ink-soft);
+    background:
+        radial-gradient(circle at 30% 35%, #fde047 0 28%, transparent 29%),
+        linear-gradient(180deg, #d6cfc2 0%, #a89f90 100%);
+}
+
+.home-weather__icon--cloud {
+    border-color: var(--ink-soft);
+    background: linear-gradient(180deg, #ebe6db 0%, #a89f90 100%);
+}
+
+.home-weather__icon--rain {
+    border-color: var(--water);
+    background:
+        linear-gradient(180deg, #ebe6db 0 45%, transparent 45%),
+        repeating-linear-gradient(135deg, transparent 0 3px, #7eb8c9 3px 5px),
+        #d4e5eb;
+}
+
+.home-weather__icon--snow {
+    border-color: var(--ink-soft);
+    background:
+        radial-gradient(circle at 30% 55%, #fff 0 12%, transparent 13%),
+        radial-gradient(circle at 65% 70%, #fff 0 10%, transparent 11%),
+        linear-gradient(180deg, #ebe6db 0%, #d6cfc2 100%);
+}
+
+.home-weather__icon--thunder {
+    border-color: #a16207;
+    background:
+        linear-gradient(135deg, transparent 42%, #facc15 42% 52%, transparent 52%),
+        linear-gradient(180deg, #a89f90 0%, #6b5746 100%);
+}
+
+.home-weather__meta {
+    min-width: 0;
+    flex: 1;
+}
+
+.home-weather__name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+}
+
+.home-weather__condition {
+    margin-top: 0.15rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ink-muted);
+}
+
+.home-weather__outlook {
+    margin-top: 0.2rem;
+    font-size: 0.7rem;
+    color: var(--ink-soft);
+    line-height: 1.3;
+}
+
+.home-weather__figures {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.home-weather__temp {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.1;
+}
+
+.home-weather__wind {
+    margin-top: 0.15rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+}
+
+.home-section--alt {
+    background:
+        linear-gradient(180deg, rgba(230, 238, 232, 0.55) 0%, transparent 40%),
+        var(--paper-deep);
+}
+
+.home-intro {
+    background:
+        radial-gradient(ellipse 70% 60% at 90% 20%, rgba(74, 124, 140, 0.08), transparent 55%),
+        var(--paper-bright);
+}
+
+.home-intro__photo {
+    border: 1px solid var(--border-soft);
+    border-radius: 1rem;
+    overflow: hidden;
+    background: var(--paper-deep);
+    box-shadow: var(--shadow-soft);
+}
+
+.home-intro__photo figcaption {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: var(--ink-muted);
+    border-top: 1px solid var(--border-soft);
+    background: var(--bank-soft);
+    font-style: italic;
 }
