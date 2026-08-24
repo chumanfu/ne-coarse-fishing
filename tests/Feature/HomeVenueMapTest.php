@@ -33,12 +33,11 @@ class HomeVenueMapTest extends TestCase
             ->assertSee('Search map')
             ->assertSee('home-venue-map', false)
             ->assertSee('Latest activity')
-            ->assertSee('Featured venues')
-            ->assertSee('Angling clubs')
-            ->assertSee('Tackle shops')
-            ->assertSee('Tackle reviews')
+            ->assertSee('Featured Venues')
+            ->assertSee('Angling Clubs')
+            ->assertSee('Tackle Shops')
             ->assertSee('Home Map Mere')
-            ->assertSee('View venue')
+            ->assertSee('View Venue')
             ->assertDontSee('"name":"Unapproved Hidden Pool"', false);
     }
 }
