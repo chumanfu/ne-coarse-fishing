@@ -7,13 +7,13 @@
     $favourited = $isFavourited || (auth()->check() && $venue->isFavouritedBy(auth()->user()));
 @endphp
 
-<div {{ $attributes->merge(['class' => 'relative bg-white border-2 border-slate-300 rounded-xl overflow-hidden hover:border-sky-700 transition dark:bg-slate-900 dark:border-slate-700 dark:hover:border-sky-500']) }}>
+<div {{ $attributes->merge(['class' => 'relative site-card']) }}>
     <a href="{{ route('venues.show', $venue) }}" class="block">
         @if ($venue->relationLoaded('photos') && $venue->photos->isNotEmpty())
             <img
                 src="{{ $venue->photos->first()->url() }}"
                 alt="{{ $venue->name }} photo"
-                class="w-full h-36 object-cover border-b-2 border-slate-200 cursor-zoom-in"
+                class="w-full h-36 object-cover border-b border-[#d6cfc2] cursor-zoom-in"
                 role="button"
                 tabindex="0"
                 @click.prevent.stop="$store.photoLightbox.open(@js([['url' => $venue->photos->first()->url(), 'alt' => $venue->name.' photo']]), 0, @js($venue->name.' photo'))"
@@ -24,26 +24,26 @@
         <div class="p-5">
             <div class="flex items-start justify-between gap-3 pe-10">
                 <div>
-                    <h3 class="font-bold text-lg text-slate-900 dark:text-slate-100">{{ $venue->name }}</h3>
+                    <h3 class="font-display text-lg text-ink">{{ $venue->name }}</h3>
                     @if ($venue->address)
-                        <p class="text-sm text-slate-600 mt-1 dark:text-slate-400">{{ $venue->address }}</p>
+                        <p class="text-sm text-ink-muted mt-1">{{ $venue->address }}</p>
                     @endif
                 </div>
                 @if ($venue->manager_verified)
-                    <span class="shrink-0 text-xs font-bold uppercase tracking-wide bg-emerald-100 text-emerald-900 border border-emerald-600 px-2 py-1 rounded dark:bg-emerald-950 dark:text-emerald-100 dark:border-emerald-500">Verified</span>
+                    <span class="shrink-0 text-xs font-semibold tracking-wide bg-moss-soft text-moss-dark border border-moss/30 px-2 py-1 rounded-md">Verified</span>
                 @endif
             </div>
-            <p class="text-sm text-slate-700 mt-3 line-clamp-3 dark:text-slate-300">{{ $venue->overview ?: 'Community-submitted venue awaiting a full write-up.' }}</p>
+            <p class="text-sm text-ink-muted mt-3 line-clamp-3">{{ $venue->overview ?: 'Community-submitted venue awaiting a full write-up.' }}</p>
             <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-                <span class="bg-slate-100 border border-slate-300 px-2 py-1 rounded dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">{{ $venue->ticketTypeLabel() }}</span>
+                <span class="bg-bank-soft border border-[#d6cfc2] text-ink px-2 py-1 rounded-md">{{ $venue->ticketTypeLabel() }}</span>
                 @if ($venue->is_complex)
-                    <span class="bg-amber-50 border border-amber-500 text-amber-950 px-2 py-1 rounded">Complex</span>
+                    <span class="bg-bank-soft border border-bank/30 text-bank px-2 py-1 rounded-md">Complex</span>
                 @endif
                 @if ($venue->relationLoaded('clubs') ? $venue->clubs->isNotEmpty() : (($venue->clubs_count ?? 0) > 0))
-                    <span class="bg-sky-50 border border-sky-300 text-sky-900 px-2 py-1 rounded">Club owned</span>
+                    <span class="bg-water-soft border border-water/30 text-water-dark px-2 py-1 rounded-md">Club owned</span>
                 @endif
                 @foreach ($venue->allSpecies()->take(4) as $species)
-                    <span class="bg-sky-50 border border-sky-300 text-sky-900 px-2 py-1 rounded">{{ $species->name }}</span>
+                    <span class="bg-water-soft border border-water/30 text-water-dark px-2 py-1 rounded-md">{{ $species->name }}</span>
                 @endforeach
             </div>
         </div>
@@ -58,7 +58,7 @@
                 @method('DELETE')
             @endif
             <button type="submit"
-                    class="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 bg-white/95 shadow-sm {{ $favourited ? 'border-amber-500 text-amber-700' : 'border-slate-400 text-slate-600' }} hover:border-amber-600 hover:text-amber-800"
+                    class="inline-flex h-9 w-9 items-center justify-center rounded-full border bg-paper-bright/95 shadow-soft {{ $favourited ? 'border-amber-500 text-amber-700' : 'border-[#c4bbad] text-ink-muted' }} hover:border-amber-600 hover:text-amber-800"
                     title="{{ $favourited ? 'Remove from favourites' : 'Add to favourites' }}"
                     aria-label="{{ $favourited ? 'Remove from favourites' : 'Add to favourites' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{{ $favourited ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
