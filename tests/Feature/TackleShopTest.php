@@ -27,9 +27,8 @@ class TackleShopTest extends TestCase
 
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('Tackle shops')
+            ->assertSee('Tackle Shops')
             ->assertSee('Featured NE Tackle')
-            ->assertSee('https://featured-ne-tackle.example/', false)
             ->assertSee('Latest activity');
     }
 

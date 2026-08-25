@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Services\HomeWeatherService;
+use App\Models\Club;
+use App\Models\TackleShop;
+use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -16,6 +18,65 @@ class HomeSectionOrderTest extends TestCase
         Http::fake(['api.open-meteo.com/*' => Http::response([], 503)]);
 
         return $this->get(route('home'))->assertOk()->getContent();
+    }
+
+    public function test_home_page_featured_sections_show_up_to_six_items(): void
+    {
+        Http::fake(['api.open-meteo.com/*' => Http::response([], 503)]);
+
+        Club::query()->update(['is_featured' => false]);
+        TackleShop::query()->update(['is_featured' => false]);
+
+        foreach (range(1, 7) as $i) {
+            // Newest first via latest() — push these ahead of any seeded venues.
+            Venue::factory()->create([
+                'name' => "Grid Venue {$i}",
+                'is_approved' => true,
+                'created_at' => now()->addMinutes($i),
+            ]);
+
+            Club::factory()->featured()->create([
+                'name' => "Grid Club {$i}",
+                'sort_order' => $i,
+            ]);
+
+            TackleShop::factory()->featured()->create([
+                'name' => "Grid Shop {$i}",
+                'sort_order' => $i,
+            ]);
+        }
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $venuesSection = $this->sectionHtml($html, 'home-section--venues', 'home-section--clubs');
+        $clubsSection = $this->sectionHtml($html, 'home-section--clubs', 'home-section--shops');
+        $shopsSection = $this->sectionHtml($html, 'home-section--shops', 'home-board');
+
+        // Venues: latest() keeps 7..2, drops oldest (1).
+        foreach (range(2, 7) as $i) {
+            $this->assertStringContainsString("Grid Venue {$i}", $venuesSection);
+        }
+        $this->assertStringNotContainsString('Grid Venue 1', $venuesSection);
+
+        // Clubs/shops: ordered() keeps sort_order 1..6, drops 7.
+        foreach (range(1, 6) as $i) {
+            $this->assertStringContainsString("Grid Club {$i}", $clubsSection);
+            $this->assertStringContainsString("Grid Shop {$i}", $shopsSection);
+        }
+        $this->assertStringNotContainsString('Grid Club 7', $clubsSection);
+        $this->assertStringNotContainsString('Grid Shop 7', $shopsSection);
+    }
+
+    private function sectionHtml(string $html, string $startMarker, string $endMarker): string
+    {
+        $start = strpos($html, $startMarker);
+        $end = strpos($html, $endMarker);
+
+        $this->assertNotFalse($start, "Section start marker [{$startMarker}] not found");
+        $this->assertNotFalse($end, "Section end marker [{$endMarker}] not found");
+        $this->assertLessThan($end, $start, "Section markers out of order: {$startMarker} → {$endMarker}");
+
+        return substr($html, $start, $end - $start);
     }
 
     public function test_home_page_shows_intro_section_before_featured_venues(): void
