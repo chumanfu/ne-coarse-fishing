@@ -40,6 +40,11 @@ class MapController extends Controller
             'verified' => $venue->manager_verified,
             'url' => route('venues.show', $venue),
             'overview' => str($venue->overview)->limit(140)->toString(),
+            'geometries' => $venue->waters
+                ->filter(fn ($water) => $water->hasGeometry())
+                ->map(fn ($water) => $water->geoJson())
+                ->values()
+                ->all(),
         ]);
 
         $shopMarkers = $this->shouldIncludeTackleShops($request)

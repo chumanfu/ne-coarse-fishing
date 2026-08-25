@@ -102,6 +102,11 @@ Route::get('/', function () {
         'url' => route('venues.show', $venue),
         'overview' => str($venue->overview)->limit(120)->toString(),
         'species' => $venue->allSpecies()->take(4)->pluck('name')->values(),
+        'geometries' => $venue->waters
+            ->filter(fn ($water) => $water->hasGeometry())
+            ->map(fn ($water) => $water->geoJson())
+            ->values()
+            ->all(),
     ]);
 
     $shopMarkers = TackleShop::query()

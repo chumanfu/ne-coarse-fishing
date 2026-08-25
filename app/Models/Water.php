@@ -22,8 +22,20 @@ class Water extends Model
         'peg_count',
         'depth_info',
         'map_image_path',
+        'geometry',
+        'geometry_type',
         'sort_order',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'geometry' => 'array',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -75,5 +87,23 @@ class Water extends Model
     public function hasMapImage(): bool
     {
         return filled($this->map_image_path);
+    }
+
+    public function hasGeometry(): bool
+    {
+        return is_array($this->geometry)
+            && ($this->geometry['type'] ?? null) === 'LineString'
+            && is_array($this->geometry['coordinates'] ?? null)
+            && count($this->geometry['coordinates']) >= 2;
+    }
+
+    /**
+     * GeoJSON geometry suitable for L.geoJSON().
+     *
+     * @return array{type: string, coordinates: list<array{0: float, 1: float}>}|null
+     */
+    public function geoJson(): ?array
+    {
+        return $this->hasGeometry() ? $this->geometry : null;
     }
 }

@@ -138,7 +138,7 @@
                             attribution: '&copy; OpenStreetMap'
                         }).addTo(this.map);
 
-                        const bounds = [];
+                        const bounds = L.latLngBounds([]);
                         this.markers.forEach((marker) => {
                             if (marker.lat == null || marker.lng == null) {
                                 return;
@@ -150,10 +150,25 @@
                             const kind = marker.type === 'tackle_shop' ? 'Tackle shop' : 'Venue';
                             pin.bindPopup(`<strong>${marker.name}</strong><br>${kind} · ${marker.ticket_type}`);
                             pin.on('click', () => { this.selected = marker; });
-                            bounds.push([marker.lat, marker.lng]);
+                            bounds.extend([marker.lat, marker.lng]);
+
+                            (marker.geometries || []).forEach((geometry) => {
+                                const stretch = L.geoJSON(geometry, {
+                                    style: {
+                                        color: marker.type === 'tackle_shop' ? '#dc2626' : '#2563eb',
+                                        weight: 4,
+                                        opacity: 0.85,
+                                    },
+                                }).addTo(this.map);
+                                stretch.bindPopup(`<strong>${marker.name}</strong><br>${kind} · ${marker.ticket_type}`);
+                                stretch.on('click', () => { this.selected = marker; });
+                                if (stretch.getBounds().isValid()) {
+                                    bounds.extend(stretch.getBounds());
+                                }
+                            });
                         });
 
-                        if (bounds.length) {
+                        if (bounds.isValid()) {
                             this.map.fitBounds(bounds, { padding: [30, 30] });
                         }
                     }

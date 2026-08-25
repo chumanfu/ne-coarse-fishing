@@ -847,6 +847,29 @@
                 }).addTo(map);
                 L.marker([{{ $venue->latitude }}, {{ $venue->longitude }}]).addTo(map)
                     .bindPopup(@json($venue->name));
+
+                const geometries = @json(
+                    $venue->waters
+                        ->filter(fn ($water) => $water->hasGeometry())
+                        ->map(fn ($water) => $water->geoJson())
+                        ->values()
+                        ->all()
+                );
+                const bounds = L.latLngBounds([[{{ $venue->latitude }}, {{ $venue->longitude }}]]);
+
+                geometries.forEach((geometry) => {
+                    const stretch = L.geoJSON(geometry, {
+                        style: { color: '#0369a1', weight: 4, opacity: 0.9 },
+                    }).addTo(map);
+                    stretch.bindPopup(@json($venue->name));
+                    if (stretch.getBounds().isValid()) {
+                        bounds.extend(stretch.getBounds());
+                    }
+                });
+
+                if (geometries.length) {
+                    map.fitBounds(bounds, { padding: [28, 28], maxZoom: 15 });
+                }
             });
         </script>
     @endpush

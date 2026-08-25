@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Venue;
 use App\Models\Water;
+use App\Support\WaterGeometry;
 use Illuminate\Support\Facades\DB;
 
 class VenuePersistenceService
@@ -68,6 +69,14 @@ class VenuePersistenceService
                     'depth_info' => filled($waterData['depth_info'] ?? null) ? $waterData['depth_info'] : null,
                     'sort_order' => $index,
                 ];
+
+                if (array_key_exists('geometry', $waterData)) {
+                    $geometry = WaterGeometry::normalize(
+                        is_array($waterData['geometry'] ?? null) ? $waterData['geometry'] : null
+                    );
+                    $attributes['geometry'] = $geometry;
+                    $attributes['geometry_type'] = $geometry['type'] ?? null;
+                }
 
                 if ($water) {
                     $water->update($attributes);
