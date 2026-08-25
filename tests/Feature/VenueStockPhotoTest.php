@@ -48,8 +48,23 @@ class VenueStockPhotoTest extends TestCase
             'sort_order' => 0,
         ]);
 
-        $this->get(route('home'))
-            ->assertOk()
-            ->assertSee('images/venues/angel-lakes.jpg', false);
+        Venue::factory()->create([
+            'is_approved' => true,
+            'name' => 'Home No Photo Lake',
+            'created_at' => now()->addMinute(),
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $venuesStart = strpos($html, 'home-section--venues');
+        $venuesEnd = strpos($html, 'home-section--clubs');
+        $this->assertNotFalse($venuesStart);
+        $this->assertNotFalse($venuesEnd);
+        $venuesSection = substr($html, $venuesStart, $venuesEnd - $venuesStart);
+
+        $this->assertStringContainsString('images/venues/angel-lakes.jpg', $venuesSection);
+        $this->assertStringContainsString('Home Photo Lake', $venuesSection);
+        $this->assertStringNotContainsString('Home No Photo Lake', $venuesSection);
+        $this->assertStringNotContainsString('Photo coming soon', $venuesSection);
     }
 }

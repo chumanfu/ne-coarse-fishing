@@ -18,6 +18,14 @@ class TackleShopTest extends TestCase
             'name' => 'Featured NE Tackle',
             'url' => 'https://featured-ne-tackle.example/',
             'sort_order' => 1,
+            'logo_path' => 'images/tackle-shops/featured-ne-tackle.png',
+        ]);
+
+        TackleShop::factory()->featured()->create([
+            'name' => 'Featured Without Logo',
+            'url' => 'https://featured-without-logo.example/',
+            'sort_order' => 0,
+            'logo_path' => null,
         ]);
 
         TackleShop::factory()->create([
@@ -25,11 +33,20 @@ class TackleShopTest extends TestCase
             'is_featured' => false,
         ]);
 
-        $this->get(route('home'))
-            ->assertOk()
-            ->assertSee('Tackle Shops')
-            ->assertSee('Featured NE Tackle')
-            ->assertSee('Latest activity');
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $shopsStart = strpos($html, 'home-section--shops');
+        $shopsEnd = strpos($html, 'home-board');
+        $this->assertNotFalse($shopsStart);
+        $this->assertNotFalse($shopsEnd);
+        $shopsSection = substr($html, $shopsStart, $shopsEnd - $shopsStart);
+
+        $this->assertStringContainsString('Tackle Shops', $shopsSection);
+        $this->assertStringContainsString('Featured NE Tackle', $shopsSection);
+        $this->assertStringContainsString('images/tackle-shops/featured-ne-tackle.png', $shopsSection);
+        $this->assertStringNotContainsString('Featured Without Logo', $shopsSection);
+        $this->assertStringNotContainsString('Shop logo soon', $shopsSection);
+        $this->assertStringContainsString('Latest activity', $html);
     }
 
     public function test_index_lists_published_shops_with_website_links(): void
