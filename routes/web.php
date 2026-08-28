@@ -40,6 +40,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     $featured = Venue::query()
         ->approved()
+        ->whereHas('photos')
         ->with(['waters.species', 'manager', 'photos'])
         ->latest()
         ->take(6)
@@ -48,6 +49,8 @@ Route::get('/', function () {
     $featuredShops = TackleShop::query()
         ->published()
         ->featured()
+        ->whereNotNull('logo_path')
+        ->where('logo_path', '!=', '')
         ->ordered()
         ->take(6)
         ->get();
@@ -55,6 +58,8 @@ Route::get('/', function () {
     $featuredClubs = Club::query()
         ->published()
         ->featured()
+        ->whereNotNull('logo_path')
+        ->where('logo_path', '!=', '')
         ->ordered()
         ->take(6)
         ->get();

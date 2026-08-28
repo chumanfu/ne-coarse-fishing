@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Club;
 use App\Models\TackleShop;
 use App\Models\Venue;
+use App\Models\VenuePhoto;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -29,22 +30,46 @@ class HomeSectionOrderTest extends TestCase
 
         foreach (range(1, 7) as $i) {
             // Newest first via latest() — push these ahead of any seeded venues.
-            Venue::factory()->create([
+            $venue = Venue::factory()->create([
                 'name' => "Grid Venue {$i}",
                 'is_approved' => true,
                 'created_at' => now()->addMinutes($i),
+            ]);
+            VenuePhoto::query()->create([
+                'venue_id' => $venue->id,
+                'image_path' => "images/venues/grid-venue-{$i}.jpg",
+                'sort_order' => 0,
             ]);
 
             Club::factory()->featured()->create([
                 'name' => "Grid Club {$i}",
                 'sort_order' => $i,
+                'logo_path' => "images/clubs/grid-club-{$i}.png",
             ]);
 
             TackleShop::factory()->featured()->create([
                 'name' => "Grid Shop {$i}",
                 'sort_order' => $i,
+                'logo_path' => "images/tackle-shops/grid-shop-{$i}.png",
             ]);
         }
+
+        // Featured without image/logo must be excluded even when newer / lower sort_order.
+        Venue::factory()->create([
+            'name' => 'No Photo Venue',
+            'is_approved' => true,
+            'created_at' => now()->addHour(),
+        ]);
+        Club::factory()->featured()->create([
+            'name' => 'No Logo Club',
+            'sort_order' => 0,
+            'logo_path' => null,
+        ]);
+        TackleShop::factory()->featured()->create([
+            'name' => 'No Logo Shop',
+            'sort_order' => 0,
+            'logo_path' => null,
+        ]);
 
         $html = $this->get(route('home'))->assertOk()->getContent();
 
@@ -55,16 +80,25 @@ class HomeSectionOrderTest extends TestCase
         // Venues: latest() keeps 7..2, drops oldest (1).
         foreach (range(2, 7) as $i) {
             $this->assertStringContainsString("Grid Venue {$i}", $venuesSection);
+            $this->assertStringContainsString("images/venues/grid-venue-{$i}.jpg", $venuesSection);
         }
         $this->assertStringNotContainsString('Grid Venue 1', $venuesSection);
+        $this->assertStringNotContainsString('No Photo Venue', $venuesSection);
+        $this->assertStringNotContainsString('Photo coming soon', $venuesSection);
 
         // Clubs/shops: ordered() keeps sort_order 1..6, drops 7.
         foreach (range(1, 6) as $i) {
             $this->assertStringContainsString("Grid Club {$i}", $clubsSection);
+            $this->assertStringContainsString("images/clubs/grid-club-{$i}.png", $clubsSection);
             $this->assertStringContainsString("Grid Shop {$i}", $shopsSection);
+            $this->assertStringContainsString("images/tackle-shops/grid-shop-{$i}.png", $shopsSection);
         }
         $this->assertStringNotContainsString('Grid Club 7', $clubsSection);
         $this->assertStringNotContainsString('Grid Shop 7', $shopsSection);
+        $this->assertStringNotContainsString('No Logo Club', $clubsSection);
+        $this->assertStringNotContainsString('No Logo Shop', $shopsSection);
+        $this->assertStringNotContainsString('Club logo soon', $clubsSection);
+        $this->assertStringNotContainsString('Shop logo soon', $shopsSection);
     }
 
     private function sectionHtml(string $html, string $startMarker, string $endMarker): string

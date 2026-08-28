@@ -18,6 +18,13 @@ class ClubTest extends TestCase
         Club::factory()->featured()->create([
             'name' => 'Featured NE Club',
             'sort_order' => 1,
+            'logo_path' => 'images/clubs/featured-ne-club.png',
+        ]);
+
+        Club::factory()->featured()->create([
+            'name' => 'Featured Without Logo',
+            'sort_order' => 0,
+            'logo_path' => null,
         ]);
 
         Club::factory()->create([
@@ -25,11 +32,20 @@ class ClubTest extends TestCase
             'is_featured' => false,
         ]);
 
-        $this->get(route('home'))
-            ->assertOk()
-            ->assertSee('Angling Clubs')
-            ->assertSee('Featured NE Club')
-            ->assertSee('Latest activity');
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $clubsStart = strpos($html, 'home-section--clubs');
+        $clubsEnd = strpos($html, 'home-section--shops');
+        $this->assertNotFalse($clubsStart);
+        $this->assertNotFalse($clubsEnd);
+        $clubsSection = substr($html, $clubsStart, $clubsEnd - $clubsStart);
+
+        $this->assertStringContainsString('Angling Clubs', $clubsSection);
+        $this->assertStringContainsString('Featured NE Club', $clubsSection);
+        $this->assertStringContainsString('images/clubs/featured-ne-club.png', $clubsSection);
+        $this->assertStringNotContainsString('Featured Without Logo', $clubsSection);
+        $this->assertStringNotContainsString('Club logo soon', $clubsSection);
+        $this->assertStringContainsString('Latest activity', $html);
     }
 
     public function test_index_lists_published_clubs(): void
