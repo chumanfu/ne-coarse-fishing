@@ -284,6 +284,38 @@
     margin-top: 1rem;
 }
 
+.venue-wizard-mode-toggle {
+    display: inline-flex;
+    gap: 0;
+    margin-top: 1rem;
+    border: 2px solid var(--vw-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.venue-wizard-mode-btn {
+    border: 0;
+    background: var(--vw-bg);
+    color: var(--vw-muted);
+    padding: 0.45rem 0.9rem;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.venue-wizard-mode-btn + .venue-wizard-mode-btn {
+    border-left: 1px solid var(--vw-border);
+}
+
+.venue-wizard-mode-btn.is-active {
+    background: color-mix(in srgb, var(--vw-primary) 14%, var(--vw-bg));
+    color: var(--vw-text);
+}
+
+.venue-wizard [x-cloak] {
+    display: none !important;
+}
+
 .venue-wizard-results {
     list-style: none;
     margin: 0.75rem 0 0;

@@ -12,6 +12,7 @@ use App\Models\Water;
 use App\Services\GeocodingService;
 use App\Services\VenuePersistenceService;
 use App\Support\Uploads;
+use App\Support\WaterGeometry;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,16 @@ class VenueWizard extends Component
     public float $longitude = -1.5753;
 
     public bool $locationSet = false;
+
+    /** @var 'point'|'stretch' */
+    public string $locationMode = 'point';
+
+    /**
+     * GeoJSON LineString for the primary water when locationMode is stretch.
+     *
+     * @var array{type?: string, coordinates?: list<array{0: float, 1: float}>}|null
+     */
+    public ?array $stretchGeometry = null;
 
     public string $name = '';
 
@@ -206,6 +217,36 @@ class VenueWizard extends Component
     public function setPin(float $latitude, float $longitude, GeocodingService $geocoding): void
     {
         $this->setLocation($latitude, $longitude, null, $geocoding);
+    }
+
+    public function setLocationMode(string $mode): void
+    {
+        if (! in_array($mode, ['point', 'stretch'], true)) {
+            return;
+        }
+
+        $this->locationMode = $mode;
+
+        if ($mode === 'point') {
+            $this->stretchGeometry = null;
+        }
+
+        $this->dispatch('venue-location-mode-updated', mode: $this->locationMode);
+    }
+
+    /**
+     * @param  array{type?: string, coordinates?: list<array{0: float, 1: float}>}|null  $geometry
+     */
+    public function setStretchGeometry(?array $geometry): void
+    {
+        $normalized = WaterGeometry::normalize($geometry);
+        $this->stretchGeometry = $normalized;
+        $this->locationMode = 'stretch';
+    }
+
+    public function clearStretchGeometry(): void
+    {
+        $this->stretchGeometry = null;
     }
 
     public function reverseGeocode(GeocodingService $geocoding): void
@@ -503,24 +544,35 @@ class VenueWizard extends Component
 
         return [
             'venue' => $venuePayload,
-            'waters' => collect($this->waters)->map(fn (array $water) => [
-                'id' => $water['id'] ?? null,
-                'name' => $water['name'],
-                'description' => $water['description'] ?: null,
-                'peg_count' => $water['peg_count'] !== '' ? $water['peg_count'] : null,
-                'depth_info' => $water['depth_info'] ?: null,
-                'species' => collect($water['species'] ?? [])
-                    ->filter()
-                    ->map(fn ($id) => (int) $id)
-                    ->values()
-                    ->all(),
-            ])->values()->all(),
+            'waters' => collect($this->waters)->map(function (array $water, int $index) {
+                $payload = [
+                    'id' => $water['id'] ?? null,
+                    'name' => $water['name'],
+                    'description' => $water['description'] ?: null,
+                    'peg_count' => $water['peg_count'] !== '' ? $water['peg_count'] : null,
+                    'depth_info' => $water['depth_info'] ?: null,
+                    'species' => collect($water['species'] ?? [])
+                        ->filter()
+                        ->map(fn ($id) => (int) $id)
+                        ->values()
+                        ->all(),
+                ];
+
+                if ($index === 0) {
+                    $geometry = $this->primaryWaterGeometry();
+                    $payload['geometry'] = $geometry;
+                    $payload['geometry_type'] = $geometry['type'] ?? null;
+                }
+
+                return $payload;
+            })->values()->all(),
         ];
     }
 
     private function syncWaters(Venue $venue): void
     {
         $keepIds = [];
+        $primaryGeometry = $this->primaryWaterGeometry();
 
         foreach ($this->waters as $index => $waterData) {
             $water = null;
@@ -536,6 +588,11 @@ class VenueWizard extends Component
                 'depth_info' => $waterData['depth_info'] ?: null,
                 'sort_order' => $index,
             ];
+
+            if ($index === 0) {
+                $attributes['geometry'] = $primaryGeometry;
+                $attributes['geometry_type'] = $primaryGeometry['type'] ?? null;
+            }
 
             if ($water) {
                 $water->update($attributes);
@@ -583,6 +640,18 @@ class VenueWizard extends Component
             $water->species()->detach();
             $water->delete();
         });
+    }
+
+    /**
+     * @return array{type: string, coordinates: list<array{0: float, 1: float}>}|null
+     */
+    private function primaryWaterGeometry(): ?array
+    {
+        if ($this->locationMode !== 'stretch') {
+            return null;
+        }
+
+        return WaterGeometry::normalize($this->stretchGeometry);
     }
 
     private function syncPhotos(Venue $venue): void
@@ -641,12 +710,21 @@ class VenueWizard extends Component
     private function validateStep(int $step): void
     {
         match ($step) {
-            1 => $this->validate([
+            1 => $this->validate(array_filter([
                 'latitude' => ['required', 'numeric', 'between:-90,90'],
                 'longitude' => ['required', 'numeric', 'between:-180,180'],
                 'locationSet' => ['accepted'],
-            ], [
+                'locationMode' => ['required', 'in:point,stretch'],
+                'stretchGeometry' => $this->locationMode === 'stretch'
+                    ? ['required', function (string $attribute, mixed $value, \Closure $fail): void {
+                        if (! WaterGeometry::isValid(is_array($value) ? $value : null)) {
+                            $fail('Draw a river stretch with at least two points on the map.');
+                        }
+                    }]
+                    : ['nullable'],
+            ]), [
                 'locationSet.accepted' => 'Choose a location on the map or from search results.',
+                'stretchGeometry.required' => 'Draw a river stretch with at least two points on the map.',
             ]),
             2 => $this->validate([
                 'name' => ['required', 'string', 'max:255'],
@@ -749,6 +827,15 @@ class VenueWizard extends Component
         $this->manager_verified = (bool) $venue->manager_verified;
         $this->clubIds = $venue->clubs->pluck('id')->map(fn ($id) => (string) $id)->all();
         $this->existingPhotoIds = $venue->photos->pluck('id')->all();
+
+        $primaryWater = $venue->waters->first();
+        if ($primaryWater?->hasGeometry()) {
+            $this->locationMode = 'stretch';
+            $this->stretchGeometry = $primaryWater->geoJson();
+        } else {
+            $this->locationMode = 'point';
+            $this->stretchGeometry = null;
+        }
 
         if ($venue->waters->isNotEmpty()) {
             $this->waters = $venue->waters->map(fn (Water $water) => [

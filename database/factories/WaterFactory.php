@@ -24,4 +24,24 @@ class WaterFactory extends Factory
             'sort_order' => 0,
         ];
     }
+
+    /**
+     * @param  list<array{0: float, 1: float}>|null  $coordinates  GeoJSON [lng, lat] pairs
+     */
+    public function withLineString(?array $coordinates = null): static
+    {
+        $coordinates ??= [
+            [-1.5800, 54.7800],
+            [-1.5750, 54.7850],
+            [-1.5700, 54.7900],
+        ];
+
+        return $this->state(fn () => [
+            'geometry' => [
+                'type' => 'LineString',
+                'coordinates' => $coordinates,
+            ],
+            'geometry_type' => 'LineString',
+        ]);
+    }
 }

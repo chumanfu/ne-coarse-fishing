@@ -480,7 +480,7 @@
                     renderMarkers(list) {
                         this.layerGroup.clearLayers();
                         this.pinById = {};
-                        const bounds = [];
+                        const bounds = L.latLngBounds([]);
 
                         list.forEach((marker) => {
                             if (marker.lat == null || marker.lng == null) {
@@ -493,13 +493,32 @@
                             pin.bindPopup(this.popupHtml(marker));
                             pin.addTo(this.layerGroup);
                             this.pinById[marker.id] = pin;
-                            bounds.push([marker.lat, marker.lng]);
+                            bounds.extend([marker.lat, marker.lng]);
+
+                            (marker.geometries || []).forEach((geometry) => {
+                                const stretch = L.geoJSON(geometry, {
+                                    style: {
+                                        color: marker.type === 'tackle_shop' ? '#6b5746' : '#4a7c8c',
+                                        weight: 4,
+                                        opacity: 0.85,
+                                    },
+                                });
+                                stretch.bindPopup(this.popupHtml(marker));
+                                stretch.on('click', () => pin.openPopup());
+                                stretch.addTo(this.layerGroup);
+                                if (stretch.getBounds().isValid()) {
+                                    bounds.extend(stretch.getBounds());
+                                }
+                            });
                         });
 
-                        if (bounds.length === 1) {
-                            this.map.setView(bounds[0], 12);
-                        } else if (bounds.length > 1) {
-                            this.map.fitBounds(bounds, { padding: [28, 28] });
+                        if (bounds.isValid()) {
+                            const pointCount = list.filter((m) => m.lat != null && m.lng != null).length;
+                            if (pointCount === 1 && !(list[0]?.geometries || []).length) {
+                                this.map.setView([list[0].lat, list[0].lng], 12);
+                            } else {
+                                this.map.fitBounds(bounds, { padding: [28, 28] });
+                            }
                         }
                     },
                     focusVenue(venue) {

@@ -1,7 +1,9 @@
 @assets
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" crossorigin="" />
     @vite(['resources/css/venue-wizard.css'])
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js" crossorigin=""></script>
 @endassets
 
 <div class="venue-wizard">
@@ -22,10 +24,33 @@
     <div class="venue-wizard-panel">
         @if ($step === 1)
             <div wire:key="step-location"
-                 x-data="venueWizardMap(@js($latitude), @js($longitude), @js($locationSet))"
-                 x-on:venue-location-updated.window="moveMarker($event.detail.lat, $event.detail.lng)">
+                 x-data="venueWizardMap(@js($latitude), @js($longitude), @js($locationSet), @js($locationMode), @js($stretchGeometry))"
+                 x-on:venue-location-updated.window="moveMarker($event.detail.lat, $event.detail.lng)"
+                 x-on:venue-location-mode-updated.window="applyMode($event.detail.mode)">
                 <h2>Find the water on the map</h2>
-                <p class="hint">Search by UK postcode, place name, or paste latitude,longitude. Then drop or drag the pin.</p>
+                <p class="hint">Search by UK postcode, place name, or paste latitude,longitude. Place an access/parking pin, and optionally draw a river stretch.</p>
+
+                <div class="venue-wizard-mode-toggle" role="group" aria-label="Location type">
+                    <button type="button"
+                            class="venue-wizard-mode-btn {{ $locationMode === 'point' ? 'is-active' : '' }}"
+                            wire:click="setLocationMode('point')"
+                            @click="applyMode('point')">
+                        Point
+                    </button>
+                    <button type="button"
+                            class="venue-wizard-mode-btn {{ $locationMode === 'stretch' ? 'is-active' : '' }}"
+                            wire:click="setLocationMode('stretch')"
+                            @click="applyMode('stretch')">
+                        River stretch
+                    </button>
+                </div>
+
+                <p class="hint" x-show="locationMode === 'point'" x-cloak>
+                    Drop or drag the pin for the venue location (usually the car park or entrance).
+                </p>
+                <p class="hint" x-show="locationMode === 'stretch'" x-cloak>
+                    Draw the fishing beat as a line on the map. The pin is still required for access/parking — it is not the stretch itself.
+                </p>
 
                 <div class="row" style="margin-top: 1rem;">
                     <input type="text"
@@ -56,22 +81,36 @@
 
                 <div id="venue-wizard-map" class="venue-wizard-map" wire:ignore></div>
 
+                <div class="row" style="margin-top: 0.75rem; justify-content: space-between; align-items: center;" x-show="locationMode === 'stretch'" x-cloak>
+                    <p class="hint" style="margin: 0;">
+                        Use the polyline tool to draw the beat. Edit or delete with the draw toolbar.
+                    </p>
+                    <button type="button" class="venue-wizard-btn venue-wizard-btn-outline" @click="clearStretch()">
+                        Clear stretch
+                    </button>
+                </div>
+
                 <div class="grid-2" style="margin-top: 1rem;">
                     <div>
-                        <label>Latitude</label>
+                        <label>Access pin latitude</label>
                         <input type="number" step="any" wire:model.blur="latitude">
                     </div>
                     <div>
-                        <label>Longitude</label>
+                        <label>Access pin longitude</label>
                         <input type="number" step="any" wire:model.blur="longitude">
                     </div>
                 </div>
                 @error('locationSet') <p class="error">{{ $message }}</p> @enderror
                 @error('latitude') <p class="error">{{ $message }}</p> @enderror
                 @error('longitude') <p class="error">{{ $message }}</p> @enderror
+                @error('locationMode') <p class="error">{{ $message }}</p> @enderror
+                @error('stretchGeometry') <p class="error">{{ $message }}</p> @enderror
 
                 @if ($locationSet)
-                    <p class="ok">Location selected. You can refine the pin before continuing.</p>
+                    <p class="ok">Access pin selected. You can refine it before continuing.</p>
+                @endif
+                @if ($locationMode === 'stretch' && $stretchGeometry)
+                    <p class="ok">River stretch drawn. Edit or clear it on the map if needed.</p>
                 @endif
             </div>
         @endif
@@ -524,20 +563,25 @@
 
 @script
 <script>
-    Alpine.data('venueWizardMap', (lat, lng, locationSet) => ({
+    Alpine.data('venueWizardMap', (lat, lng, locationSet, locationMode, stretchGeometry) => ({
         map: null,
         marker: null,
+        drawnItems: null,
+        drawControl: null,
+        locationMode: locationMode || 'point',
+        stretchGeometry: stretchGeometry || null,
+        drawing: false,
         init() {
             this.$nextTick(() => this.waitForLeaflet(lat, lng, locationSet));
         },
         waitForLeaflet(lat, lng, locationSet, attempt = 0) {
-            if (typeof L !== 'undefined') {
+            if (typeof L !== 'undefined' && L.Control && L.Control.Draw) {
                 this.initMap(lat, lng, locationSet);
                 return;
             }
 
-            if (attempt > 40) {
-                console.error('Leaflet failed to load for venue wizard map.');
+            if (attempt > 50) {
+                console.error('Leaflet / Leaflet.draw failed to load for venue wizard map.');
                 return;
             }
 
@@ -559,16 +603,135 @@
                 this.$wire.setPin(Number(pos.lat.toFixed(7)), Number(pos.lng.toFixed(7)));
             });
             this.map.on('click', (e) => {
+                if (this.drawing) {
+                    return;
+                }
                 this.$wire.setPin(Number(e.latlng.lat.toFixed(7)), Number(e.latlng.lng.toFixed(7)));
             });
 
+            this.drawnItems = new L.FeatureGroup();
+            this.map.addLayer(this.drawnItems);
+
+            this.map.on(L.Draw.Event.DRAWSTART, () => { this.drawing = true; });
+            this.map.on(L.Draw.Event.DRAWSTOP, () => { this.drawing = false; });
+            this.map.on(L.Draw.Event.CREATED, (e) => {
+                this.drawnItems.clearLayers();
+                this.drawnItems.addLayer(e.layer);
+                this.syncGeometryFromMap();
+                this.fitToContent();
+            });
+            this.map.on(L.Draw.Event.EDITED, () => this.syncGeometryFromMap());
+            this.map.on(L.Draw.Event.DELETED, () => this.syncGeometryFromMap());
+
+            if (this.stretchGeometry) {
+                this.loadStretch(this.stretchGeometry);
+            }
+
+            this.refreshDrawTools();
+
             setTimeout(() => this.map.invalidateSize(), 120);
-            setTimeout(() => this.map.invalidateSize(), 400);
+            setTimeout(() => {
+                this.map.invalidateSize();
+                this.fitToContent();
+            }, 400);
+        },
+        applyMode(mode) {
+            this.locationMode = mode;
+            if (mode === 'point') {
+                this.drawnItems?.clearLayers();
+                this.stretchGeometry = null;
+            }
+            this.refreshDrawTools();
+        },
+        refreshDrawTools() {
+            if (!this.map || !this.drawnItems) return;
+
+            if (this.drawControl) {
+                this.map.removeControl(this.drawControl);
+                this.drawControl = null;
+            }
+
+            if (this.locationMode !== 'stretch') {
+                return;
+            }
+
+            this.drawControl = new L.Control.Draw({
+                position: 'topright',
+                draw: {
+                    polyline: {
+                        allowIntersection: false,
+                        showLength: true,
+                        metric: true,
+                        shapeOptions: {
+                            color: '#0369a1',
+                            weight: 4,
+                            opacity: 0.9,
+                        },
+                    },
+                    polygon: false,
+                    rectangle: false,
+                    circle: false,
+                    circlemarker: false,
+                    marker: false,
+                },
+                edit: {
+                    featureGroup: this.drawnItems,
+                    remove: true,
+                },
+            });
+            this.map.addControl(this.drawControl);
+        },
+        loadStretch(geometry) {
+            if (!geometry || !this.drawnItems) return;
+            this.drawnItems.clearLayers();
+            L.geoJSON(geometry, {
+                style: { color: '#0369a1', weight: 4, opacity: 0.9 },
+            }).eachLayer((layer) => {
+                this.drawnItems.addLayer(layer);
+            });
+        },
+        syncGeometryFromMap() {
+            const layers = this.drawnItems ? this.drawnItems.getLayers() : [];
+            if (!layers.length) {
+                this.stretchGeometry = null;
+                this.$wire.clearStretchGeometry();
+                return;
+            }
+
+            const feature = layers[0].toGeoJSON();
+            const geometry = feature.geometry || feature;
+            this.stretchGeometry = geometry;
+            this.$wire.setStretchGeometry(geometry);
+        },
+        clearStretch() {
+            this.drawnItems?.clearLayers();
+            this.stretchGeometry = null;
+            this.$wire.clearStretchGeometry();
+        },
+        fitToContent() {
+            if (!this.map) return;
+            const bounds = L.latLngBounds([]);
+            if (this.marker) {
+                bounds.extend(this.marker.getLatLng());
+            }
+            if (this.drawnItems && this.drawnItems.getLayers().length) {
+                const drawBounds = this.drawnItems.getBounds();
+                if (drawBounds.isValid()) {
+                    bounds.extend(drawBounds);
+                }
+            }
+            if (bounds.isValid()) {
+                this.map.fitBounds(bounds, { padding: [36, 36], maxZoom: 15 });
+            }
         },
         moveMarker(lat, lng) {
             if (!this.marker || !this.map) return;
             this.marker.setLatLng([lat, lng]);
-            this.map.setView([lat, lng], Math.max(this.map.getZoom(), 14));
+            if (this.locationMode === 'stretch' && this.drawnItems?.getLayers().length) {
+                this.fitToContent();
+            } else {
+                this.map.setView([lat, lng], Math.max(this.map.getZoom(), 14));
+            }
             setTimeout(() => this.map.invalidateSize(), 50);
         }
     }));
