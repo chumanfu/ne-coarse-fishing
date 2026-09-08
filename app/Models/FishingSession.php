@@ -110,4 +110,15 @@ class FishingSession extends Model
     {
         return $this->hasOne(VenueTactic::class);
     }
+
+    /**
+     * How many fish were logged, without double-counting specimens
+     * already included in a bag total.
+     */
+    public function fishCount(): int
+    {
+        return (int) $this->catches
+            ->reject(fn (SessionCatch $catch) => $catch->is_notable)
+            ->sum('quantity');
+    }
 }

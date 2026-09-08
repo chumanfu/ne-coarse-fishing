@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FishingSession;
+use App\Models\SessionCatch;
 use App\Models\SessionPhoto;
 use App\Models\Species;
 use App\Models\Venue;
@@ -12,6 +13,7 @@ use App\Services\ActivityLogger;
 use App\Services\VenueTacticService;
 use App\Services\WaterPegService;
 use App\Support\Uploads;
+use App\Support\Weight;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -23,6 +25,12 @@ use Illuminate\View\View;
 
 class FishingSessionController extends Controller
 {
+    /** ~551lb, high enough for a big match bag but low enough to catch a unit slip. */
+    private const MAX_WEIGHT_GRAMS = 250000;
+
+    /** Silver-fish matches can run to hundreds of fish in a bag. */
+    private const MAX_BAG_QUANTITY = 2000;
+
     public function index(Request $request): View
     {
         $sessions = FishingSession::query()
@@ -80,6 +88,8 @@ class FishingSessionController extends Controller
 
             return $session;
         });
+
+        $this->rememberWeightUnit($request, $validated);
 
         $activities->sessionLogged($session->load('venue', 'user'));
 
@@ -144,6 +154,8 @@ class FishingSessionController extends Controller
             $this->storePhotos($request, $fishingSession);
             $tactics->syncFromSession($fishingSession->fresh(), $validated['tactics_tip'] ?? null);
         });
+
+        $this->rememberWeightUnit($request, $validated);
 
         return redirect()
             ->route('sessions.show', $fishingSession)
@@ -223,6 +235,18 @@ class FishingSessionController extends Controller
             'session' => $session,
             'venues' => Venue::approved()->orderBy('name')->get(['id', 'name', 'slug', 'latitude', 'longitude']),
             'species' => Species::orderBy('name')->get(),
+            'preferredWeightUnit' => $user?->preferredWeightUnit() ?? Weight::UNIT_LB_OZ,
+            // Lets the catch step surface the species actually stocked in the
+            // chosen water before falling back to the full list.
+            'speciesByVenue' => Venue::approved()
+                ->with('waters.species:id,name')
+                ->get()
+                ->mapWithKeys(fn (Venue $v) => [(string) $v->id => $v->waters
+                    ->flatMap(fn (Water $w) => $w->species->pluck('id'))
+                    ->unique()
+                    ->values()
+                    ->all()])
+                ->all(),
             'watersJson' => Venue::approved()->with('waters:id,venue_id,name,map_image_path')->get()
                 ->mapWithKeys(fn (Venue $v) => [(string) $v->id => $v->waters->map(fn ($w) => [
                     'id' => $w->id,
@@ -269,6 +293,7 @@ class FishingSessionController extends Controller
         $request->merge([
             'catches' => collect($request->input('catches', []))
                 ->filter(fn ($catch) => filled($catch['species_id'] ?? null))
+                ->map(fn ($catch) => $this->normaliseCatchInput($catch))
                 ->values()
                 ->all() ?: null,
         ]);
@@ -320,16 +345,62 @@ class FishingSessionController extends Controller
                         : $query->whereRaw('0 = 1')
                 ),
             ],
+            'weight_unit' => ['nullable', Rule::in(Weight::UNITS)],
             'catches' => ['nullable', 'array'],
             'catches.*.species_id' => ['required', 'exists:species,id'],
-            'catches.*.weight_lb' => ['nullable', 'numeric', 'min:0', 'max:200'],
+            'catches.*.entry_type' => ['nullable', Rule::in(SessionCatch::TYPES)],
+            'catches.*.entered_unit' => ['nullable', Rule::in(Weight::UNITS)],
+            // Resolved from the lb/oz or kg inputs before validation runs.
+            'catches.*.weight_g' => ['nullable', 'integer', 'min:0', 'max:'.self::MAX_WEIGHT_GRAMS],
             'catches.*.bait' => ['nullable', 'string', 'max:255'],
-            'catches.*.quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'catches.*.quantity' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_BAG_QUANTITY],
+            'catches.*.is_notable' => ['nullable', 'boolean'],
         ], [
             'water_id.required' => 'Choose a water before adding a new peg.',
             'peg_map_x.required' => 'Mark the new peg on the pond map.',
             'peg_map_y.required' => 'Mark the new peg on the pond map.',
+            'catches.*.weight_g.max' => 'That weight looks too big — check the units.',
         ]);
+    }
+
+    /**
+     * Collapse whichever weight inputs the angler used into canonical grams.
+     *
+     * The form posts either lb + oz or kg depending on the unit toggle, and
+     * `weight_g` is what the rest of the stack works in.
+     *
+     * @param  mixed  $catch
+     * @return array<string, mixed>
+     */
+    private function normaliseCatchInput($catch): array
+    {
+        $catch = is_array($catch) ? $catch : [];
+        $unit = Weight::normaliseUnit($catch['entered_unit'] ?? null);
+
+        $weight = Weight::fromInput($unit, [
+            'pounds' => $catch['weight_lb'] ?? null,
+            'ounces' => $catch['weight_oz'] ?? null,
+            'kilograms' => $catch['weight_kg'] ?? null,
+        ]);
+
+        $type = in_array($catch['entry_type'] ?? null, SessionCatch::TYPES, true)
+            ? $catch['entry_type']
+            : SessionCatch::TYPE_INDIVIDUAL;
+
+        // A single fish is always one fish, whatever the quantity box said.
+        $quantity = $type === SessionCatch::TYPE_BAG
+            ? max(1, (int) ($catch['quantity'] ?? 1))
+            : 1;
+
+        return [
+            'species_id' => $catch['species_id'] ?? null,
+            'entry_type' => $type,
+            'entered_unit' => $unit,
+            'weight_g' => $weight?->grams,
+            'bait' => $catch['bait'] ?? null,
+            'quantity' => $quantity,
+            'is_notable' => filter_var($catch['is_notable'] ?? false, FILTER_VALIDATE_BOOLEAN),
+        ];
     }
 
     /**
@@ -453,6 +524,24 @@ class FishingSessionController extends Controller
         $request->files->replace($newBag);
     }
 
+    /**
+     * Persist the unit the angler last logged in, so the form opens on it next time.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function rememberWeightUnit(Request $request, array $validated): void
+    {
+        $unit = $validated['weight_unit']
+            ?? collect($validated['catches'] ?? [])->pluck('entered_unit')->filter()->first();
+        $user = $request->user();
+
+        if (! $unit || ! $user || $user->preferred_weight_unit === $unit) {
+            return;
+        }
+
+        $user->forceFill(['preferred_weight_unit' => Weight::normaliseUnit($unit)])->save();
+    }
+
     /** @param  list<array<string, mixed>>  $catches */
     private function syncCatches(FishingSession $session, array $catches): void
     {
@@ -463,9 +552,12 @@ class FishingSessionController extends Controller
 
             $session->catches()->create([
                 'species_id' => $catch['species_id'],
-                'weight_lb' => $catch['weight_lb'] ?? null,
+                'weight_g' => $catch['weight_g'] ?? null,
+                'entry_type' => $catch['entry_type'] ?? SessionCatch::TYPE_INDIVIDUAL,
+                'entered_unit' => Weight::normaliseUnit($catch['entered_unit'] ?? null),
                 'bait' => $catch['bait'] ?? null,
                 'quantity' => $catch['quantity'] ?? 1,
+                'is_notable' => $catch['is_notable'] ?? false,
             ]);
         }
     }

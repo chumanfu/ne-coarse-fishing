@@ -10,6 +10,7 @@ use App\Models\Species;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\Water;
+use App\Support\Weight;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -215,13 +216,15 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // A bag total plus a specimen singled out of it, showing both logging styles.
         SessionCatch::query()->updateOrCreate(
             [
                 'fishing_session_id' => $session->id,
                 'species_id' => $species['Carp']->id,
+                'entry_type' => SessionCatch::TYPE_BAG,
             ],
             [
-                'weight_lb' => 8.5,
+                'weight_g' => Weight::fromPoundsAndOunces(8, 8)?->grams,
                 'bait' => '6mm banded pellet',
                 'quantity' => 4,
             ]
@@ -230,10 +233,25 @@ class DatabaseSeeder extends Seeder
         SessionCatch::query()->updateOrCreate(
             [
                 'fishing_session_id' => $session->id,
-                'species_id' => $species['F1']->id,
+                'species_id' => $species['Carp']->id,
+                'entry_type' => SessionCatch::TYPE_INDIVIDUAL,
             ],
             [
-                'weight_lb' => null,
+                'weight_g' => Weight::fromPoundsAndOunces(4, 2)?->grams,
+                'bait' => '6mm banded pellet',
+                'quantity' => 1,
+                'is_notable' => true,
+            ]
+        );
+
+        SessionCatch::query()->updateOrCreate(
+            [
+                'fishing_session_id' => $session->id,
+                'species_id' => $species['F1']->id,
+                'entry_type' => SessionCatch::TYPE_BAG,
+            ],
+            [
+                'weight_g' => null,
                 'bait' => 'Soft pellet',
                 'quantity' => 9,
             ]

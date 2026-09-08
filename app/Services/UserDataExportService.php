@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\WaterPeg;
 use App\Support\Uploads;
+use App\Support\Weight;
 use Illuminate\Support\Carbon;
 
 class UserDataExportService
@@ -120,9 +121,13 @@ class UserDataExportService
                     'catches' => $session->catches->map(fn ($catch) => [
                         'id' => $catch->id,
                         'species' => $catch->species?->name,
-                        'weight_lb' => $catch->weight_lb,
+                        'entry_type' => $catch->entry_type,
+                        'weight_g' => $catch->weight_g,
+                        'weight_lb_oz' => $catch->weight()?->format(Weight::UNIT_LB_OZ),
+                        'weight_kg' => $catch->weight()?->kilograms(),
                         'bait' => $catch->bait,
                         'quantity' => $catch->quantity,
+                        'is_notable' => $catch->is_notable,
                     ])->values()->all(),
                     'created_at' => optional($session->created_at)?->toIso8601String(),
                 ];

@@ -106,18 +106,39 @@
         @endif
 
         @if ($session->catches->isNotEmpty())
-            <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
-                <h2 class="font-bold text-lg mb-3">Catches</h2>
-                <ul class="space-y-2">
-                    @foreach ($session->catches as $catch)
-                        <li class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm">
-                            <strong>{{ $catch->species->name }}</strong>
-                            @if ($catch->quantity > 1) × {{ $catch->quantity }} @endif
-                            @if ($catch->weight_lb) · {{ $catch->weight_lb }}lb @endif
-                            @if ($catch->bait) · {{ $catch->bait }} @endif
-                        </li>
-                    @endforeach
-                </ul>
+            @php
+                $bagCatches = $session->catches->where('entry_type', \App\Models\SessionCatch::TYPE_BAG);
+                $individualCatches = $session->catches->where('entry_type', \App\Models\SessionCatch::TYPE_INDIVIDUAL);
+            @endphp
+            <section class="bg-white border-2 border-slate-300 rounded-xl p-5 space-y-5">
+                @if ($bagCatches->isNotEmpty())
+                    <div>
+                        <h2 class="font-bold text-lg mb-3">Bag totals</h2>
+                        <ul class="space-y-2">
+                            @foreach ($bagCatches as $catch)
+                                <li class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                    <strong>{{ $catch->summaryLabel() }}</strong>
+                                    @if ($catch->bait) · {{ $catch->bait }} @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                @if ($individualCatches->isNotEmpty())
+                    <div>
+                        <h2 class="font-bold text-lg mb-3">{{ $bagCatches->isNotEmpty() ? 'Standout fish' : 'Fish caught' }}</h2>
+                        <ul class="space-y-2">
+                            @foreach ($individualCatches as $catch)
+                                <li class="border-2 border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                    <strong>{{ $catch->summaryLabel() }}</strong>
+                                    @if ($catch->is_notable) <span class="ml-1 text-xs font-semibold bg-amber-100 border border-amber-400 text-amber-900 px-1.5 py-0.5 rounded">Standout</span> @endif
+                                    @if ($catch->bait) · {{ $catch->bait }} @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
             </section>
         @endif
 

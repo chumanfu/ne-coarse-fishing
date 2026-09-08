@@ -27,7 +27,7 @@
                 <p class="text-sm text-slate-600 mt-1 dark:text-slate-400">
                     @if ($session->water) {{ $session->water->name }} · @endif
                     @if ($session->weather) {{ $session->weather }} · @endif
-                    {{ $session->catches->count() }} catch entries
+                    {{ $session->fishCount() }} {{ Str::plural('fish', $session->fishCount()) }} logged
                 </p>
                 @if ($session->commentary)
                     <p class="text-sm text-slate-800 mt-2 dark:text-slate-200">{{ Str::limit($session->commentary, 160) }}</p>

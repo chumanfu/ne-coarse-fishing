@@ -112,8 +112,8 @@
             <div class="rounded-md border border-slate-300 bg-white px-3 py-2 col-span-2 sm:col-span-1">
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Heaviest</p>
                 <p class="text-lg font-bold text-slate-900"
-                   x-text="selectedPeg?.heaviest_lb != null ? (Number(selectedPeg.heaviest_lb).toFixed(2) + ' lb') : '—'"></p>
-                <p class="text-xs text-slate-500">recorded weight</p>
+                   x-text="selectedPeg?.heaviest_label ?? '—'"></p>
+                <p class="text-xs text-slate-500">single fish</p>
             </div>
         </div>
 

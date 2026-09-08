@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SessionCatch;
 use App\Models\WaterPeg;
+use App\Support\Weight;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -22,12 +23,14 @@ class PegCatchStatsService
      *     photos: list<array{url: string}>,
      *     session_count: int,
      *     fish_caught: int,
-     *     heaviest_lb: ?float,
+     *     heaviest_g: ?int,
+     *     heaviest_label: ?string,
      *     top_species: list<array{name: string, total: int}>
      * }>
      */
-    public function mapPayloads(iterable $pegs): array
+    public function mapPayloads(iterable $pegs, ?string $unit = null): array
     {
+        $unit = Weight::normaliseUnit($unit);
         $pegs = Collection::make($pegs)->values();
 
         if ($pegs->isEmpty()) {
@@ -40,7 +43,9 @@ class PegCatchStatsService
             ->select([
                 'fishing_sessions.water_peg_id',
                 DB::raw('COALESCE(SUM(session_catches.quantity), 0) as fish_caught'),
-                DB::raw('MAX(session_catches.weight_lb) as heaviest_lb'),
+                // Only single-fish entries count, otherwise a big match bag
+                // would masquerade as one enormous fish.
+                DB::raw("MAX(CASE WHEN session_catches.entry_type = 'individual' THEN session_catches.weight_g END) as heaviest_g"),
             ])
             ->join('fishing_sessions', 'fishing_sessions.id', '=', 'session_catches.fishing_session_id')
             ->whereIn('fishing_sessions.water_peg_id', $pegIds)
@@ -68,8 +73,9 @@ class PegCatchStatsService
             ->get()
             ->groupBy('water_peg_id');
 
-        return $pegs->map(function (WaterPeg $peg) use ($totals, $sessionCounts, $speciesRows) {
+        return $pegs->map(function (WaterPeg $peg) use ($totals, $sessionCounts, $speciesRows, $unit) {
             $stats = $totals->get($peg->id);
+            $heaviest = Weight::fromGrams($stats->heaviest_g ?? null);
             $topSpecies = ($speciesRows->get($peg->id) ?? collect())
                 ->take(5)
                 ->map(fn ($row) => [
@@ -92,7 +98,8 @@ class PegCatchStatsService
                     ->all(),
                 'session_count' => (int) ($sessionCounts[$peg->id] ?? 0),
                 'fish_caught' => (int) ($stats->fish_caught ?? 0),
-                'heaviest_lb' => $stats?->heaviest_lb !== null ? (float) $stats->heaviest_lb : null,
+                'heaviest_g' => $heaviest?->grams,
+                'heaviest_label' => $heaviest?->format($unit),
                 'top_species' => $topSpecies,
             ];
         })->all();

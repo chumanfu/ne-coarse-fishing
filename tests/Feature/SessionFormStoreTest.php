@@ -37,7 +37,7 @@ class SessionFormStoreTest extends TestCase
             'commentary' => 'Quiet morning.',
             'tactics_tip' => '',
             'catches' => [
-                ['species_id' => '', 'weight_lb' => '', 'bait' => '', 'quantity' => 1],
+                ['species_id' => '', 'weight_lb' => '', 'weight_oz' => '', 'bait' => '', 'quantity' => 1],
             ],
         ]);
 
@@ -64,8 +64,16 @@ class SessionFormStoreTest extends TestCase
             'peg_mode' => 'none',
             'fished_at' => now()->toDateString(),
             'catches' => [
-                ['species_id' => '', 'weight_lb' => '', 'bait' => '', 'quantity' => 1],
-                ['species_id' => $species->id, 'weight_lb' => '3.5', 'bait' => 'Maggot', 'quantity' => 2],
+                ['species_id' => '', 'weight_lb' => '', 'weight_oz' => '', 'bait' => '', 'quantity' => 1],
+                [
+                    'species_id' => $species->id,
+                    'entry_type' => 'bag',
+                    'entered_unit' => 'lb_oz',
+                    'weight_lb' => '3',
+                    'weight_oz' => '8',
+                    'bait' => 'Maggot',
+                    'quantity' => 2,
+                ],
             ],
         ]);
 
@@ -76,11 +84,178 @@ class SessionFormStoreTest extends TestCase
         $this->assertDatabaseHas('session_catches', [
             'fishing_session_id' => $session->id,
             'species_id' => $species->id,
-            'weight_lb' => 3.5,
+            'entry_type' => 'bag',
+            'weight_g' => 1588,
             'bait' => 'Maggot',
             'quantity' => 2,
         ]);
         $this->assertCount(1, $session->catches);
+    }
+
+    public function test_can_log_an_individual_fish_in_pounds_and_ounces(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create();
+        $species = Species::factory()->create([
+            'name' => 'Test Carp',
+            'slug' => 'test-carp-'.uniqid(),
+        ]);
+
+        $this->actingAs($user)->post(route('sessions.store'), [
+            'venue_id' => $venue->id,
+            'peg_mode' => 'none',
+            'fished_at' => now()->toDateString(),
+            'weight_unit' => 'lb_oz',
+            'catches' => [[
+                'species_id' => $species->id,
+                'entry_type' => 'individual',
+                'entered_unit' => 'lb_oz',
+                'weight_lb' => '18',
+                'weight_oz' => '4',
+                'bait' => 'Boilie',
+                'quantity' => 1,
+            ]],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('session_catches', [
+            'species_id' => $species->id,
+            'entry_type' => 'individual',
+            'weight_g' => 8278,
+            'quantity' => 1,
+            'is_notable' => 0,
+            'entered_unit' => 'lb_oz',
+            'bait' => 'Boilie',
+        ]);
+        $this->assertSame('lb_oz', $user->fresh()->preferred_weight_unit);
+    }
+
+    public function test_can_log_a_fish_in_kilograms(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create();
+        $species = Species::factory()->create([
+            'name' => 'Test Mirror',
+            'slug' => 'test-mirror-'.uniqid(),
+        ]);
+
+        $this->actingAs($user)->post(route('sessions.store'), [
+            'venue_id' => $venue->id,
+            'peg_mode' => 'none',
+            'fished_at' => now()->toDateString(),
+            'weight_unit' => 'kg',
+            'catches' => [[
+                'species_id' => $species->id,
+                'entry_type' => 'individual',
+                'entered_unit' => 'kg',
+                'weight_kg' => '5.67',
+                'bait' => 'Maize',
+                'quantity' => 1,
+            ]],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('session_catches', [
+            'species_id' => $species->id,
+            'weight_g' => 5670,
+            'entered_unit' => 'kg',
+        ]);
+        $this->assertSame('kg', $user->fresh()->preferred_weight_unit);
+    }
+
+    public function test_can_log_a_bag_total_and_a_standout_fish(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create();
+        $roach = Species::factory()->create(['name' => 'Test Roach Bag', 'slug' => 'test-roach-bag-'.uniqid()]);
+        $carp = Species::factory()->create(['name' => 'Test Carp Bag', 'slug' => 'test-carp-bag-'.uniqid()]);
+
+        $this->actingAs($user)->post(route('sessions.store'), [
+            'venue_id' => $venue->id,
+            'peg_mode' => 'none',
+            'fished_at' => now()->toDateString(),
+            'weight_unit' => 'lb_oz',
+            'catches' => [
+                [
+                    'species_id' => $roach->id,
+                    'entry_type' => 'bag',
+                    'entered_unit' => 'lb_oz',
+                    'weight_lb' => '12',
+                    'weight_oz' => '8',
+                    'quantity' => 40,
+                    'bait' => 'Maggot',
+                    'is_notable' => '0',
+                ],
+                [
+                    'species_id' => $carp->id,
+                    'entry_type' => 'individual',
+                    'entered_unit' => 'lb_oz',
+                    'weight_lb' => '8',
+                    'weight_oz' => '2',
+                    'quantity' => 1,
+                    'bait' => 'Boilie',
+                    'is_notable' => '1',
+                ],
+            ],
+        ])->assertRedirect();
+
+        $session = FishingSession::query()->where('user_id', $user->id)->first();
+
+        $this->assertNotNull($session);
+        $this->assertSame(40, $session->fishCount());
+        $this->assertDatabaseHas('session_catches', [
+            'fishing_session_id' => $session->id,
+            'species_id' => $roach->id,
+            'entry_type' => 'bag',
+            'quantity' => 40,
+            'weight_g' => 5670,
+        ]);
+        $this->assertDatabaseHas('session_catches', [
+            'fishing_session_id' => $session->id,
+            'species_id' => $carp->id,
+            'entry_type' => 'individual',
+            'is_notable' => 1,
+            'quantity' => 1,
+        ]);
+    }
+
+    public function test_ounces_only_weights_are_accepted(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create();
+        $species = Species::factory()->create(['name' => 'Test Perch', 'slug' => 'test-perch-'.uniqid()]);
+
+        $this->actingAs($user)->post(route('sessions.store'), [
+            'venue_id' => $venue->id,
+            'peg_mode' => 'none',
+            'fished_at' => now()->toDateString(),
+            'catches' => [[
+                'species_id' => $species->id,
+                'entry_type' => 'individual',
+                'entered_unit' => 'lb_oz',
+                'weight_lb' => '',
+                'weight_oz' => '8',
+                'quantity' => 1,
+            ]],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('session_catches', [
+            'species_id' => $species->id,
+            'weight_g' => 227,
+        ]);
+    }
+
+    public function test_blanked_session_still_remembers_the_weight_unit(): void
+    {
+        $user = User::factory()->create(['preferred_weight_unit' => 'lb_oz']);
+        $venue = Venue::factory()->create();
+
+        $this->actingAs($user)->post(route('sessions.store'), [
+            'venue_id' => $venue->id,
+            'peg_mode' => 'none',
+            'fished_at' => now()->toDateString(),
+            'weight_unit' => 'kg',
+        ])->assertRedirect();
+
+        $this->assertSame('kg', $user->fresh()->preferred_weight_unit);
     }
 
     public function test_can_upload_session_photos_on_create(): void

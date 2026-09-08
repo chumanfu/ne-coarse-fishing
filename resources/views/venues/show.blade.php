@@ -742,7 +742,8 @@
                                     @foreach ($session->catches->take(4) as $catch)
                                         <span class="text-xs font-semibold bg-slate-100 border border-slate-300 px-2 py-1 rounded">
                                             {{ $catch->species->name }}
-                                            @if ($catch->weight_lb) · {{ $catch->weight_lb }}lb @endif
+                                            @if ($catch->quantity > 1) × {{ $catch->quantity }} @endif
+                                            @if ($catch->weightLabel()) · {{ $catch->weightLabel() }} @endif
                                         </span>
                                     @endforeach
                                 </div>

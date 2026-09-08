@@ -11,6 +11,7 @@ use App\Models\Water;
 use App\Models\WaterPeg;
 use App\Services\PegCatchStatsService;
 use App\Support\Uploads;
+use App\Support\Weight;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -70,20 +71,18 @@ class PondMapZoomAndPegStatsTest extends TestCase
             'water_peg_id' => $peg->id,
         ]);
 
-        SessionCatch::factory()->for($sessionA)->create([
+        SessionCatch::factory()->for($sessionA)->bag(3)->create([
             'species_id' => $carp->id,
-            'quantity' => 3,
-            'weight_lb' => 12.5,
+            'weight_g' => Weight::fromDecimalPounds(12.5)->grams,
         ]);
-        SessionCatch::factory()->for($sessionA)->create([
+        SessionCatch::factory()->for($sessionA)->bag(2)->create([
             'species_id' => $roach->id,
-            'quantity' => 2,
-            'weight_lb' => 1.1,
+            'weight_g' => Weight::fromDecimalPounds(1.1)->grams,
         ]);
         SessionCatch::factory()->for($sessionB)->create([
             'species_id' => $carp->id,
             'quantity' => 1,
-            'weight_lb' => 18.25,
+            'weight_g' => Weight::fromDecimalPounds(18.25)->grams,
         ]);
 
         $payload = app(PegCatchStatsService::class)->mapPayloads(collect([$peg->load('photos')]));
@@ -91,7 +90,9 @@ class PondMapZoomAndPegStatsTest extends TestCase
         $this->assertCount(1, $payload);
         $this->assertSame(6, $payload[0]['fish_caught']);
         $this->assertSame(2, $payload[0]['session_count']);
-        $this->assertEqualsWithDelta(18.25, $payload[0]['heaviest_lb'], 0.01);
+        // The bag totals must not be mistaken for single fish.
+        $this->assertEqualsWithDelta(18.25, Weight::fromGrams($payload[0]['heaviest_g'])->decimalPounds(), 0.01);
+        $this->assertSame('18lb 4oz', $payload[0]['heaviest_label']);
         $this->assertSame($carp->name, $payload[0]['top_species'][0]['name']);
         $this->assertSame(4, $payload[0]['top_species'][0]['total']);
         $this->assertSame($roach->name, $payload[0]['top_species'][1]['name']);

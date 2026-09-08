@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Weight;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -15,7 +16,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'google_id', 'email_verified_at'])]
+#[Fillable(['name', 'email', 'password', 'google_id', 'email_verified_at', 'preferred_weight_unit'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 {
@@ -104,6 +105,11 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     public function hasPassword(): bool
     {
         return filled($this->password);
+    }
+
+    public function preferredWeightUnit(): string
+    {
+        return Weight::normaliseUnit($this->preferred_weight_unit);
     }
 
     protected function casts(): array
