@@ -88,7 +88,7 @@
     </x-slot>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid gap-8 lg:grid-cols-3">
-        <div class="lg:col-span-2 space-y-6">
+        <div class="lg:col-span-2 min-w-0 space-y-6">
             @if ($venue->clubs->isNotEmpty())
                 <section class="bg-sky-50 border-2 border-sky-300 rounded-xl p-5 dark:bg-sky-950/40 dark:border-sky-700">
                     <h2 class="text-xl font-bold mb-1 text-slate-900 dark:text-slate-100">Club ownership</h2>
