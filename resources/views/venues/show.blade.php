@@ -741,7 +741,7 @@
                                 <div class="mt-2 flex flex-wrap gap-2">
                                     @foreach ($session->catches->take(4) as $catch)
                                         <span class="text-xs font-semibold bg-slate-100 border border-slate-300 px-2 py-1 rounded">
-                                            {{ $catch->species->name }}
+                                            {{ $catch->speciesLabel() }}
                                             @if ($catch->quantity > 1) × {{ $catch->quantity }} @endif
                                             @if ($catch->weightLabel()) · {{ $catch->weightLabel() }} @endif
                                         </span>

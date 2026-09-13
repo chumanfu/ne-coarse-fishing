@@ -36,7 +36,7 @@ class UserDataExportService
             ->get();
 
         $sessions = $user->fishingSessions()
-            ->with(['venue:id,name,slug', 'water:id,name', 'photos', 'catches.species:id,name', 'venueTactic'])
+            ->with(['venue:id,name,slug', 'water:id,name', 'photos', 'catches.species:id,name', 'catches.caughtSpecies:id,name', 'venueTactic'])
             ->orderByDesc('fished_at')
             ->get();
 
@@ -121,6 +121,7 @@ class UserDataExportService
                     'catches' => $session->catches->map(fn ($catch) => [
                         'id' => $catch->id,
                         'species' => $catch->species?->name,
+                        'species_names' => $catch->speciesNames(),
                         'entry_type' => $catch->entry_type,
                         'weight_g' => $catch->weight_g,
                         'weight_lb_oz' => $catch->weight()?->format(Weight::UNIT_LB_OZ),

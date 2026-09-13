@@ -16,6 +16,7 @@
 
             return [
                 'species_id' => (string) $c->species_id,
+                'species_ids' => collect($c->caughtSpeciesIds())->map(fn ($id) => (string) $id)->values()->all(),
                 'entry_type' => $c->entry_type,
                 'entered_unit' => $c->entered_unit ?: $unit,
                 'weight_lb' => $weight?->pounds() ?: '',
@@ -374,7 +375,7 @@
                                 class="text-left rounded-lg border-2 px-4 py-3 min-h-11 transition"
                                 :class="catchMode === 'bag' ? 'border-sky-700 bg-sky-50' : 'border-slate-300 bg-white hover:border-slate-400'">
                             <span class="block font-semibold text-sm">Bag total</span>
-                            <span class="block text-xs text-slate-600 mt-0.5">A count and total weight per species, then single out your best fish.</span>
+                            <span class="block text-xs text-slate-600 mt-0.5">A count and total weight for the net — tick every species you caught, then single out your best fish.</span>
                         </button>
                     </div>
                 </div>
@@ -418,26 +419,35 @@
 
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="flex-1 min-w-0">
-                                        <label class="block text-sm font-semibold mb-1">Species</label>
-                                        <select :name="`catches[${index}][species_id]`" x-model="c.species_id" class="w-full min-h-11 rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700">
-                                            <option value="">Choose species</option>
-                                            @foreach ($species as $item)
-                                                <option value="{{ $item->id }}">{{ $item->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        <label class="block text-sm font-semibold mb-1">Species in the bag</label>
+                                        <p class="text-xs text-slate-600 mb-2">Select every species in the net. The weight below is the total bag, not each fish.</p>
+                                        <template x-for="id in (c.species_ids || [])" :key="'bag-sid-' + c._id + '-' + id">
+                                            <input type="hidden" :name="`catches[${index}][species_ids][]`" :value="id">
+                                        </template>
+                                        <input type="hidden" :name="`catches[${index}][species_id]`" :value="(c.species_ids && c.species_ids[0]) || ''">
                                     </div>
-                                    <button type="button" @click="removeCatch(index)" class="mt-6 min-h-11 px-3 text-sm font-semibold text-red-700 hover:text-red-900" :aria-label="'Remove ' + (speciesName(c.species_id) || 'entry')">Remove</button>
+                                    <button type="button" @click="removeCatch(index)" class="min-h-11 px-3 text-sm font-semibold text-red-700 hover:text-red-900" :aria-label="'Remove ' + (bagSpeciesLabel(c) || 'entry')">Remove</button>
                                 </div>
 
-                                <div x-show="likelySpecies.length" x-cloak class="flex flex-wrap gap-2">
-                                    <template x-for="s in likelySpecies" :key="'bag-chip-' + index + '-' + s.id">
+                                <div x-show="bagSpeciesChoices(c).length" x-cloak class="flex flex-wrap gap-2">
+                                    <template x-for="s in bagSpeciesChoices(c)" :key="'bag-chip-' + index + '-' + s.id">
                                         <button type="button"
-                                                @click="c.species_id = s.id"
+                                                @click="toggleBagSpecies(c, s.id)"
+                                                :aria-pressed="hasBagSpecies(c, s.id) ? 'true' : 'false'"
                                                 class="min-h-11 rounded-full border-2 px-3 py-1.5 text-xs font-semibold transition"
-                                                :class="String(c.species_id) === String(s.id) ? 'border-sky-700 bg-sky-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-sky-700'"
+                                                :class="hasBagSpecies(c, s.id) ? 'border-sky-700 bg-sky-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-sky-700'"
                                                 x-text="s.name"></button>
                                     </template>
                                 </div>
+
+                                <select class="w-full min-h-11 rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700"
+                                        aria-label="Add a species to the bag"
+                                        @change="addBagSpecies(c, $event.target.value); $event.target.value = ''">
+                                    <option value="">Add a species</option>
+                                    @foreach ($species as $item)
+                                        <option value="{{ $item->id }}">{{ $item->name }}</option>
+                                    @endforeach
+                                </select>
 
                                 <div class="grid sm:grid-cols-2 gap-3">
                                     <div>
@@ -456,7 +466,7 @@
                     </template>
 
                     <button type="button" @click="addBag()" class="w-full min-h-11 rounded-lg border-2 border-dashed border-slate-400 px-4 py-3 text-sm font-semibold text-sky-800 hover:border-sky-700 hover:bg-sky-50">
-                        + Add a species to the bag
+                        + Add another bag
                     </button>
                 </div>
 
@@ -640,18 +650,30 @@
                 const GRAMS_PER_OUNCE = 28.349523125;
                 let catchUid = 0;
 
-                const withUid = (row) => ({
-                    species_id: '',
-                    entry_type: 'individual',
-                    weight_lb: '',
-                    weight_oz: '',
-                    weight_kg: '',
-                    bait: '',
-                    quantity: 1,
-                    is_notable: false,
-                    ...row,
-                    _id: ++catchUid,
-                });
+                const withUid = (row) => {
+                    const merged = {
+                        species_id: '',
+                        species_ids: [],
+                        entry_type: 'individual',
+                        weight_lb: '',
+                        weight_oz: '',
+                        weight_kg: '',
+                        bait: '',
+                        quantity: 1,
+                        is_notable: false,
+                        ...row,
+                        _id: ++catchUid,
+                    };
+                    const fromIds = Array.isArray(merged.species_ids)
+                        ? merged.species_ids.map(String).filter(Boolean)
+                        : [];
+                    merged.species_ids = fromIds.length
+                        ? fromIds
+                        : (merged.species_id ? [String(merged.species_id)] : []);
+                    merged.species_id = merged.species_ids[0] || '';
+
+                    return merged;
+                };
 
                 return {
                     step: step || 1,
@@ -807,7 +829,7 @@
                         }));
                     },
                     addBag() {
-                        this.catches.push(withUid({ entry_type: 'bag', quantity: 1 }));
+                        this.catches.push(withUid({ entry_type: 'bag', quantity: 1, species_ids: [] }));
                     },
                     addSimilarIndividual() {
                         const src = this.lastIndividual;
@@ -828,6 +850,44 @@
                     speciesName(id) {
                         return this.allSpecies.find((s) => String(s.id) === String(id))?.name || '';
                     },
+                    bagSpeciesLabel(c) {
+                        const names = (c.species_ids || []).map((id) => this.speciesName(id)).filter(Boolean);
+
+                        return names.join(', ');
+                    },
+                    bagSpeciesChoices(c) {
+                        const selected = (Array.isArray(c.species_ids) ? c.species_ids : []).map(String).filter(Boolean);
+                        const likely = this.likelySpecies || [];
+                        const seen = new Set(likely.map((s) => String(s.id)));
+                        const extra = selected
+                            .filter((id) => ! seen.has(id))
+                            .map((id) => ({ id, name: this.speciesName(id) || id }));
+
+                        return likely.concat(extra);
+                    },
+                    hasBagSpecies(c, id) {
+                        return (Array.isArray(c.species_ids) ? c.species_ids : []).map(String).includes(String(id));
+                    },
+                    toggleBagSpecies(c, id) {
+                        const sid = String(id);
+                        const current = (Array.isArray(c.species_ids) ? c.species_ids : []).map(String).filter(Boolean);
+                        c.species_ids = current.includes(sid)
+                            ? current.filter((item) => item !== sid)
+                            : current.concat(sid);
+                        c.species_id = c.species_ids[0] || '';
+                    },
+                    addBagSpecies(c, id) {
+                        const sid = String(id || '');
+                        if (! sid) {
+                            return;
+                        }
+
+                        const current = (Array.isArray(c.species_ids) ? c.species_ids : []).map(String).filter(Boolean);
+                        if (! current.includes(sid)) {
+                            c.species_ids = current.concat(sid);
+                            c.species_id = c.species_ids[0] || '';
+                        }
+                    },
                     get likelySpecies() {
                         const ids = this.speciesByVenue[this.venueId] || this.speciesByVenue[String(this.venueId)] || [];
                         if (! ids.length) {
@@ -842,7 +902,7 @@
                         let anyWeight = false;
 
                         this.catches.forEach((c) => {
-                            if (! c.species_id) {
+                            if (! (c.species_id || (Array.isArray(c.species_ids) && c.species_ids.length))) {
                                 return;
                             }
                             // Standout fish are already inside the bag count.

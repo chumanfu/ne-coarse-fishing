@@ -29,6 +29,27 @@ class SessionCatchFactory extends Factory
         ];
     }
 
+    /**
+     * @param  list<int|Species>|int|Species  $species
+     */
+    public function withSpecies(array|int|Species $species): static
+    {
+        $items = is_array($species) ? $species : [$species];
+        $ids = collect($items)
+            ->map(fn ($item) => $item instanceof Species ? $item->id : (int) $item)
+            ->filter()
+            ->values()
+            ->all();
+
+        return $this->state(fn () => [
+            'species_id' => $ids[0] ?? Species::factory(),
+        ])->afterCreating(function (SessionCatch $catch) use ($ids) {
+            if ($ids !== []) {
+                $catch->caughtSpecies()->sync($ids);
+            }
+        });
+    }
+
     /** A species total for the session rather than a single fish. */
     public function bag(int $quantity = 20): static
     {

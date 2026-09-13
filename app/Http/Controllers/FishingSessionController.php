@@ -18,10 +18,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpFoundation\File\UploadedFile as SymfonyUploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\File\UploadedFile as SymfonyUploadedFile;
 
 class FishingSessionController extends Controller
 {
@@ -34,7 +34,7 @@ class FishingSessionController extends Controller
     public function index(Request $request): View
     {
         $sessions = FishingSession::query()
-            ->with(['venue', 'water', 'waterPeg', 'catches.species', 'photos', 'venueTactic'])
+            ->with(['venue', 'water', 'waterPeg', 'catches.species', 'catches.caughtSpecies', 'photos', 'venueTactic'])
             ->where('user_id', $request->user()->id)
             ->latest('fished_at')
             ->paginate(10);
@@ -102,7 +102,7 @@ class FishingSessionController extends Controller
     {
         $this->authorizeView($fishingSession);
 
-        $fishingSession->load(['venue', 'water', 'waterPeg.water', 'waterPeg.photos', 'user', 'catches.species', 'photos', 'venueTactic']);
+        $fishingSession->load(['venue', 'water', 'waterPeg.water', 'waterPeg.photos', 'user', 'catches.species', 'catches.caughtSpecies', 'photos', 'venueTactic']);
 
         return view('sessions.show', [
             'session' => $fishingSession,
@@ -114,7 +114,7 @@ class FishingSessionController extends Controller
     {
         $this->authorizeManage($fishingSession);
 
-        $fishingSession->load(['venue.waters', 'water', 'waterPeg', 'catches', 'venueTactic', 'photos']);
+        $fishingSession->load(['venue.waters', 'water', 'waterPeg', 'catches.caughtSpecies', 'venueTactic', 'photos']);
 
         return view('sessions.create', $this->formData($fishingSession->venue, $fishingSession, request()->user()));
     }
@@ -292,7 +292,7 @@ class FishingSessionController extends Controller
         // The form always posts at least one catch row; drop blank ones before validating.
         $request->merge([
             'catches' => collect($request->input('catches', []))
-                ->filter(fn ($catch) => filled($catch['species_id'] ?? null))
+                ->filter(fn ($catch) => $this->catchHasSpecies($catch))
                 ->map(fn ($catch) => $this->normaliseCatchInput($catch))
                 ->values()
                 ->all() ?: null,
@@ -348,6 +348,8 @@ class FishingSessionController extends Controller
             'weight_unit' => ['nullable', Rule::in(Weight::UNITS)],
             'catches' => ['nullable', 'array'],
             'catches.*.species_id' => ['required', 'exists:species,id'],
+            'catches.*.species_ids' => ['nullable', 'array'],
+            'catches.*.species_ids.*' => ['integer', 'exists:species,id'],
             'catches.*.entry_type' => ['nullable', Rule::in(SessionCatch::TYPES)],
             'catches.*.entered_unit' => ['nullable', Rule::in(Weight::UNITS)],
             // Resolved from the lb/oz or kg inputs before validation runs.
@@ -392,8 +394,11 @@ class FishingSessionController extends Controller
             ? max(1, (int) ($catch['quantity'] ?? 1))
             : 1;
 
+        $speciesIds = $this->catchSpeciesIds($catch, $type);
+
         return [
-            'species_id' => $catch['species_id'] ?? null,
+            'species_id' => $speciesIds[0] ?? null,
+            'species_ids' => $speciesIds,
             'entry_type' => $type,
             'entered_unit' => $unit,
             'weight_g' => $weight?->grams,
@@ -403,9 +408,41 @@ class FishingSessionController extends Controller
         ];
     }
 
+    /** @param  mixed  $catch */
+    private function catchHasSpecies($catch): bool
+    {
+        return $this->catchSpeciesIds($catch) !== [];
+    }
+
+    /**
+     * @param  mixed  $catch
+     * @return list<int>
+     */
+    private function catchSpeciesIds($catch, ?string $type = null): array
+    {
+        $catch = is_array($catch) ? $catch : [];
+        $type ??= in_array($catch['entry_type'] ?? null, SessionCatch::TYPES, true)
+            ? $catch['entry_type']
+            : SessionCatch::TYPE_INDIVIDUAL;
+
+        $ids = collect($catch['species_ids'] ?? [])
+            ->push($catch['species_id'] ?? null)
+            ->map(fn ($id) => is_numeric($id) ? (int) $id : null)
+            ->filter()
+            ->unique()
+            ->values();
+
+        // A single fish is one species; bags can list everything in the net.
+        if ($type !== SessionCatch::TYPE_BAG) {
+            $ids = $ids->take(1);
+        }
+
+        return $ids->all();
+    }
+
     /**
      * @param  array<string, mixed>  $validated
-     * @param  list<\Illuminate\Http\UploadedFile>|array<\Illuminate\Http\UploadedFile>|null  $pegPhotos
+     * @param  list<UploadedFile>|array<UploadedFile>|null  $pegPhotos
      * @return array{water_peg_id: ?int, water_id: ?int, peg_number: ?string, peg_latitude: ?float, peg_longitude: ?float}
      */
     private function resolvePeg(array $validated, Venue $venue, $user, WaterPegService $pegs, array $pegPhotos = []): array
@@ -550,7 +587,7 @@ class FishingSessionController extends Controller
                 continue;
             }
 
-            $session->catches()->create([
+            $record = $session->catches()->create([
                 'species_id' => $catch['species_id'],
                 'weight_g' => $catch['weight_g'] ?? null,
                 'entry_type' => $catch['entry_type'] ?? SessionCatch::TYPE_INDIVIDUAL,
@@ -559,6 +596,9 @@ class FishingSessionController extends Controller
                 'quantity' => $catch['quantity'] ?? 1,
                 'is_notable' => $catch['is_notable'] ?? false,
             ]);
+
+            $speciesIds = $catch['species_ids'] ?? [$catch['species_id']];
+            $record->caughtSpecies()->sync(array_values(array_unique(array_map('intval', $speciesIds))));
         }
     }
 

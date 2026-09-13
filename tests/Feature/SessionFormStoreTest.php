@@ -2,13 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\FishingSessionController;
 use App\Models\FishingSession;
+use App\Models\SessionCatch;
 use App\Models\Species;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\Water;
+use App\Models\WaterPeg;
 use App\Support\Uploads;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -316,10 +320,10 @@ class SessionFormStoreTest extends TestCase
             true,
         );
 
-        $request = \Illuminate\Http\Request::create('/sessions', 'POST');
+        $request = Request::create('/sessions', 'POST');
         $request->files->set('photos', $symfonyFile);
 
-        $controller = app(\App\Http\Controllers\FishingSessionController::class);
+        $controller = app(FishingSessionController::class);
         $method = new \ReflectionMethod($controller, 'forgetEmptyUploads');
         $method->setAccessible(true);
         $method->invoke($controller, $request, ['photos']);
@@ -374,14 +378,14 @@ class SessionFormStoreTest extends TestCase
 
     public function test_stale_peg_fields_are_ignored_when_peg_mode_is_not_new(): void
     {
-        Storage::fake(\App\Support\Uploads::diskName());
+        Storage::fake(Uploads::diskName());
 
         $user = User::factory()->create();
         $venue = Venue::factory()->create(['is_approved' => true]);
         $water = Water::factory()->for($venue)->create([
             'map_image_path' => 'water-maps/pond.jpg',
         ]);
-        Storage::disk(\App\Support\Uploads::diskName())->put('water-maps/pond.jpg', 'fake');
+        Storage::disk(Uploads::diskName())->put('water-maps/pond.jpg', 'fake');
 
         $response = $this->actingAs($user)->post(route('sessions.store'), [
             'venue_id' => $venue->id,
@@ -400,6 +404,133 @@ class SessionFormStoreTest extends TestCase
         $response->assertRedirect(route('sessions.show', $session));
         $this->assertNull($session->water_peg_id);
         $this->assertSame('Should not create peg', $session->peg_number);
-        $this->assertSame(0, \App\Models\WaterPeg::query()->where('water_id', $water->id)->count());
+        $this->assertSame(0, WaterPeg::query()->where('water_id', $water->id)->count());
+    }
+
+    public function test_bag_form_explains_that_several_species_share_one_weight(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('sessions.create'))
+            ->assertOk()
+            ->assertSee('Select every species in the net')
+            ->assertSee('the total bag, not each fish', false)
+            ->assertSee('Add another bag');
+    }
+
+    public function test_can_log_a_mixed_species_bag_with_one_total_weight(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create();
+        $roach = Species::factory()->create(['name' => 'Test Mixed Roach '.uniqid(), 'slug' => 'mixed-roach-'.uniqid()]);
+        $bream = Species::factory()->create(['name' => 'Test Mixed Bream '.uniqid(), 'slug' => 'mixed-bream-'.uniqid()]);
+
+        $this->actingAs($user)->post(route('sessions.store'), [
+            'venue_id' => $venue->id,
+            'peg_mode' => 'none',
+            'fished_at' => now()->toDateString(),
+            'weight_unit' => 'lb_oz',
+            'catches' => [[
+                'species_ids' => [$roach->id, $bream->id],
+                'entry_type' => 'bag',
+                'entered_unit' => 'lb_oz',
+                'weight_lb' => '12',
+                'weight_oz' => '8',
+                'quantity' => 40,
+                'bait' => 'Maggot',
+            ]],
+        ])->assertRedirect();
+
+        $session = FishingSession::query()->where('user_id', $user->id)->first();
+
+        $this->assertNotNull($session);
+        $this->assertSame(40, $session->fishCount());
+        $this->assertCount(1, $session->catches);
+
+        $catch = $session->catches->first();
+        $this->assertSame('bag', $catch->entry_type);
+        $this->assertSame($roach->id, $catch->species_id);
+        $this->assertSame(5670, $catch->weight_g);
+        $this->assertEqualsCanonicalizing(
+            [$roach->id, $bream->id],
+            $catch->caughtSpecies()->pluck('species.id')->all()
+        );
+        $this->assertSame($roach->name.', '.$bream->name.' × 40 · 12lb 8oz total', $catch->fresh()->load('caughtSpecies')->summaryLabel());
+
+        $this->actingAs($user)
+            ->get(route('sessions.show', $session))
+            ->assertOk()
+            ->assertSee($roach->name)
+            ->assertSee($bream->name)
+            ->assertSee('12lb 8oz');
+    }
+
+    public function test_mixed_bag_species_round_trip_on_edit(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create();
+        $roach = Species::factory()->create(['name' => 'Edit Roach '.uniqid(), 'slug' => 'edit-roach-'.uniqid()]);
+        $perch = Species::factory()->create(['name' => 'Edit Perch '.uniqid(), 'slug' => 'edit-perch-'.uniqid()]);
+        $session = FishingSession::factory()->for($user)->for($venue)->create();
+        SessionCatch::factory()->for($session)->bag(25)->withSpecies([$roach, $perch])->create([
+            'weight_g' => 4536,
+            'entered_unit' => 'lb_oz',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('sessions.edit', $session))
+            ->assertOk()
+            ->assertSee($roach->name)
+            ->assertSee($perch->name);
+
+        $this->actingAs($user)->patch(route('sessions.update', $session), [
+            'venue_id' => $venue->id,
+            'peg_mode' => 'none',
+            'fished_at' => $session->fished_at->toDateString(),
+            'weight_unit' => 'lb_oz',
+            'catches' => [[
+                'species_ids' => [$perch->id, $roach->id],
+                'entry_type' => 'bag',
+                'entered_unit' => 'lb_oz',
+                'weight_lb' => '10',
+                'weight_oz' => '0',
+                'quantity' => 25,
+            ]],
+        ])->assertRedirect(route('sessions.show', $session));
+
+        $updated = $session->fresh()->catches()->with('caughtSpecies')->first();
+        $this->assertSame($perch->id, $updated->species_id);
+        $this->assertEqualsCanonicalizing(
+            [$perch->id, $roach->id],
+            $updated->caughtSpecies->pluck('id')->all()
+        );
+    }
+
+    public function test_individual_fish_ignores_extra_species_ids(): void
+    {
+        $user = User::factory()->create();
+        $venue = Venue::factory()->create();
+        $carp = Species::factory()->create(['name' => 'Solo Carp '.uniqid(), 'slug' => 'solo-carp-'.uniqid()]);
+        $roach = Species::factory()->create(['name' => 'Solo Roach '.uniqid(), 'slug' => 'solo-roach-'.uniqid()]);
+
+        $this->actingAs($user)->post(route('sessions.store'), [
+            'venue_id' => $venue->id,
+            'peg_mode' => 'none',
+            'fished_at' => now()->toDateString(),
+            'catches' => [[
+                'species_ids' => [$carp->id, $roach->id],
+                'entry_type' => 'individual',
+                'entered_unit' => 'lb_oz',
+                'weight_lb' => '8',
+                'weight_oz' => '0',
+                'quantity' => 1,
+            ]],
+        ])->assertRedirect();
+
+        $catch = FishingSession::query()->where('user_id', $user->id)->first()->catches->first();
+
+        $this->assertSame($carp->id, $catch->species_id);
+        $this->assertEquals([$carp->id], $catch->caughtSpecies()->pluck('species.id')->all());
     }
 }

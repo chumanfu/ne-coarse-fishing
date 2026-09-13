@@ -7,6 +7,7 @@ use Database\Factories\SessionCatchFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class SessionCatch extends Model
 {
@@ -46,6 +47,15 @@ class SessionCatch extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::created(function (SessionCatch $catch): void {
+            if ($catch->species_id) {
+                $catch->caughtSpecies()->syncWithoutDetaching([$catch->species_id]);
+            }
+        });
+    }
+
     public function fishingSession(): BelongsTo
     {
         return $this->belongsTo(FishingSession::class);
@@ -54,6 +64,50 @@ class SessionCatch extends Model
     public function species(): BelongsTo
     {
         return $this->belongsTo(Species::class);
+    }
+
+    /**
+     * Every species in this catch. Bags can list several because the net
+     * is weighed once; individuals always have a single species.
+     *
+     * `species_id` stays as the first/primary species for aggregates.
+     */
+    public function caughtSpecies(): BelongsToMany
+    {
+        return $this->belongsToMany(Species::class, 'session_catch_species')
+            ->withPivot('id')
+            ->orderByPivot('id');
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function caughtSpeciesIds(): array
+    {
+        if ($this->relationLoaded('caughtSpecies') && $this->caughtSpecies->isNotEmpty()) {
+            return $this->caughtSpecies->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+        }
+
+        return $this->species_id ? [(int) $this->species_id] : [];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function speciesNames(): array
+    {
+        if ($this->relationLoaded('caughtSpecies') && $this->caughtSpecies->isNotEmpty()) {
+            return $this->caughtSpecies->pluck('name')->filter()->values()->all();
+        }
+
+        $name = $this->species?->name;
+
+        return $name ? [$name] : [];
+    }
+
+    public function speciesLabel(): string
+    {
+        return implode(', ', $this->speciesNames()) ?: 'Fish';
     }
 
     public function weight(): ?Weight
@@ -75,10 +129,10 @@ class SessionCatch extends Model
         return $this->weight()?->format(Weight::normaliseUnit($unit ?? $this->entered_unit));
     }
 
-    /** "Roach × 40" for a bag, "Common Carp" for a single fish. */
+    /** "Roach, Bream × 40" for a mixed bag, "Common Carp" for a single fish. */
     public function summaryLabel(?string $unit = null): string
     {
-        $label = $this->species?->name ?? 'Fish';
+        $label = $this->speciesLabel();
 
         if ($this->isBag() && $this->quantity > 1) {
             $label .= ' × '.$this->quantity;
