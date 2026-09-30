@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Mail\AdminUserSignupNotification;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -81,8 +83,31 @@ class GoogleAuthTest extends TestCase
         Event::assertDispatched(Registered::class);
     }
 
+    public function test_google_signup_emails_super_admins(): void
+    {
+        Mail::fake();
+        Role::findOrCreate('angler');
+
+        $this->mockGoogleUser([
+            'id' => 'google-123',
+            'name' => 'Chris Angler',
+            'email' => 'chris@example.com',
+        ]);
+
+        $this->get(route('auth.google.callback'))
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        $user = User::query()->where('email', 'chris@example.com')->firstOrFail();
+
+        Mail::assertSent(AdminUserSignupNotification::class, function (AdminUserSignupNotification $mail) use ($user) {
+            return $mail->hasTo('admin@nefishing.test')
+                && $mail->user->is($user);
+        });
+    }
+
     public function test_google_callback_links_existing_email_account(): void
     {
+        Mail::fake();
         Role::findOrCreate('angler');
         $existing = User::factory()->create([
             'email' => 'chris@example.com',
@@ -102,10 +127,12 @@ class GoogleAuthTest extends TestCase
         $this->assertAuthenticatedAs($existing->fresh());
         $this->assertSame('google-456', $existing->fresh()->google_id);
         $this->assertSame(1, User::query()->where('email', 'chris@example.com')->count());
+        Mail::assertNotSent(AdminUserSignupNotification::class);
     }
 
     public function test_google_callback_logs_in_existing_google_user(): void
     {
+        Mail::fake();
         Role::findOrCreate('angler');
         $user = User::factory()->create([
             'email' => 'chris@example.com',
@@ -129,6 +156,7 @@ class GoogleAuthTest extends TestCase
             'google_id' => 'google-789',
         ]);
         $this->assertSame(1, User::query()->where('google_id', 'google-789')->count());
+        Mail::assertNotSent(AdminUserSignupNotification::class);
     }
 
     /**

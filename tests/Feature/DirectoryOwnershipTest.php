@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Users\UserResource;
+use App\Mail\AdminOwnershipClaimNotification;
 use App\Models\Club;
-use App\Models\ClubEditRequest;
 use App\Models\TackleShop;
-use App\Models\TackleShopEditRequest;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\Water;
@@ -13,6 +13,7 @@ use App\Models\WaterPeg;
 use App\Support\Uploads;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -33,6 +34,8 @@ class DirectoryOwnershipTest extends TestCase
 
     public function test_angler_can_claim_and_suggest_club_edits(): void
     {
+        Mail::fake();
+
         $user = User::factory()->create();
         $user->assignRole('angler');
         $club = Club::factory()->create(['is_published' => true, 'name' => 'Old Club']);
@@ -46,6 +49,14 @@ class DirectoryOwnershipTest extends TestCase
             'user_id' => $user->id,
             'status' => 'pending',
         ]);
+
+        Mail::assertSent(AdminOwnershipClaimNotification::class, function (AdminOwnershipClaimNotification $mail) use ($user, $club) {
+            return $mail->hasTo('admin@nefishing.test')
+                && $mail->listingKind === 'club'
+                && $mail->listingName === $club->name
+                && $mail->claimant->is($user)
+                && $mail->message === 'I run this club';
+        });
 
         $this->actingAs($user)
             ->post(route('clubs.suggest-edit.store', $club), [
@@ -92,6 +103,8 @@ class DirectoryOwnershipTest extends TestCase
 
     public function test_angler_can_claim_and_suggest_tackle_shop_edits(): void
     {
+        Mail::fake();
+
         $user = User::factory()->create();
         $user->assignRole('angler');
         $shop = TackleShop::factory()->create(['is_published' => true]);
@@ -105,6 +118,14 @@ class DirectoryOwnershipTest extends TestCase
             'user_id' => $user->id,
             'status' => 'pending',
         ]);
+
+        Mail::assertSent(AdminOwnershipClaimNotification::class, function (AdminOwnershipClaimNotification $mail) use ($user, $shop) {
+            return $mail->hasTo('admin@nefishing.test')
+                && $mail->listingKind === 'tackle shop'
+                && $mail->listingName === $shop->name
+                && $mail->claimant->is($user)
+                && $mail->message === null;
+        });
 
         $this->actingAs($user)
             ->post(route('tackle-shops.suggest-edit.store', $shop), [
@@ -158,9 +179,9 @@ class DirectoryOwnershipTest extends TestCase
         $angler->assignRole('angler');
 
         $this->actingAs($admin);
-        $this->assertTrue(\App\Filament\Resources\Users\UserResource::canAccess());
+        $this->assertTrue(UserResource::canAccess());
 
         $this->actingAs($angler);
-        $this->assertFalse(\App\Filament\Resources\Users\UserResource::canAccess());
+        $this->assertFalse(UserResource::canAccess());
     }
 }

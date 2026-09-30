@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Venue;
 use App\Models\VenueClaim;
+use App\Services\ActivityLogger;
+use App\Services\SuperAdminNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -24,7 +26,8 @@ class VenueClaimController extends Controller
             'status' => 'pending',
         ]);
 
-        app(\App\Services\ActivityLogger::class)->venueClaimed($claim);
+        app(ActivityLogger::class)->venueClaimed($claim);
+        app(SuperAdminNotifier::class)->venueClaimed($claim);
 
         return redirect()
             ->route('venues.show', $venue)

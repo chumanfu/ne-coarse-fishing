@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Filament\Widgets\LatestActivityTable;
+use App\Mail\AdminOwnershipClaimNotification;
+use App\Mail\AdminUserSignupNotification;
 use App\Mail\MessageReplyNotification;
 use App\Models\Activity;
 use App\Models\Message;
@@ -89,6 +92,19 @@ class RegistrationTest extends TestCase
                 && $mail->thread->subject === 'Welcome to NE Coarse Fishing';
         });
         Mail::assertQueued(MessageReplyNotification::class, 1);
+
+        Mail::assertSent(AdminUserSignupNotification::class, function (AdminUserSignupNotification $mail) use ($user, $admin) {
+            return $mail->hasTo($admin->email)
+                && $mail->user->is($user)
+                && $mail->user->email === 'new-angler@example.com';
+        });
+        Mail::assertSent(AdminUserSignupNotification::class, function (AdminUserSignupNotification $mail) use ($user) {
+            return $mail->hasTo('admin@nefishing.test')
+                && $mail->user->is($user);
+        });
+        Mail::assertNotSent(AdminUserSignupNotification::class, function (AdminUserSignupNotification $mail) use ($user) {
+            return $mail->hasTo($user->email);
+        });
     }
 
     public function test_registration_and_claims_appear_in_activity_feed_for_other_users(): void
@@ -134,8 +150,16 @@ class RegistrationTest extends TestCase
             'user_id' => $other->id,
         ]);
 
+        Mail::assertSent(AdminOwnershipClaimNotification::class, function (AdminOwnershipClaimNotification $mail) use ($other, $venue, $admin) {
+            return $mail->hasTo($admin->email)
+                && $mail->listingKind === 'venue'
+                && $mail->listingName === $venue->name
+                && $mail->claimant->is($other)
+                && $mail->message === 'I run this lake';
+        });
+
         Livewire::actingAs($admin)
-            ->test(\App\Filament\Widgets\LatestActivityTable::class)
+            ->test(LatestActivityTable::class)
             ->assertSee('Other Angler joined NE Coarse Fishing')
             ->assertSee('Other Angler claimed '.$venue->name);
     }

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Club;
 use App\Models\ClubClaim;
+use App\Services\ActivityLogger;
+use App\Services\SuperAdminNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -24,7 +26,8 @@ class ClubClaimController extends Controller
             'status' => 'pending',
         ]);
 
-        app(\App\Services\ActivityLogger::class)->clubClaimed($claim);
+        app(ActivityLogger::class)->clubClaimed($claim);
+        app(SuperAdminNotifier::class)->clubClaimed($claim);
 
         return redirect()
             ->route('clubs.show', $club)

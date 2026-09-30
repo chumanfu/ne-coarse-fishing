@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\TackleShop;
 use App\Models\TackleShopClaim;
+use App\Services\ActivityLogger;
+use App\Services\SuperAdminNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -24,7 +26,8 @@ class TackleShopClaimController extends Controller
             'status' => 'pending',
         ]);
 
-        app(\App\Services\ActivityLogger::class)->tackleShopClaimed($claim);
+        app(ActivityLogger::class)->tackleShopClaimed($claim);
+        app(SuperAdminNotifier::class)->tackleShopClaimed($claim);
 
         return redirect()
             ->route('tackle-shops.show', $tackleShop)
