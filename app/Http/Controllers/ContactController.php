@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ActivityLogger;
 use App\Services\MessagingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,8 +25,10 @@ class ContactController extends Controller
             'email' => ['required', 'email', 'max:255'],
             'subject' => ['required', 'string', 'max:160'],
             'message' => ['required', 'string', 'max:5000'],
+            'human' => ['accepted'],
             'website' => ['nullable', 'max:0'],
         ], [
+            'human.accepted' => 'Please confirm you are a human before sending.',
             'website.max' => 'Unable to send your message.',
         ]);
 
@@ -43,7 +46,7 @@ class ContactController extends Controller
             user: $request->user(),
         );
 
-        app(\App\Services\ActivityLogger::class)->messageReceived($thread, $request->user());
+        app(ActivityLogger::class)->messageReceived($thread, $request->user());
 
         $redirect = $request->user()
             ? redirect()->route('messages.show', $thread)

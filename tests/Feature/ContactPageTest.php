@@ -17,6 +17,7 @@ class ContactPageTest extends TestCase
         $this->get(route('contact.create'))
             ->assertOk()
             ->assertSee('Contact us')
+            ->assertSee('Are you a human?')
             ->assertSee('Send message');
     }
 
@@ -31,6 +32,7 @@ class ContactPageTest extends TestCase
             'email' => 'chris@example.com',
             'subject' => 'Missing venue',
             'message' => 'Could you add Wingate Wellfield Lake?',
+            'human' => '1',
             'website' => '',
         ])
             ->assertRedirect(route('contact.create'))
@@ -81,8 +83,29 @@ class ContactPageTest extends TestCase
         $this->from(route('contact.create'))
             ->post(route('contact.store'), [])
             ->assertRedirect(route('contact.create'))
-            ->assertSessionHasErrors(['name', 'email', 'subject', 'message']);
+            ->assertSessionHasErrors(['name', 'email', 'subject', 'message', 'human']);
 
         Mail::assertNothingSent();
+    }
+
+    public function test_contact_form_rejects_unchecked_human_confirmation(): void
+    {
+        Mail::fake();
+
+        config(['mail.contact_to' => 'admin@example.com']);
+
+        $this->from(route('contact.create'))
+            ->post(route('contact.store'), [
+                'name' => 'Chris Angler',
+                'email' => 'chris@example.com',
+                'subject' => 'Missing venue',
+                'message' => 'Could you add Wingate Wellfield Lake?',
+                'website' => '',
+            ])
+            ->assertRedirect(route('contact.create'))
+            ->assertSessionHasErrors('human');
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseCount('message_threads', 0);
     }
 }

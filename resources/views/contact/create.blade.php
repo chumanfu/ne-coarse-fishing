@@ -40,11 +40,31 @@
                 @enderror
             </div>
 
-            {{-- Honeypot for bots --}}
+            {{-- Hidden honeypot: bots often fill every text field. --}}
             <div class="hidden" aria-hidden="true">
                 <label for="website">Website</label>
                 <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
             </div>
+
+            <fieldset class="rounded-lg border-2 border-slate-300 p-4">
+                <legend class="px-1 text-sm font-semibold text-slate-900">Are you a human?</legend>
+                <p class="text-xs text-slate-600 mb-3">This stops automated messages and sales pitches. The form is for anglers and site questions only.</p>
+                <label for="human" class="flex items-start gap-3 min-h-11 cursor-pointer">
+                    <input
+                        id="human"
+                        name="human"
+                        type="checkbox"
+                        value="1"
+                        required
+                        @checked(old('human'))
+                        class="mt-1 h-5 w-5 rounded border-2 border-slate-400 text-sky-700 focus:ring-sky-700"
+                    >
+                    <span class="text-sm font-semibold text-slate-800">Yes — I am a person, not offering web, SEO, or other paid services.</span>
+                </label>
+                @error('human')
+                    <p class="text-sm text-red-700 mt-2">{{ $message }}</p>
+                @enderror
+            </fieldset>
 
             <button type="submit" class="px-5 py-3 rounded-md bg-sky-800 text-white font-bold hover:bg-sky-900">
                 Send message

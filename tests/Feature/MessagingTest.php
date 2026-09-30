@@ -26,6 +26,7 @@ class MessagingTest extends TestCase
             'email' => 'chris@example.com',
             'subject' => 'Missing venue',
             'message' => 'Could you add Wingate Wellfield Lake?',
+            'human' => '1',
             'website' => '',
         ])
             ->assertRedirect(route('contact.create'))
@@ -65,6 +66,7 @@ class MessagingTest extends TestCase
             'email' => 'logged@example.com',
             'subject' => 'Peg question',
             'message' => 'Is peg 12 still open?',
+            'human' => '1',
             'website' => '',
         ]);
 
