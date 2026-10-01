@@ -2,14 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\ClubClaims\Pages\ListClubClaims;
+use App\Filament\Resources\TackleShopClaims\Pages\ListTackleShopClaims;
+use App\Filament\Resources\VenueClaims\Pages\ListVenueClaims;
+use App\Models\Activity;
 use App\Models\Club;
 use App\Models\ClubClaim;
 use App\Models\TackleShop;
 use App\Models\TackleShopClaim;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenueClaim;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -194,7 +199,7 @@ class DirectoryOwnershipRolesTest extends TestCase
         ]);
 
         Livewire::actingAs($admin)
-            ->test(\App\Filament\Resources\ClubClaims\Pages\ListClubClaims::class)
+            ->test(ListClubClaims::class)
             ->callTableAction('approve', $claim);
 
         $this->assertTrue($claimer->fresh()->hasRole('club_owner'));
@@ -219,7 +224,7 @@ class DirectoryOwnershipRolesTest extends TestCase
         ]);
 
         Livewire::actingAs($admin)
-            ->test(\App\Filament\Resources\TackleShopClaims\Pages\ListTackleShopClaims::class)
+            ->test(ListTackleShopClaims::class)
             ->callTableAction('approve', $claim);
 
         $this->assertTrue($claimer->fresh()->hasRole('tackle_shop_owner'));
@@ -234,5 +239,89 @@ class DirectoryOwnershipRolesTest extends TestCase
 
         $this->assertTrue($user->hasAllRoles(['angler', 'club_owner', 'tackle_shop_owner', 'fishery_manager']));
         $this->assertTrue($user->canAccessPanel(filament()->getDefaultPanel()));
+    }
+
+    public function test_approving_venue_and_club_claims_updates_pending_review_activity(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->create();
+        $admin->assignRole('super_admin');
+
+        $claimer = User::factory()->create(['name' => 'Claiming Angler']);
+        $claimer->assignRole('angler');
+
+        $venue = Venue::factory()->create(['is_approved' => true, 'manager_id' => null]);
+        $club = Club::factory()->create(['is_published' => true, 'manager_id' => null]);
+
+        $this->actingAs($claimer)
+            ->post(route('venues.claim', $venue))
+            ->assertRedirect(route('venues.show', $venue));
+
+        $this->actingAs($claimer)
+            ->post(route('clubs.claim', $club))
+            ->assertRedirect(route('clubs.show', $club));
+
+        $venueClaim = VenueClaim::query()->where('venue_id', $venue->id)->firstOrFail();
+        $clubClaim = ClubClaim::query()->where('club_id', $club->id)->firstOrFail();
+
+        $this->assertDatabaseHas('activities', [
+            'type' => Activity::TYPE_VENUE_CLAIM,
+            'subject_id' => $venueClaim->id,
+            'summary' => 'Pending review',
+        ]);
+        $this->assertDatabaseHas('activities', [
+            'type' => Activity::TYPE_CLUB_CLAIM,
+            'subject_id' => $clubClaim->id,
+            'summary' => 'Pending review',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(ListVenueClaims::class)
+            ->callTableAction('approve', $venueClaim);
+
+        Livewire::actingAs($admin)
+            ->test(ListClubClaims::class)
+            ->callTableAction('approve', $clubClaim);
+
+        $this->assertDatabaseHas('activities', [
+            'type' => Activity::TYPE_VENUE_CLAIM,
+            'subject_id' => $venueClaim->id,
+            'summary' => 'Approved',
+        ]);
+        $this->assertDatabaseHas('activities', [
+            'type' => Activity::TYPE_CLUB_CLAIM,
+            'subject_id' => $clubClaim->id,
+            'summary' => 'Approved',
+        ]);
+    }
+
+    public function test_rejecting_a_claim_updates_activity_summary(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->create();
+        $admin->assignRole('super_admin');
+
+        $claimer = User::factory()->create();
+        $claimer->assignRole('angler');
+
+        $shop = TackleShop::factory()->create(['is_published' => true, 'manager_id' => null]);
+
+        $this->actingAs($claimer)
+            ->post(route('tackle-shops.claim', $shop))
+            ->assertRedirect(route('tackle-shops.show', $shop));
+
+        $claim = TackleShopClaim::query()->where('tackle_shop_id', $shop->id)->firstOrFail();
+
+        Livewire::actingAs($admin)
+            ->test(ListTackleShopClaims::class)
+            ->callTableAction('reject', $claim);
+
+        $this->assertDatabaseHas('activities', [
+            'type' => Activity::TYPE_SHOP_CLAIM,
+            'subject_id' => $claim->id,
+            'summary' => 'Rejected',
+        ]);
     }
 }

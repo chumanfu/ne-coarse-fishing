@@ -3,10 +3,13 @@
 namespace App\Providers;
 
 use App\Models\Club;
+use App\Models\ClubClaim;
 use App\Models\SiteAnnouncement;
 use App\Models\TackleShop;
-use App\Models\Venue;
+use App\Models\TackleShopClaim;
 use App\Models\User;
+use App\Models\Venue;
+use App\Models\VenueClaim;
 use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
@@ -75,5 +78,17 @@ class AppServiceProvider extends ServiceProvider
 
             app(ActivityLogger::class)->tackleShopAdded($shop);
         });
+
+        $syncClaimActivity = function (VenueClaim|ClubClaim|TackleShopClaim $claim): void {
+            if (! Schema::hasTable('activities') || ! $claim->wasChanged('status')) {
+                return;
+            }
+
+            app(ActivityLogger::class)->ownershipClaimStatusChanged($claim);
+        };
+
+        VenueClaim::updated($syncClaimActivity);
+        ClubClaim::updated($syncClaimActivity);
+        TackleShopClaim::updated($syncClaimActivity);
     }
 }

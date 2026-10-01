@@ -141,7 +141,7 @@ class ActivityLogger
             $claim,
             $claim->user,
             ($claim->user?->name ?? 'An angler').' claimed '.$claim->venue->name,
-            $claim->message ? str($claim->message)->limit(80)->toString() : 'Pending review',
+            $this->claimSummary($claim->message, $claim->status),
             VenueClaimResource::getUrl('index'),
         );
     }
@@ -169,7 +169,7 @@ class ActivityLogger
             $claim,
             $claim->user,
             ($claim->user?->name ?? 'An angler').' claimed club '.$claim->club->name,
-            $claim->message ? str($claim->message)->limit(80)->toString() : 'Pending review',
+            $this->claimSummary($claim->message, $claim->status),
             ClubClaimResource::getUrl('index'),
         );
     }
@@ -197,9 +197,24 @@ class ActivityLogger
             $claim,
             $claim->user,
             ($claim->user?->name ?? 'An angler').' claimed shop '.$claim->tackleShop->name,
-            $claim->message ? str($claim->message)->limit(80)->toString() : 'Pending review',
+            $this->claimSummary($claim->message, $claim->status),
             TackleShopClaimResource::getUrl('index'),
         );
+    }
+
+    public function ownershipClaimStatusChanged(VenueClaim|ClubClaim|TackleShopClaim $claim): void
+    {
+        $type = match (true) {
+            $claim instanceof VenueClaim => Activity::TYPE_VENUE_CLAIM,
+            $claim instanceof ClubClaim => Activity::TYPE_CLUB_CLAIM,
+            $claim instanceof TackleShopClaim => Activity::TYPE_SHOP_CLAIM,
+        };
+
+        Activity::query()
+            ->where('type', $type)
+            ->where('subject_type', $claim->getMorphClass())
+            ->where('subject_id', $claim->getKey())
+            ->update(['summary' => $this->claimSummary($claim->message, $claim->status)]);
     }
 
     public function tackleShopEditSuggested(TackleShopEditRequest $request): void
@@ -282,6 +297,17 @@ class ActivityLogger
             $thread->contact_name.' <'.$thread->contact_email.'>',
             MessageThreadResource::getUrl('view', ['record' => $thread]),
         );
+    }
+
+    private function claimSummary(?string $message, string $status): string
+    {
+        return match ($status) {
+            'approved' => 'Approved',
+            'rejected' => 'Rejected',
+            default => filled($message)
+                ? str($message)->limit(80)->toString()
+                : 'Pending review',
+        };
     }
 
     private function log(string $type, Model $subject, ?User $user, string $title, ?string $summary, string $url): void
