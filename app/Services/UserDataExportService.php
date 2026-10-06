@@ -7,6 +7,7 @@ use App\Models\Announcement;
 use App\Models\MatchReport;
 use App\Models\Message;
 use App\Models\MessageThread;
+use App\Models\PegFloatRig;
 use App\Models\SiteAnnouncement;
 use App\Models\TackleReview;
 use App\Models\User;
@@ -253,6 +254,23 @@ class UserDataExportService
                     'url' => method_exists($photo, 'url') ? $photo->url() : null,
                 ])->values()->all(),
             ])->values()->all(),
+            'peg_float_rigs' => PegFloatRig::query()
+                ->where('user_id', $user->id)
+                ->with(['peg.water.venue:id,name,slug'])
+                ->latest()
+                ->get()
+                ->map(fn (PegFloatRig $rig) => [
+                    'id' => $rig->id,
+                    'float_name' => $rig->float_name,
+                    'float_size' => $rig->float_size,
+                    'float_type' => $rig->float_type,
+                    'depth' => $rig->depthLabel(),
+                    'pattern' => $rig->patternLabel(),
+                    'olivette_grams' => $rig->olivette_grams,
+                    'notes' => $rig->notes,
+                    'venue' => $rig->peg?->water?->venue?->only(['id', 'name', 'slug']),
+                    'peg' => $rig->peg?->label(),
+                ])->values()->all(),
             'notes' => [
                 'Passwords and remember tokens are never included in this export.',
                 'Photo entries include URLs where available; download those files separately if you want local copies.',

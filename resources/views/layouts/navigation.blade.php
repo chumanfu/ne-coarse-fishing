@@ -13,6 +13,7 @@
                     <x-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-nav-link>
                     <x-nav-link :href="route('tackle-reviews.index')" :active="request()->routeIs('tackle-reviews.*')">Reviews</x-nav-link>
                     <x-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-nav-link>
+                    <x-nav-link :href="route('tools.float-shotting')" :active="request()->routeIs('tools.*')">Shotting</x-nav-link>
                     <x-nav-link :href="route('about')" :active="request()->routeIs('about')">About</x-nav-link>
                     <x-nav-link :href="route('contact.create')" :active="request()->routeIs('contact.*')">Contact</x-nav-link>
                 </div>
@@ -79,6 +80,7 @@
             <x-responsive-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('tackle-reviews.index')" :active="request()->routeIs('tackle-reviews.*')">Reviews</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('tools.float-shotting')" :active="request()->routeIs('tools.*')">Shotting</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('about')" :active="request()->routeIs('about')">About</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('contact.create')" :active="request()->routeIs('contact.*')">Contact</x-responsive-nav-link>
             @auth

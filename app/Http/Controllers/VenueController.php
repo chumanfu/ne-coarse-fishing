@@ -66,7 +66,7 @@ class VenueController extends Controller
 
         $venue->load([
             'waters.species',
-            'waters.pegs' => fn ($q) => $q->with('photos')->orderBy('sort_order')->orderBy('id'),
+            'waters.pegs' => fn ($q) => $q->with(['photos', 'floatRigs.user'])->orderBy('sort_order')->orderBy('id'),
             'waters.photos' => fn ($q) => $q->with('uploader')->orderBy('sort_order')->orderBy('id'),
             'waters.videos' => fn ($q) => $q->with('uploader')->orderBy('sort_order')->orderBy('id'),
             'manager',

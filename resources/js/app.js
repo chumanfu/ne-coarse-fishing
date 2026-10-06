@@ -1,4 +1,5 @@
 import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.esm';
+import shottingCalculator from './shotting/calculator';
 
 window.Alpine = Alpine;
 
@@ -18,6 +19,8 @@ function forceLightTheme() {
 forceLightTheme();
 
 document.addEventListener('alpine:init', () => {
+    Alpine.data('shottingCalculator', shottingCalculator);
+
     Alpine.store('photoLightbox', {
         photos: [],
         openIndex: null,

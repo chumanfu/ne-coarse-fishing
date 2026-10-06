@@ -9,6 +9,7 @@ use App\Http\Controllers\ClubEditRequestController;
 use App\Http\Controllers\CodeOfConductController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\FishingSessionController;
+use App\Http\Controllers\FloatShottingController;
 use App\Http\Controllers\GdprExportController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\MatchReportController;
@@ -159,6 +160,8 @@ Route::get('/tackle-reviews', [TackleReviewController::class, 'index'])->name('t
 Route::get('/clubs', [ClubController::class, 'index'])->name('clubs.index');
 Route::get('/clubs/{club:slug}', [ClubController::class, 'show'])->name('clubs.show');
 Route::get('/map', [MapController::class, 'index'])->name('map.index');
+Route::get('/tools/float-shotting', [FloatShottingController::class, 'show'])->name('tools.float-shotting');
+Route::get('/tools/shot-guide', [FloatShottingController::class, 'guide'])->name('tools.shot-guide');
 Route::get('/contact', [ContactController::class, 'create'])->name('contact.create');
 Route::post('/contact', [ContactController::class, 'store'])
     ->middleware('throttle:5,1')
@@ -245,6 +248,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tackle-reviews/{tackleReview}/edit', [TackleReviewController::class, 'edit'])->name('tackle-reviews.edit');
     Route::patch('/tackle-reviews/{tackleReview}', [TackleReviewController::class, 'update'])->name('tackle-reviews.update');
     Route::delete('/tackle-reviews/{tackleReview}', [TackleReviewController::class, 'destroy'])->name('tackle-reviews.destroy');
+
+    Route::post('/tools/float-shotting', [FloatShottingController::class, 'store'])->name('tools.float-shotting.store');
+    Route::delete('/tools/float-shotting/{pegFloatRig}', [FloatShottingController::class, 'destroy'])->name('tools.float-shotting.destroy');
 
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::get('/messages/{messageThread}', [MessageController::class, 'show'])->name('messages.show');

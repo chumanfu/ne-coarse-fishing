@@ -687,13 +687,13 @@
 
             @php
                 $verifiedPegs = $venue->waters->flatMap->pegs->where('is_verified', true)
-                    ->filter(fn ($peg) => $peg->photos->isNotEmpty() || filled($peg->description))
+                    ->filter(fn ($peg) => $peg->photos->isNotEmpty() || filled($peg->description) || $peg->floatRigs->isNotEmpty())
                     ->values();
             @endphp
             @if ($verifiedPegs->isNotEmpty())
                 <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
                     <h2 class="text-xl font-bold mb-1">Pegs</h2>
-                    <p class="text-sm text-slate-600 mb-4">Official peg write-ups and photos.</p>
+                    <p class="text-sm text-slate-600 mb-4">Official peg write-ups, photos and saved float rigs.</p>
                     <div class="space-y-6">
                         @foreach ($verifiedPegs as $peg)
                             <div class="border-2 border-slate-200 rounded-lg p-4">
@@ -710,6 +710,35 @@
                                         grid-class="grid grid-cols-2 sm:grid-cols-4 gap-2"
                                     />
                                 @endif
+                                @if ($peg->floatRigs->isNotEmpty())
+                                    <div class="mt-4">
+                                        <p class="text-sm font-semibold text-slate-800 mb-2">Float rigs</p>
+                                        <ul class="space-y-2">
+                                            @foreach ($peg->floatRigs as $rig)
+                                                <li class="border border-slate-200 rounded-md px-3 py-2 text-sm">
+                                                    <p class="font-semibold text-slate-900">{{ $rig->float_name }} · {{ $rig->float_size }}</p>
+                                                    <p class="text-slate-600">{{ $rig->patternLabel() }} · {{ $rig->floatTypeLabel() }} · {{ $rig->depthLabel() }}@if ($rig->user) · {{ $rig->user->name }}@endif</p>
+                                                    @if ($rig->notes)
+                                                        <p class="text-slate-700 mt-1">{{ $rig->notes }}</p>
+                                                    @endif
+                                                    <div class="mt-2 flex items-center gap-3">
+                                                        <a href="{{ route('tools.float-shotting', ['rig' => $rig->id]) }}" class="font-semibold text-sky-800 hover:underline">Open in the calculator</a>
+                                                        @can('delete', $rig)
+                                                            <form method="POST" action="{{ route('tools.float-shotting.destroy', $rig) }}" onsubmit="return confirm('Remove this float rig?')">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button class="font-semibold text-red-800 hover:underline">Remove</button>
+                                                            </form>
+                                                        @endcan
+                                                    </div>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
+                                <a href="{{ route('tools.float-shotting', ['peg' => $peg->id]) }}" class="inline-block mt-3 text-sm font-semibold text-sky-800 hover:underline">
+                                    {{ $peg->floatRigs->isNotEmpty() ? 'Add another float rig' : 'Save a float rig for this peg' }}
+                                </a>
                             </div>
                         @endforeach
                     </div>

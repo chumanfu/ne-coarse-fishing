@@ -68,6 +68,11 @@ class WaterPeg extends Model
         return $this->hasMany(WaterPegPhoto::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function floatRigs(): HasMany
+    {
+        return $this->hasMany(PegFloatRig::class)->latest();
+    }
+
     protected static function booted(): void
     {
         static::deleting(function (WaterPeg $peg): void {

@@ -18,6 +18,8 @@
                     <li><a href="{{ route('tackle-shops.index') }}" class="font-semibold text-paper-bright hover:text-white underline-offset-2 hover:underline">Tackle shops</a></li>
                     <li><a href="{{ route('tackle-reviews.index') }}" class="font-semibold text-paper-bright hover:text-white underline-offset-2 hover:underline">Tackle reviews</a></li>
                     <li><a href="{{ route('activity.index') }}" class="font-semibold text-paper-bright hover:text-white underline-offset-2 hover:underline">Activity</a></li>
+                    <li><a href="{{ route('tools.float-shotting') }}" class="font-semibold text-paper-bright hover:text-white underline-offset-2 hover:underline">Float shotting</a></li>
+                    <li><a href="{{ route('tools.shot-guide') }}" class="font-semibold text-paper-bright hover:text-white underline-offset-2 hover:underline">Shot guide</a></li>
                 </ul>
             </div>
 

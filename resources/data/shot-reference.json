@@ -1,0 +1,47 @@
+{
+    "shots": [
+        { "size": "SSG", "label": "SSG", "grams": 1.6, "use": "Locking heavy wagglers, legering, big bulks in fast water" },
+        { "size": "AAA", "label": "AAA", "grams": 0.8, "use": "Locking wagglers, Avon and heavy stick float bulks" },
+        { "size": "AB", "label": "AB", "grams": 0.6, "use": "Fine-tuning waggler locking shot" },
+        { "size": "BB", "label": "BB", "grams": 0.4, "use": "Locking wagglers, bulks on heavier floats" },
+        { "size": "No1", "label": "No.1", "grams": 0.3, "use": "Waggler bulks and trimming locking shot" },
+        { "size": "No3", "label": "No.3", "grams": 0.25, "use": "Stick float bulks" },
+        { "size": "No4", "label": "No.4", "grams": 0.2, "use": "Stick float shirt-button, heavy pole bulks" },
+        { "size": "No5", "label": "No.5", "grams": 0.15, "use": "Stick float droppers" },
+        { "size": "No6", "label": "No.6", "grams": 0.105, "use": "Shirt-button patterns, pole bulks" },
+        { "size": "No8", "label": "No.8", "grams": 0.063, "use": "The all-round dropper: waggler, stick and pole" },
+        { "size": "No9", "label": "No.9", "grams": 0.049, "use": "Pole droppers and light bulks" },
+        { "size": "No10", "label": "No.10", "grams": 0.04, "use": "Pole droppers, strung patterns, tell-tale shot" },
+        { "size": "No11", "label": "No.11", "grams": 0.031, "use": "Light pole droppers and strung shot" },
+        { "size": "No12", "label": "No.12", "grams": 0.024, "use": "Very light pole floats, slow-falling baits" },
+        { "size": "No13", "label": "No.13", "grams": 0.012, "use": "Dotting the tip down precisely" }
+    ],
+    "olivettes": [0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6],
+    "poleSizes": ["4x8", "4x10", "4x12", "4x14", "4x16", "4x18", "4x20"],
+    "patterns": [
+        {
+            "name": "Strung out",
+            "text": "Small, equal shot spaced evenly through the bottom of the rig. Slow, natural fall — best in shallow water or when fish feed on the drop."
+        },
+        {
+            "name": "Bulk & droppers",
+            "text": "Most of the weight bunched part-way down, with two or three small droppers below. Gets the bait down quickly past small fish and holds steady in deeper water."
+        },
+        {
+            "name": "Olivette",
+            "text": "A single streamlined pole weight in place of the bulk. The most stable choice for heavier pole floats in deep water, wind or tow."
+        },
+        {
+            "name": "Shirt button",
+            "text": "Equal shot spaced evenly from float to hook on a stick float. The classic pattern for steady running water."
+        },
+        {
+            "name": "Locking + droppers",
+            "text": "Waggler weight locked either side of the float for casting, with a few small shot down the line to cock the float and show bites."
+        },
+        {
+            "name": "Pellet waggler",
+            "text": "All weight at the float so the pellet falls slowly alongside the feed. Many are pre-loaded."
+        }
+    ]
+}
