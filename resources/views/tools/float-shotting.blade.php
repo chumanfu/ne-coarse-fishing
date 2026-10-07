@@ -137,15 +137,79 @@
             <p class="text-slate-900" x-text="active?.summary"></p>
             <p class="text-sm text-slate-600 mt-1.5" x-text="active?.whenToUse"></p>
 
-            {{-- Rig diagram: shot markers sit on the line, with labels nudged clear of each other. --}}
+            <div class="mt-4 rounded-xl bg-paper p-3">
+                <h3 class="text-sm font-bold text-slate-900">Dot the tip</h3>
+                <p class="mt-1 text-sm text-slate-600">
+                    Try a combination, or add and change the shot, until only the
+                    <span x-text="floatType === 'pole' || floatType === 'dibber' ? 'bristle' : 'coloured tip'"></span>
+                    is above the water. Each shot you add sinks the float.
+                </p>
+
+                <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Shot combinations">
+                    <template x-for="choice in dotChoices" :key="choice.id">
+                        <button type="button" @click="applyDots(choice)" :aria-pressed="dotPick === choice.id"
+                                class="{{ $chipBase }}"
+                                :class="dotPick === choice.id ? '{{ $chipOn }}' : '{{ $chipOff }}'">
+                            <span x-text="choice.label"></span>
+                        </button>
+                    </template>
+                </div>
+
+                <p class="mt-3 text-sm font-semibold text-slate-700">Shot size</p>
+                <div class="mt-2 flex flex-wrap gap-2" role="group" aria-label="Dotting shot size">
+                    <template x-for="size in dotSizeOptions" :key="size.size">
+                        <button type="button" @click="dotSize = size.size" :aria-pressed="dotSize === size.size"
+                                class="{{ $chipBase }}"
+                                :class="dotSize === size.size ? '{{ $chipOn }}' : '{{ $chipOff }}'"
+                                x-text="size.label"></button>
+                    </template>
+                </div>
+                <button type="button" @click="addDot()" :disabled="dots.length >= 6"
+                        class="mt-3 {{ $chipBase }} border-slate-300 bg-white text-slate-900 hover:text-slate-900 disabled:opacity-50">
+                    Add shot
+                </button>
+
+                <ul class="mt-3 space-y-2" x-show="dots.length" x-cloak>
+                    <template x-for="(size, index) in dots" :key="index + '-' + size">
+                        <li class="flex flex-wrap items-center gap-2">
+                            <label class="sr-only" :for="'dot-size-' + index">Shot <span x-text="index + 1"></span> size</label>
+                            <select :id="'dot-size-' + index" class="rounded-md border-2 border-slate-400 py-1.5 pl-2 pr-8 text-sm"
+                                    :value="size" @change="changeDot(index, $event.target.value)">
+                                <template x-for="option in dotSizeOptions" :key="option.size">
+                                    <option :value="option.size" x-text="option.label" :selected="option.size === size"></option>
+                                </template>
+                            </select>
+                            <button type="button" @click="removeDot(index)"
+                                    class="text-sm font-semibold text-sky-800 hover:underline">Remove</button>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+
+            <p class="mt-4 text-sm font-bold text-slate-900" x-show="diagram" x-cloak x-text="diagram?.sitTitle"></p>
+            <p class="text-sm text-slate-600" x-show="diagram" x-cloak x-text="diagram?.sitDetail"></p>
+
+            {{-- Rig diagram: the float sinks through the water line as dotting shot is added. --}}
             <div class="relative mt-4 overflow-hidden rounded-xl bg-water-soft" x-show="diagram" x-cloak
                  :style="`height: ${diagram?.height}px`" role="img" :aria-label="diagram?.aria">
-                <div class="absolute inset-x-0 h-px bg-water-mist" style="top: 30px"></div>
+                <div class="absolute inset-x-0 bg-paper" :style="`height: ${diagram?.waterY}px`"></div>
+                <div class="absolute inset-x-0 h-0.5 bg-water" :style="`top: ${diagram?.waterY}px`"></div>
+                <p class="absolute right-2.5 text-[11px] font-semibold text-slate-900" style="top: 8px" x-text="diagram?.sitTitle"></p>
+                <p class="absolute right-2.5 text-[11px] font-semibold text-water-dark" :style="`top: ${diagram?.waterY - 16}px`">Water</p>
+
                 <div class="absolute w-px bg-slate-400" :style="`left: ${lineX - 0.5}px; top: ${diagramTop}px; height: ${diagram?.lineLen}px`"></div>
 
-                <div class="absolute rounded-t-[3px] bg-orange-500" :style="`top: 10px; left: ${lineX - 2.5}px; width: 5px; height: 20px`"></div>
-                <div class="absolute rounded-full bg-paper-deep border border-bank/30" :style="`top: 28px; left: ${lineX - 7}px; width: 14px; height: 32px`"></div>
-                <div class="absolute bg-paper-deep" :style="`top: 58px; left: ${lineX - 1.5}px; width: 3px; height: 14px`"></div>
+                <div class="absolute z-10 bg-orange-500 transition-[top] duration-200"
+                     :class="diagram?.isBristle ? 'rounded-t-sm' : 'rounded-sm'"
+                     :style="`top: ${diagram?.floatTop}px; left: ${lineX - (diagram?.isBristle ? 1.5 : 3.5)}px; width: ${diagram?.isBristle ? 3 : 7}px; height: ${diagram?.bristleH}px`"></div>
+                <div class="absolute z-10 bg-amber-100 transition-[top] duration-200" x-show="diagram && ! diagram.isBristle"
+                     :style="`top: ${diagram?.floatTop + diagram?.bristleH / 2}px; left: ${lineX - 3.5}px; width: 7px; height: ${diagram?.bristleH / 2}px`"></div>
+                <div class="absolute z-10 rounded-full border border-bank/30 bg-paper-deep transition-[top] duration-200"
+                     :style="`top: ${diagram?.floatTop + diagram?.bristleH - 2}px; left: ${lineX - 7}px; width: 14px; height: ${diagram?.bodyH}px`"></div>
+                <div class="absolute z-10 bg-paper-deep transition-[top] duration-200"
+                     :style="`top: ${diagram?.stemTop}px; left: ${lineX - 1.5}px; width: 3px; height: ${diagram?.stemH}px`"></div>
+                <div class="pointer-events-none absolute z-20"
+                     :style="`top: ${diagram?.waterY}px; left: ${lineX - 16}px; width: 32px; height: ${diagram?.washHeight}px; background: rgba(74, 124, 140, 0.45)`"></div>
 
                 {{-- One straight leader per shot, so lines to displaced labels never merge. --}}
                 <svg class="pointer-events-none absolute inset-0 h-full w-full text-water/40" aria-hidden="true">
@@ -157,9 +221,9 @@
 
                 <template x-for="(group, index) in diagram?.groups ?? []" :key="'shot-' + index">
                     <div aria-hidden="true">
-                        <div class="absolute border" :style="group.markerStyle"
+                        <div class="absolute z-30 border" :style="group.markerStyle"
                              :class="group.isStops ? 'bg-water border-water' : (group.isLocking ? 'bg-water-dark border-water-dark' : 'bg-slate-400 border-slate-600')"></div>
-                        <div class="absolute right-2.5 leading-tight" data-shot-label
+                        <div class="absolute z-30 right-2.5 leading-tight" data-shot-label
                              :style="`top: ${group.labelTop}px; left: ${labelX}px`">
                             <div class="text-[13px] font-semibold text-slate-900" x-text="group.text"></div>
                             <div class="text-[11px] text-slate-600" x-text="group.position"></div>

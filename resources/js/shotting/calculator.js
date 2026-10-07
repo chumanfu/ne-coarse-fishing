@@ -1,5 +1,5 @@
 import { FLOAT_TYPES, formatGrams, guessFloatType, parseFloatSize } from './floats';
-import { describeItems } from './shots';
+import { SHOT, describeItems } from './shots';
 import { GENERAL_TIPS, MIN_DEPTH_CM, generatePatterns, groupGrams, olivetteOptions, patternUsesOlivette } from './shotting';
 import { depthToCm, formatHeight } from './units';
 
@@ -11,15 +11,98 @@ const ROLE_LABEL = {
     dropper: 'Dropper',
     strung: 'Strung',
     trim: 'Trim',
+    dot: 'Dot',
 };
 
 const LINE_X = 48;
 const LABEL_X = 96;
-const DIAGRAM_TOP = 72; // where the line leaves the float
+const WATER_Y = 48; // the water line the float sinks through
+const BRISTLE_H = 20;
+const BODY_H = 26;
+const MAX_SINK = BRISTLE_H + 8;
+const MAX_RISE = 16;
+const DIAGRAM_TOP = WATER_Y + MAX_SINK + BODY_H + 12; // line starts below a fully sunk float
 const LABEL_SPACING = 6;
 const LABEL_ESTIMATE = 36; // used until a label has been measured
 const LABEL_OVERHANG_TOP = 20; // how far labels may sit above the float
 const LABEL_OVERHANG_BOTTOM = 10; // and below the hook
+
+/** Small shot used to dot a tip. Heaviest first, same order as the rest of the rig. */
+const DOT_SIZES = ['No6', 'No8', 'No9', 'No10', 'No11', 'No12', 'No13'];
+
+function tipName(floatType) {
+    return floatType === 'pole' || floatType === 'dibber' ? 'bristle' : 'coloured tip';
+}
+
+/**
+ * Ways to make up the grams still needed, or a few single shots to try when the
+ * float is already on weight. The angler picks one, then adds or changes a shot.
+ */
+function dotSuggestions(shortfall, shots) {
+    const goal = Math.max(0, shortfall);
+    const options = [];
+    for (const shot of shots) {
+        options.push({ id: shot.size, shots: [shot.size], grams: shot.grams, label: `1 × ${shot.label}` });
+        if (goal > 0.015 && shot.grams * 2 <= goal + shot.grams * 0.5 + 1e-6) {
+            options.push({
+                id: `${shot.size}x2`,
+                shots: [shot.size, shot.size],
+                grams: shot.grams * 2,
+                label: `2 × ${shot.label}`,
+            });
+        }
+    }
+
+    options.sort(
+        (a, b) => Math.abs(a.grams - goal) - Math.abs(b.grams - goal) || a.shots.length - b.shots.length || a.grams - b.grams,
+    );
+
+    const picked = [];
+    for (const option of options) {
+        if (picked.some((choice) => choice.label === option.label)) continue;
+        if (goal > 0.02 && option.grams > goal + 0.08) continue;
+        if (goal <= 0.015 && option.shots.length > 1) continue;
+        picked.push(option);
+        if (picked.length === 4) break;
+    }
+
+        if (goal <= 0.015 && ! picked.some((choice) => choice.id === 'No8')) {
+            const no8 = shots.find((shot) => shot.size === 'No8');
+            if (no8) {
+                if (picked.length >= 4) picked.pop();
+                picked.push({ id: 'No8', shots: ['No8'], grams: no8.grams, label: `1 × ${no8.label}` });
+            }
+        }
+
+        return [{ id: 'none', shots: [], grams: 0, label: 'As shotted' }, ...picked];
+}
+
+function tipSit(overGrams, floatType) {
+    const tip = tipName(floatType);
+    if (overGrams > SHOT.No8.grams * 0.85) {
+        return {
+            title: 'Tip under',
+            detail: `The ${tip} has gone under. Take a shot off, or change to a smaller one.`,
+        };
+    }
+    if (overGrams > 0.012) {
+        return {
+            title: 'Dipping under',
+            detail: `The ${tip} is going under the water.`,
+        };
+    }
+    if (overGrams >= -0.012) {
+        return {
+            title: tip === 'bristle' ? 'Bristle showing' : 'Coloured tip showing',
+            detail: `Only the ${tip} is above the water.`,
+        };
+    }
+
+    return {
+        title: 'Body showing',
+        detail: `Add a shot to dot the float down to the ${tip}.`,
+    };
+}
 
 function groupText(g) {
     if (g.role === 'stops') return 'Float stops';
@@ -33,6 +116,7 @@ function groupText(g) {
 
 function positionText(g, unit) {
     if (g.role === 'locking' || g.role === 'stops') return 'At float';
+    if (g.role === 'dot') return 'Under the float';
 
     return `${formatHeight(g.heightCm, unit)} from hook`;
 }
@@ -75,6 +159,9 @@ export default function shottingCalculator(config = {}) {
         unit: config.depthUnit ?? 'ft',
         patternId: config.patternId ?? null,
         olivetteGrams: config.olivetteGrams ?? null,
+        dots: [],
+        dotSize: 'No8',
+        dotPick: 'none',
         labelHeights: [],
 
         venues: config.venues ?? [],
@@ -92,6 +179,11 @@ export default function shottingCalculator(config = {}) {
 
             this.remeasure = () => this.measureLabels();
             window.addEventListener('resize', this.remeasure);
+            this.$watch('floatSize', () => this.clearDots());
+            this.$watch('floatType', () => this.clearDots());
+            this.$watch('patternId', () => this.clearDots());
+            this.$watch('olivetteGrams', () => this.clearDots());
+            this.$watch('depthText', () => this.clearDots());
         },
 
         destroy() {
@@ -163,23 +255,58 @@ export default function shottingCalculator(config = {}) {
         get loadSummary() {
             const pattern = this.active;
             if (! pattern) return null;
-            const diff = pattern.floatGrams - pattern.loadGrams;
+            const load = pattern.loadGrams + this.dotGrams;
+            const sit = tipSit(load - pattern.floatGrams, this.floatType);
 
             return {
-                heading: `Shot load ${formatGrams(pattern.loadGrams)} of ${formatGrams(pattern.floatGrams)}`,
+                heading: `Shot load ${formatGrams(load)} of ${formatGrams(pattern.floatGrams)}`,
                 detail: this.parsed?.loadedGrams && pattern.groups.some((group) => group.role === 'stops')
-                    ? `Plus ${formatGrams(this.parsed.loadedGrams)} already in the float. The stops set the depth.`
-                    : diff > 0.015
-                        ? `About ${formatGrams(diff)} light – add a small shot under the float to dot the tip down.`
-                        : 'Should sit the float with just the tip showing.',
+                    ? `Plus ${formatGrams(this.parsed.loadedGrams)} already in the float. The stops set the depth. ${sit.detail}`
+                    : sit.detail,
             };
+        },
+
+        get dotSizeOptions() {
+            return DOT_SIZES.map((size) => SHOT[size]);
+        },
+
+        get dotItems() {
+            return DOT_SIZES
+                .map((size) => ({ shot: SHOT[size], count: this.dots.filter((dot) => dot === size).length }))
+                .filter((item) => item.count > 0);
+        },
+
+        get dotGrams() {
+            return this.dots.reduce((sum, size) => sum + SHOT[size].grams, 0);
+        },
+
+        get dotChoices() {
+            const pattern = this.active;
+            if (! pattern) return [];
+
+            return dotSuggestions(pattern.floatGrams - pattern.loadGrams, this.dotSizeOptions);
+        },
+
+        /** Pattern groups plus any shot the angler has added to dot the tip. */
+        get displayGroups() {
+            if (! this.active) return [];
+
+            const groups = [...this.active.groups];
+            if (this.dots.length) {
+                groups.push({
+                    role: 'dot',
+                    heightCm: Math.max(this.depthCm - 25, this.depthCm * 0.82),
+                    items: this.dotItems,
+                    note: 'Just under the float, to dot the tip',
+                });
+            }
+
+            return groups.sort((a, b) => b.heightCm - a.heightCm);
         },
 
         /** Table rows for the pattern, in the same order as the diagram. */
         get rows() {
-            if (! this.active) return [];
-
-            return this.active.groups.map((g) => ({
+            return this.displayGroups.map((g) => ({
                 role: ROLE_LABEL[g.role],
                 text: groupText(g),
                 position: positionText(g, this.unit),
@@ -193,7 +320,8 @@ export default function shottingCalculator(config = {}) {
             if (! pattern || ! this.depthValid) return null;
 
             const depthCm = this.depthCm;
-            const heights = pattern.groups.map((_, i) => this.labelHeights[i] ?? LABEL_ESTIMATE);
+            const source = this.displayGroups;
+            const heights = source.map((_, i) => this.labelHeights[i] ?? LABEL_ESTIMATE);
             // The line stretches to fit the labels, so a pattern with more shot than
             // the depth leaves room for never ends up with the hook off the bottom.
             const labelsNeeded = heights.reduce((sum, h) => sum + h + LABEL_SPACING, -LABEL_SPACING);
@@ -204,23 +332,40 @@ export default function shottingCalculator(config = {}) {
             const hookY = DIAGRAM_TOP + lineLen;
             const yFor = (h) => DIAGRAM_TOP + (1 - h / depthCm) * lineLen;
 
-            const groups = pattern.groups.map((g) => ({ g, y: yFor(g.heightCm), text: groupText(g) }));
+            const groups = source.map((g) => ({ g, y: yFor(g.heightCm), text: groupText(g) }));
             const tops = layoutLabels(
                 groups.map(({ y }) => y),
                 heights,
                 DIAGRAM_TOP - LABEL_OVERHANG_TOP,
                 hookY + LABEL_OVERHANG_BOTTOM,
             );
-            const labelsBottom = tops.length ? tops[tops.length - 1] + heights[heights.length - 1] : 0;
+            const labelsBottom = tops.length ? tops[tops.length - 1] + heights[tops.length - 1] : 0;
             const bedY = Math.max(hookY + 14, labelsBottom + 8);
+            const over = pattern.loadGrams + this.dotGrams - pattern.floatGrams;
+            const sinkPx = over >= 0
+                ? Math.min(MAX_SINK, (over / SHOT.No8.grams) * BRISTLE_H)
+                : -Math.min(MAX_RISE, (-over / Math.max(SHOT.No4.grams, pattern.floatGrams * 0.12)) * MAX_RISE);
+            const floatTop = WATER_Y - BRISTLE_H + sinkPx;
+            const stemTop = floatTop + BRISTLE_H + BODY_H - 2;
+            const sit = tipSit(over, this.floatType);
 
             return {
                 lineLen,
                 hookY,
                 bedY,
                 height: bedY + 30,
+                waterY: WATER_Y,
+                floatTop,
+                bristleH: BRISTLE_H,
+                bodyH: BODY_H,
+                stemTop,
+                stemH: Math.max(8, DIAGRAM_TOP - stemTop),
+                washHeight: Math.max(0, DIAGRAM_TOP - WATER_Y - 8),
+                isBristle: this.floatType === 'pole' || this.floatType === 'dibber',
+                sitTitle: sit.title,
+                sitDetail: sit.detail,
                 depthLabel: formatHeight(depthCm, this.unit),
-                aria: `Rig diagram: ${groups
+                aria: `Rig diagram, ${sit.title}. ${groups
                     .map(({ g, text }) => `${text}, ${positionText(g, this.unit)}`)
                     .join('; ')}`,
                 groups: groups.map(({ g, y, text }, i) => {
@@ -233,6 +378,7 @@ export default function shottingCalculator(config = {}) {
                         isOlivette: g.role === 'olivette',
                         isLocking: g.role === 'locking',
                         isStops: g.role === 'stops',
+                        isDot: g.role === 'dot',
                         y,
                         labelTop: tops[i],
                         markerStyle:
@@ -282,6 +428,35 @@ export default function shottingCalculator(config = {}) {
         selectType(id) {
             this.floatType = id;
             this.typeChosen = true;
+        },
+
+        clearDots() {
+            if (this.dots.length === 0 && this.dotPick === 'none') return;
+
+            this.dots = [];
+            this.dotPick = 'none';
+        },
+
+        applyDots(choice) {
+            this.dots = [...choice.shots];
+            this.dotPick = choice.id;
+        },
+
+        addDot() {
+            if (this.dots.length >= 6) return;
+
+            this.dots = [...this.dots, this.dotSize];
+            this.dotPick = 'custom';
+        },
+
+        changeDot(index, size) {
+            this.dots = this.dots.map((dot, i) => (i === index ? size : dot));
+            this.dotPick = 'custom';
+        },
+
+        removeDot(index) {
+            this.dots = this.dots.filter((_, i) => i !== index);
+            this.dotPick = 'custom';
         },
 
         /** Re-measures the labels so the layout can keep them clear of each other. */

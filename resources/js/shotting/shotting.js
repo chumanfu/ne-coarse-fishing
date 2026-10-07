@@ -156,6 +156,58 @@ function sliderBulkHeight(lowest, depthCm) {
     return onLine(Math.max(lowest + 20, clamp(depthCm * 0.2, 60, 120)), depthCm);
 }
 
+/**
+ * The weight an olivette does not take goes down the line as droppers.
+ * A trim smaller than one more dropper may sit with the olivette. A whole shot must not:
+ * that is how an 8g olivette on a 9g float grew a second bulk of BB, No.5 and No.12.
+ */
+function olivetteDroppers(rem, preferred, maxDroppers) {
+    const none = { shot: preferred, count: 0, extra: [] };
+    if (rem < SHOT.No12.grams) return none;
+
+    const ladder = [SHOT.No12, SHOT.No11, SHOT.No10, SHOT.No9, SHOT.No8, SHOT.No6, SHOT.No5, SHOT.No4].filter(
+        (shot) => shot.grams + 1e-9 >= preferred.grams,
+    );
+    const fits = [];
+    for (const shot of ladder) {
+        const count = Math.min(maxDroppers, Math.floor((rem + 1e-6) / shot.grams));
+        if (count < 1) continue;
+        fits.push({ shot, count, leftover: rem - count * shot.grams });
+    }
+
+    // The usual dropper size, when another one of them would not fit. If the cap
+    // stopped us short, step up a size so the gram is still droppers.
+    const finishes = (fit) =>
+        fit.leftover < SHOT.No12.grams - 1e-9 || (fit.count < maxDroppers && fit.leftover < fit.shot.grams - 1e-6);
+    const natural = fits.find((fit) => fit.shot.size === preferred.size && finishes(fit));
+    const chosen =
+        natural ??
+        fits
+            .filter(finishes)
+            .sort((a, b) => a.leftover - b.leftover || a.shot.grams - b.shot.grams || a.count - b.count)[0];
+
+    if (chosen) {
+        return {
+            shot: chosen.shot,
+            count: chosen.count,
+            extra: trimItems(Math.max(0, chosen.leftover), chosen.shot.grams * 0.99),
+        };
+    }
+
+    const shot = ladder[ladder.length - 1] ?? preferred;
+    const count = Math.min(maxDroppers, Math.floor((rem + 1e-6) / shot.grams));
+    const leftover = Math.max(0, rem - count * shot.grams);
+
+    return {
+        shot,
+        count,
+        extra:
+            leftover > shot.grams - 1e-6
+                ? fillWeight(leftover, shotsBetween(SHOT.No13.grams, Math.max(SHOT.No13.grams, leftover)))
+                : trimItems(leftover, shot.grams * 0.99),
+    };
+}
+
 function olivettePattern(input, spec) {
     const { floatGrams: fg, depthCm: d } = input;
     let options = olivetteOptions(fg);
@@ -166,23 +218,18 @@ function olivettePattern(input, spec) {
         if (!options.length) options = [OLIVETTES[0]];
     }
 
-    const base = poleDropper(fg).grams < SHOT.No10.grams ? SHOT.No10 : poleDropper(fg);
-    const maxDroppers = d > 250 ? 4 : 3;
-    // Auto: the largest olivette that still leaves room for a full set of droppers.
-    const auto = [...options].reverse().find((o) => o <= fg - maxDroppers * base.grams + 1e-6) ?? options[0];
+    const base = spec.dropper ?? (poleDropper(fg).grams < SHOT.No10.grams ? SHOT.No10 : poleDropper(fg));
+    const maxDroppers = spec.maxDroppers ?? 6;
+    // About 80–90% of the float, so the rest is droppers rather than another bulk of shot.
+    const inBand = options.filter((o) => o >= fg * 0.8 - 1e-6 && o <= fg * 0.9 + 1e-6);
+    const auto =
+        inBand[inBand.length - 1] ??
+        [...options].reverse().find((o) => o <= fg - Math.min(3, maxDroppers) * base.grams + 1e-6) ??
+        options[0];
     const olive = input.olivetteGrams && options.includes(input.olivetteGrams) ? input.olivetteGrams : auto;
 
     const rem = Math.max(0, fg - olive);
-    const dropper =
-        [base, SHOT.No10, SHOT.No11, SHOT.No12].find((s) => s.grams <= base.grams && rem / s.grams >= 1 - 1e-6) ??
-        SHOT.No12;
-    const n = rem < SHOT.No12.grams ? 0 : clamp(Math.floor((rem + 1e-6) / dropper.grams), 1, maxDroppers);
-    // A small olivette leaves extra weight: carry it as shot just under the olivette.
-    const leftover = rem - n * dropper.grams;
-    const extra =
-        leftover > dropper.grams
-            ? fillWeight(leftover, shotsBetween(SHOT.No13.grams, Math.max(SHOT.No13.grams, leftover)))
-            : trimItems(leftover, dropper.grams * 0.99);
+    const { shot: dropper, count: n, extra } = olivetteDroppers(rem, base, maxDroppers);
 
     const lowest = lowestShot(d);
     const olH = spec.height(lowest, d);
@@ -282,13 +329,25 @@ const LOCKING_SIZES = ['SSG', 'AAA', 'BB', 'No1', 'No4', 'No6'];
 
 /**
  * About four fifths of an unloaded waggler sits at the float (Total Fishing).
+ * Locking shot is always paired, so the same shot sits above and below the float.
  * One piece stays under a third of the float, so 2 × BB cannot cock a 1g waggler on its own.
  */
 function lockingItems(floatGrams, lockTarget) {
     const ceiling = Math.max(SHOT.No6.grams, floatGrams / 3);
     const allowed = shotsBetween(SHOT.No6.grams, ceiling).filter((shot) => LOCKING_SIZES.includes(shot.size));
+    const sizes = allowed.length ? allowed : [SHOT.No6];
 
-    return fillWeight(lockTarget, allowed.length ? allowed : [SHOT.No6]);
+    const out = [];
+    let remaining = lockTarget;
+    for (const shot of sizes) {
+        const pairs = Math.floor((remaining + 1e-6) / (shot.grams * 2));
+        if (pairs > 0) {
+            out.push({ shot, count: pairs * 2 });
+            remaining -= pairs * 2 * shot.grams;
+        }
+    }
+
+    return out;
 }
 
 function wagglerLocking(input) {
@@ -297,16 +356,24 @@ function wagglerLocking(input) {
     let n = d < 120 ? 2 : 3;
     while (n > 1 && n * dropper.grams > fg * 0.25) n--;
     const lock = lockingItems(fg, fg - n * dropper.grams);
+    // Weight too small for another locking pair goes down the line, not on as a single shot.
+    let leftover = fg - totalGrams(lock) - n * dropper.grams;
+    while (leftover >= dropper.grams - 1e-6 && n < 6) {
+        n++;
+        leftover -= dropper.grams;
+    }
 
     const lowest = lowestShot(d);
     const top = onLine(Math.max(lowest + 10, d * 0.33), d);
     const groups = [
-        {
-            role: 'locking',
-            heightCm: d,
-            items: lock,
-            note: 'Split either side of the float – about two-thirds below, one-third above',
-        },
+        ...(lock.length
+            ? [{
+                role: 'locking',
+                heightCm: d,
+                items: lock,
+                note: 'Paired either side of the float – the same shot above and below',
+            }]
+            : []),
         ...evenly(n, lowest, top).map((h) => ({
             role: 'dropper',
             heightCm: h,
@@ -322,7 +389,7 @@ function wagglerLocking(input) {
             whenToUse: 'The standard waggler set-up for stillwaters and slow rivers from about 4ft deep.',
             groups,
             tips: [
-                'Lock with AAA, BB, No.4 or No.6. About four fifths of the float sits at the base, the rest is droppers.',
+                'Lock with AAA, BB, No.4 or No.6, always in pairs, so the same shot sits above and below the float. About four fifths of the float sits at the base, the rest is droppers.',
                 'Sink the line after casting: overcast, then dip the rod tip and wind back sharply.',
                 'Keep most of the weight at the float for casting distance and accuracy.',
                 'Move the droppers up the line if fish are feeding off the bottom.',
@@ -340,15 +407,32 @@ function wagglerDrop(input) {
     const count = clamp(Math.floor((stringTarget + 1e-6) / shot.grams), 1, 8);
     const lockTarget = fg - count * shot.grams;
     const lock = lockingItems(fg, lockTarget);
+    const spare = fillWeight(
+        Math.max(0, lockTarget - totalGrams(lock)),
+        shotsBetween(SHOT.No13.grams, Math.max(SHOT.No13.grams, shot.grams)),
+    );
+    const strungShots = [
+        ...Array.from({ length: count }, () => shot),
+        ...spare.flatMap((item) => Array.from({ length: item.count }, () => item.shot)),
+    ];
+
+    const strungItems = [];
+    for (const piece of strungShots) {
+        const found = strungItems.find((item) => item.shot.size === piece.size);
+        if (found) found.count++;
+        else strungItems.push({ shot: piece, count: 1 });
+    }
 
     const lowest = lowestShot(d);
     const top = onLine(Math.max(lowest + 10, d * 0.6), d);
     const groups = [
-        { role: 'locking', heightCm: d, items: lock, note: 'Locking shot either side of the float' },
-        ...evenly(count, lowest, top).map((h) => ({
+        ...(lock.length
+            ? [{ role: 'locking', heightCm: d, items: lock, note: 'Paired either side of the float – the same shot above and below' }]
+            : []),
+        ...evenly(strungShots.length, lowest, top).map((h, i) => ({
             role: 'strung',
             heightCm: h,
-            items: [{ shot, count: 1 }],
+            items: [{ shot: strungShots[i], count: 1 }],
         })),
     ];
 
@@ -356,7 +440,7 @@ function wagglerDrop(input) {
         {
             id: 'waggler_drop',
             name: 'On the drop',
-            summary: `Locking shot plus ${count} × ${shot.label} strung through the bottom half`,
+            summary: `Locking shot plus ${describeItems(strungItems)} strung through the bottom half`,
             whenToUse: 'Shallow swims, or when fish rise to loose feed – the bait falls slowly and naturally.',
             groups,
             tips: [
@@ -441,6 +525,8 @@ function sliderOlivette(input) {
         id: 'slider_olivette',
         name: 'Olivette',
         requireOptions: false,
+        dropper: wagglerDropper(input.floatGrams),
+        maxDroppers: 6,
         note: 'Olivette below the float, which slides on the line',
         whenToUse:
             'The same deep-water slider, with an olivette instead of a bulk of shot – cleaner through the water and more stable in wind or tow.',

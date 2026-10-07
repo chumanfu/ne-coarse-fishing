@@ -16,7 +16,7 @@
         { "size": "No12", "label": "No.12", "grams": 0.024, "use": "Very light pole floats, slow-falling baits" },
         { "size": "No13", "label": "No.13", "grams": 0.012, "use": "Dotting the tip down precisely" }
     ],
-    "olivettes": [0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6],
+    "olivettes": [0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 10, 12],
     "poleSizes": ["4x8", "4x10", "4x12", "4x14", "4x16", "4x18", "4x20"],
     "patterns": [
         {

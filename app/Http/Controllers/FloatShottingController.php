@@ -50,7 +50,7 @@ class FloatShottingController extends Controller
             'depth' => ['required', 'numeric', 'min:0.1', 'max:50'],
             'depth_unit' => ['required', Rule::in(['ft', 'm'])],
             'pattern_id' => ['required', Rule::in(PegFloatRig::PATTERN_IDS)],
-            'olivette_grams' => ['nullable', 'numeric', 'min:0.1', 'max:10'],
+            'olivette_grams' => ['nullable', 'numeric', 'min:0.1', 'max:12'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
