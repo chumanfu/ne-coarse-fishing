@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WaterPeg extends Model
@@ -68,9 +69,11 @@ class WaterPeg extends Model
         return $this->hasMany(WaterPegPhoto::class)->orderBy('sort_order')->orderBy('id');
     }
 
-    public function floatRigs(): HasMany
+    public function floatRigs(): BelongsToMany
     {
-        return $this->hasMany(PegFloatRig::class)->latest();
+        return $this->belongsToMany(PegFloatRig::class, 'peg_float_rig_peg')
+            ->withTimestamps()
+            ->orderByDesc('peg_float_rigs.created_at');
     }
 
     protected static function booted(): void

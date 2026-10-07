@@ -261,6 +261,7 @@ class UserDataExportService
                 ->get()
                 ->map(fn (PegFloatRig $rig) => [
                     'id' => $rig->id,
+                    'name' => $rig->displayName(),
                     'float_name' => $rig->float_name,
                     'float_size' => $rig->float_size,
                     'float_type' => $rig->float_type,

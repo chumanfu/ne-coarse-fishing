@@ -28,6 +28,24 @@ class PegFloatRigFactory extends Factory
             'pattern_id' => 'bulk_droppers',
             'olivette_grams' => null,
             'notes' => null,
+            'name' => null,
+            'placements' => null,
         ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (PegFloatRig $rig): void {
+            if (! $rig->water_peg_id) {
+                return;
+            }
+
+            $rig->pegs()->syncWithoutDetaching([$rig->water_peg_id]);
+
+            $venueId = WaterPeg::query()->with('water')->find($rig->water_peg_id)?->water?->venue_id;
+            if ($venueId) {
+                $rig->venues()->syncWithoutDetaching([$venueId]);
+            }
+        });
     }
 }

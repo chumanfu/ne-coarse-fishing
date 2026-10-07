@@ -13,13 +13,13 @@
                     <x-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-nav-link>
                     <x-nav-link :href="route('tackle-reviews.index')" :active="request()->routeIs('tackle-reviews.*')">Reviews</x-nav-link>
                     <x-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-nav-link>
-                    <a href="{{ route('tools.float-shotting') }}"
+                    <a href="{{ route('tools.rigs') }}"
                        @class([
                            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-semibold whitespace-nowrap transition duration-150 ease-in-out',
                            'border-water-dark bg-water-dark text-paper-bright' => request()->routeIs('tools.*'),
                            'border-water/50 bg-water-soft text-water-dark hover:bg-water-mist hover:border-water' => ! request()->routeIs('tools.*'),
                        ])>
-                        Shotting
+                        Rigs
                         <span @class([
                             'rounded-full px-1.5 py-px text-[10px] font-extrabold uppercase tracking-wide',
                             'bg-paper-bright text-water-dark' => request()->routeIs('tools.*'),
@@ -92,9 +92,9 @@
             <x-responsive-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('tackle-reviews.index')" :active="request()->routeIs('tackle-reviews.*')">Reviews</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('tools.float-shotting')" :active="request()->routeIs('tools.*')">
+            <x-responsive-nav-link :href="route('tools.rigs')" :active="request()->routeIs('tools.*')">
                 <span class="inline-flex items-center gap-2">
-                    Shotting
+                    Rigs
                     <span class="rounded-full bg-water px-1.5 py-px text-[10px] font-extrabold uppercase tracking-wide text-paper-bright">New</span>
                 </span>
             </x-responsive-nav-link>

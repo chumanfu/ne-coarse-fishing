@@ -716,15 +716,16 @@
                                         <ul class="space-y-2">
                                             @foreach ($peg->floatRigs as $rig)
                                                 <li class="border border-slate-200 rounded-md px-3 py-2 text-sm">
-                                                    <p class="font-semibold text-slate-900">{{ $rig->float_name }} · {{ $rig->float_size }}</p>
+                                                    <p class="font-semibold text-slate-900">{{ $rig->displayName() }}</p>
+                                                    <p class="text-slate-600">{{ $rig->float_name }} · {{ $rig->float_size }}</p>
                                                     <p class="text-slate-600">{{ $rig->patternLabel() }} · {{ $rig->floatTypeLabel() }} · {{ $rig->depthLabel() }}@if ($rig->user) · {{ $rig->user->name }}@endif</p>
                                                     @if ($rig->notes)
                                                         <p class="text-slate-700 mt-1">{{ $rig->notes }}</p>
                                                     @endif
                                                     <div class="mt-2 flex items-center gap-3">
-                                                        <a href="{{ route('tools.float-shotting', ['rig' => $rig->id]) }}" class="font-semibold text-sky-800 hover:underline">Open in the calculator</a>
+                                                        <a href="{{ route('tools.rigs.edit', $rig) }}" class="font-semibold text-sky-800 hover:underline">Open rig</a>
                                                         @can('delete', $rig)
-                                                            <form method="POST" action="{{ route('tools.float-shotting.destroy', $rig) }}" onsubmit="return confirm('Remove this float rig?')">
+                                                            <form method="POST" action="{{ route('tools.rigs.destroy', $rig) }}" onsubmit="return confirm('Delete this rig?')">
                                                                 @csrf
                                                                 @method('DELETE')
                                                                 <button class="font-semibold text-red-800 hover:underline">Remove</button>
@@ -736,8 +737,8 @@
                                         </ul>
                                     </div>
                                 @endif
-                                <a href="{{ route('tools.float-shotting', ['peg' => $peg->id]) }}" class="inline-block mt-3 text-sm font-semibold text-sky-800 hover:underline">
-                                    {{ $peg->floatRigs->isNotEmpty() ? 'Add another float rig' : 'Save a float rig for this peg' }}
+                                <a href="{{ route('tools.rigs.create', ['peg' => $peg->id]) }}" class="inline-block mt-3 text-sm font-semibold text-sky-800 hover:underline">
+                                    {{ $peg->floatRigs->isNotEmpty() ? 'Add another rig' : 'Save a rig for this peg' }}
                                 </a>
                             </div>
                         @endforeach

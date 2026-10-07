@@ -4,10 +4,15 @@
     $chipOff = 'border-slate-300 bg-white text-slate-600 hover:text-slate-900';
     $inputClass = 'w-full rounded-md border-2 border-slate-400 focus:border-sky-700 focus:ring-sky-700';
 
+    $venueIds = old('venue_ids', $rig ? $rig->venues->pluck('id')->all() : ($peg?->water?->venue_id ? [$peg->water->venue_id] : []));
+    $pegIds = old('peg_ids', $rig ? $rig->pegs->pluck('id')->all() : ($peg ? [$peg->id] : []));
+
     $prefill = [
         'venues' => $venues,
-        'venueId' => $peg?->water?->venue_id ?? '',
-        'pegId' => $peg?->id ?? '',
+        'venueIds' => array_values($venueIds),
+        'pegIds' => array_values($pegIds),
+        'rigName' => old('name', $rig->name ?? ''),
+        'placements' => $placements,
     ];
 
     if ($rig) {
@@ -25,8 +30,8 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <h1 class="text-2xl font-bold text-slate-900">Float shotting</h1>
-        <p class="text-slate-600 mt-1">Enter the float size and the depth you are fishing, and the calculator works out which shot to use and where to put it.</p>
+        <h1 class="text-2xl font-bold text-slate-900">{{ $canUpdate ? 'Edit rig' : 'New rig' }}</h1>
+        <p class="text-slate-600 mt-1">Work out the shot a float needs, then move the bulk and the droppers. Save the rig when the diagram looks right.</p>
     </x-slot>
 
     <div
@@ -38,12 +43,13 @@
             <p class="bg-moss-soft border-2 border-moss text-moss-dark font-semibold rounded-xl px-4 py-3" role="status">{{ session('status') }}</p>
         @endif
 
-        @if ($peg)
-            <p class="text-sm text-slate-600">
-                Saving to <span class="font-semibold text-slate-900">{{ $peg->water->venue->name }} · {{ $peg->label() }}</span>.
-                <a href="{{ route('venues.show', $peg->water->venue) }}" class="font-semibold text-sky-800 hover:underline">Back to the venue</a>
-            </p>
-        @endif
+        <p class="text-sm text-slate-600">
+            <a href="{{ route('tools.rigs') }}" class="font-semibold text-sky-800 hover:underline">All rigs</a>
+            @if ($peg)
+                <span class="text-slate-400">·</span>
+                Starting from <span class="font-semibold text-slate-900">{{ $peg->water->venue->name }} · {{ $peg->label() }}</span>
+            @endif
+        </p>
 
         <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
             <h2 class="text-lg font-bold text-slate-900 mb-3">Float</h2>
@@ -99,7 +105,13 @@
         </section>
 
         <section class="bg-white border-2 border-slate-300 rounded-xl p-5" x-show="active" x-cloak>
-            <h2 class="text-lg font-bold text-slate-900 mb-3">Shotting pattern</h2>
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-lg font-bold text-slate-900">Shot pattern</h2>
+                <button type="button" @click="resetShots()" :disabled="! canResetShots"
+                        class="{{ $chipBase }} border-slate-300 bg-white text-slate-900 hover:text-slate-900 disabled:opacity-50">
+                    Reset shots
+                </button>
+            </div>
 
             <div class="flex flex-wrap gap-2 mb-4" role="group" aria-label="Pattern" x-show="patterns.length > 1">
                 <template x-for="pattern in patterns" :key="pattern.id">
@@ -140,7 +152,7 @@
             <div class="mt-4 rounded-xl bg-paper p-3">
                 <h3 class="text-sm font-bold text-slate-900">Dot the tip</h3>
                 <p class="mt-1 text-sm text-slate-600">
-                    Try a combination, or add and change the shot, until only the
+                    Try a combination until only the
                     <span x-text="floatType === 'pole' || floatType === 'dibber' ? 'bristle' : 'coloured tip'"></span>
                     is above the water. Each shot you add sinks the float.
                 </p>
@@ -154,20 +166,6 @@
                         </button>
                     </template>
                 </div>
-
-                <p class="mt-3 text-sm font-semibold text-slate-700">Shot size</p>
-                <div class="mt-2 flex flex-wrap gap-2" role="group" aria-label="Dotting shot size">
-                    <template x-for="size in dotSizeOptions" :key="size.size">
-                        <button type="button" @click="dotSize = size.size" :aria-pressed="dotSize === size.size"
-                                class="{{ $chipBase }}"
-                                :class="dotSize === size.size ? '{{ $chipOn }}' : '{{ $chipOff }}'"
-                                x-text="size.label"></button>
-                    </template>
-                </div>
-                <button type="button" @click="addDot()" :disabled="dots.length >= 6"
-                        class="mt-3 {{ $chipBase }} border-slate-300 bg-white text-slate-900 hover:text-slate-900 disabled:opacity-50">
-                    Add shot
-                </button>
 
                 <ul class="mt-3 space-y-2" x-show="dots.length" x-cloak>
                     <template x-for="(size, index) in dots" :key="index + '-' + size">
@@ -186,6 +184,23 @@
                 </ul>
             </div>
 
+            <div class="mt-4 rounded-xl bg-paper p-3">
+                <h3 class="text-sm font-bold text-slate-900">Add a shot</h3>
+                <p class="mt-1 text-sm text-slate-600">Add any size to the line the calculator suggested. Change it, move it, or take it off with the others.</p>
+                <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Shot size to add">
+                    <template x-for="size in shotSizes" :key="'add-' + size.size">
+                        <button type="button" @click="addSize = size.size" :aria-pressed="addSize === size.size"
+                                class="{{ $chipBase }}"
+                                :class="addSize === size.size ? '{{ $chipOn }}' : '{{ $chipOff }}'"
+                                x-text="size.label"></button>
+                    </template>
+                </div>
+                <button type="button" @click="addLineShot()" :disabled="! canAddLineShot"
+                        class="mt-3 {{ $chipBase }} border-slate-300 bg-white text-slate-900 hover:text-slate-900 disabled:opacity-50">
+                    Add shot
+                </button>
+            </div>
+
             <p class="mt-4 text-sm font-bold text-slate-900" x-show="diagram" x-cloak x-text="diagram?.sitTitle"></p>
             <p class="text-sm text-slate-600" x-show="diagram" x-cloak x-text="diagram?.sitDetail"></p>
 
@@ -197,19 +212,68 @@
                 <p class="absolute right-2.5 text-[11px] font-semibold text-slate-900" style="top: 8px" x-text="diagram?.sitTitle"></p>
                 <p class="absolute right-2.5 text-[11px] font-semibold text-water-dark" :style="`top: ${diagram?.waterY - 16}px`">Water</p>
 
-                <div class="absolute w-px bg-slate-400" :style="`left: ${lineX - 0.5}px; top: ${diagramTop}px; height: ${diagram?.lineLen}px`"></div>
+                <div class="absolute w-px bg-slate-400" :style="`left: ${lineX - 0.5}px; top: ${diagram?.lineTop}px; height: ${diagram?.lineLen}px`"></div>
 
-                <div class="absolute z-10 bg-orange-500 transition-[top] duration-200"
-                     :class="diagram?.isBristle ? 'rounded-t-sm' : 'rounded-sm'"
-                     :style="`top: ${diagram?.floatTop}px; left: ${lineX - (diagram?.isBristle ? 1.5 : 3.5)}px; width: ${diagram?.isBristle ? 3 : 7}px; height: ${diagram?.bristleH}px`"></div>
-                <div class="absolute z-10 bg-amber-100 transition-[top] duration-200" x-show="diagram && ! diagram.isBristle"
-                     :style="`top: ${diagram?.floatTop + diagram?.bristleH / 2}px; left: ${lineX - 3.5}px; width: 7px; height: ${diagram?.bristleH / 2}px`"></div>
-                <div class="absolute z-10 rounded-full border border-bank/30 bg-paper-deep transition-[top] duration-200"
-                     :style="`top: ${diagram?.floatTop + diagram?.bristleH - 2}px; left: ${lineX - 7}px; width: 14px; height: ${diagram?.bodyH}px`"></div>
-                <div class="absolute z-10 bg-paper-deep transition-[top] duration-200"
-                     :style="`top: ${diagram?.stemTop}px; left: ${lineX - 1.5}px; width: 3px; height: ${diagram?.stemH}px`"></div>
-                <div class="pointer-events-none absolute z-20"
-                     :style="`top: ${diagram?.waterY}px; left: ${lineX - 16}px; width: 32px; height: ${diagram?.washHeight}px; background: rgba(74, 124, 140, 0.45)`"></div>
+                {{-- The sight tip sits above the water; the body is the part that belongs to that float. --}}
+                <div class="pointer-events-none absolute z-10 transition-[top] duration-200"
+                     :style="`top: ${diagram?.floatTop ?? 0}px; left: ${lineX - ((diagram?.picture?.w ?? 24) / 2)}px; width: ${diagram?.picture?.w ?? 24}px; height: ${diagram?.picture?.h ?? 66}px`">
+                    <svg x-show="diagram?.kind === 'pole'" x-cloak viewBox="0 0 16 44" class="h-full w-full overflow-visible" aria-hidden="true">
+                        <rect x="7" y="0" width="2" height="20" rx="1" fill="#f97316"/>
+                        <ellipse cx="8" cy="26" rx="5.5" ry="8" fill="#fcfaf5" stroke="#4a3728" stroke-width="1.2"/>
+                        <circle cx="8" cy="24" r="1.3" fill="#f97316"/>
+                        <rect x="7.2" y="33.5" width="1.6" height="10" rx="0.4" fill="#5c4a3a"/>
+                    </svg>
+                    <svg x-show="diagram?.kind === 'dibber'" x-cloak viewBox="0 0 22 30" class="h-full w-full overflow-visible" aria-hidden="true">
+                        <rect x="9" y="0" width="4" height="12" rx="1.5" fill="#f97316"/>
+                        <ellipse cx="11" cy="17" rx="9" ry="8" fill="#f0d9a8" stroke="#4a3728" stroke-width="1.2"/>
+                        <rect x="10" y="24.5" width="2" height="5" rx="0.4" fill="#5c4a3a"/>
+                    </svg>
+                    <svg x-show="diagram?.kind === 'waggler'" x-cloak viewBox="0 0 14 52" class="h-full w-full overflow-visible" aria-hidden="true">
+                        <rect x="5" y="0" width="4" height="9" rx="1" fill="#f97316"/>
+                        <rect x="5" y="8" width="4" height="4" fill="#f5c542"/>
+                        <rect x="5.2" y="12" width="3.6" height="4" fill="#fcfaf5"/>
+                        <polygon points="4.6,15 9.4,15 10.4,45 3.6,45" fill="#e7d3a4" stroke="#a68558" stroke-width="0.6" stroke-linejoin="round"/>
+                        <rect x="3.2" y="43" width="7.6" height="8" rx="2" fill="#c17a32" stroke="#8a7360" stroke-width="0.6"/>
+                    </svg>
+                    <svg x-show="diagram?.kind === 'loaded_waggler'" x-cloak viewBox="0 0 16 54" class="h-full w-full overflow-visible" aria-hidden="true">
+                        <rect x="6" y="0" width="4" height="9" rx="1" fill="#f97316"/>
+                        <rect x="6" y="8" width="4" height="4" fill="#f5c542"/>
+                        <rect x="6.2" y="12" width="3.6" height="3" fill="#fcfaf5"/>
+                        <polygon points="5.5,14 10.5,14 11,40 5,40" fill="#e7d3a4" stroke="#a68558" stroke-width="0.6" stroke-linejoin="round"/>
+                        <ellipse cx="8" cy="46" rx="5.5" ry="7" fill="#3d474f"/>
+                        <ellipse cx="6.6" cy="43.5" rx="1.6" ry="1" fill="#7d8b94"/>
+                    </svg>
+                    <svg x-show="diagram?.kind === 'pellet_waggler'" x-cloak viewBox="0 0 20 36" class="h-full w-full overflow-visible" aria-hidden="true">
+                        <rect x="8" y="0" width="4" height="8" rx="1" fill="#f97316"/>
+                        <rect x="8" y="7" width="4" height="3" fill="#f5c542"/>
+                        <path d="M10 9 C4 13 3 22 10 33 C17 22 16 13 10 9 Z" fill="#f0d9a8" stroke="#4a3728" stroke-width="1.2" stroke-linejoin="round"/>
+                        <rect x="9.2" y="32" width="1.6" height="4" fill="#5c4a3a"/>
+                    </svg>
+                    <svg x-show="diagram?.kind === 'slider'" x-cloak viewBox="0 0 18 64" class="h-full w-full overflow-visible" aria-hidden="true">
+                        <rect x="7" y="0" width="4" height="11" rx="1" fill="#f97316"/>
+                        <rect x="7" y="10" width="4" height="4" fill="#f5c542"/>
+                        <rect x="7.2" y="14" width="3.6" height="4" fill="#fcfaf5"/>
+                        <ellipse cx="9" cy="30" rx="6.5" ry="9" fill="#f0d9a8" stroke="#4a3728" stroke-width="1.2"/>
+                        <polygon points="7.2,38 10.8,38 12,54 6,54" fill="#c17a32" stroke="#8a7360" stroke-width="0.6" stroke-linejoin="round"/>
+                        <rect x="5" y="52" width="8" height="10" rx="2.5" fill="#a68558" stroke="#6b5746" stroke-width="0.6"/>
+                        <circle cx="9" cy="57" r="2" fill="#e7f1f4" stroke="#356575" stroke-width="1"/>
+                    </svg>
+                    <svg x-show="diagram?.kind === 'stick'" x-cloak viewBox="0 0 16 50" class="h-full w-full overflow-visible" aria-hidden="true">
+                        <path d="M5 10 Q8 1 11 10 Z" fill="#e85d04"/>
+                        <path d="M4.2 10 Q3 18 5.2 24 L10.8 24 Q13 18 11.8 10 Z" fill="#f0d9a8" stroke="#6b5746" stroke-width="0.7" stroke-linejoin="round"/>
+                        <polygon points="5.2,23.5 10.8,23.5 9.2,42 6.8,42" fill="#c17a32" stroke="#8a7360" stroke-width="0.6" stroke-linejoin="round"/>
+                        <rect x="7.2" y="41.5" width="1.6" height="8" fill="#4a433c"/>
+                    </svg>
+                    <svg x-show="diagram?.kind === 'avon'" x-cloak viewBox="0 0 20 52" class="h-full w-full overflow-visible" aria-hidden="true">
+                        <path d="M7 10 Q10 1 13 10 Z" fill="#e85d04"/>
+                        <polygon points="8,10 12,10 11.2,18 8.8,18" fill="#c17a32" stroke="#8a7360" stroke-width="0.5" stroke-linejoin="round"/>
+                        <ellipse cx="10" cy="26" rx="7" ry="8" fill="#f0d9a8" stroke="#4a3728" stroke-width="1.2"/>
+                        <polygon points="8.6,33.5 11.4,33.5 10.4,44 9.6,44" fill="#c17a32" stroke="#8a7360" stroke-width="0.5" stroke-linejoin="round"/>
+                        <rect x="9.2" y="43.5" width="1.6" height="8" fill="#4a433c"/>
+                    </svg>
+                </div>
+                <div class="absolute z-10 w-px bg-slate-400 transition-[top] duration-200"
+                     :style="`top: ${diagram?.stemTop ?? 0}px; left: ${lineX - 0.5}px; height: ${diagram?.stemH ?? 0}px`"></div>
 
                 {{-- One straight leader per shot, so lines to displaced labels never merge. --}}
                 <svg class="pointer-events-none absolute inset-0 h-full w-full text-water/40" aria-hidden="true">
@@ -239,9 +303,7 @@
                 </p>
             </div>
 
-            <p class="mt-4 text-sm text-slate-600">Change a shot, take it off, add one to the bulk, or move it towards the float or the hook.</p>
-            <button type="button" x-show="edits" x-cloak @click="edits = null"
-                    class="mt-2 text-sm font-semibold text-sky-800 hover:underline">Use the suggested shot</button>
+            <p class="mt-4 text-sm text-slate-600">Change a shot, take it off, or add to the bulk and reduce it with the count. Set how far the bulk and each dropper sit from the hook or the float, in centimetres or inches. The diagram follows.</p>
 
             <table class="mt-3 w-full border-separate border-spacing-0 overflow-hidden rounded-xl border-2 border-slate-200 text-left">
                 <caption class="sr-only">Shot positions</caption>
@@ -290,6 +352,28 @@
                                                 </div>
                                             </template>
                                         </div>
+                                        <div class="mt-2 flex flex-wrap items-center gap-2" x-show="row.canPlace">
+                                            <label class="text-xs font-semibold text-slate-700" :for="'distance-' + row.key">Distance</label>
+                                            <input :id="'distance-' + row.key" type="number" min="0" step="0.1" inputmode="decimal"
+                                                   class="w-24 rounded-md border-2 border-slate-400 py-1 px-2 text-sm"
+                                                   :value="row.distance"
+                                                   @change="setPosition(row.key, { distance: $event.target.value })">
+                                            <label class="sr-only" :for="'unit-' + row.key">Distance unit</label>
+                                            <select :id="'unit-' + row.key" class="rounded-md border-2 border-slate-400 py-1 pl-2 pr-7 text-sm"
+                                                    :value="row.distanceUnit"
+                                                    @change="setPosition(row.key, { unit: $event.target.value })">
+                                                <option value="cm" :selected="row.distanceUnit === 'cm'">cm</option>
+                                                <option value="in" :selected="row.distanceUnit === 'in'">in</option>
+                                            </select>
+                                            <span class="text-sm text-slate-600">from the</span>
+                                            <label class="sr-only" :for="'anchor-' + row.key">Measured from</label>
+                                            <select :id="'anchor-' + row.key" class="rounded-md border-2 border-slate-400 py-1 pl-2 pr-7 text-sm"
+                                                    :value="row.anchor"
+                                                    @change="setPosition(row.key, { anchor: $event.target.value })">
+                                                <option value="hook" :selected="row.anchor === 'hook'">hook</option>
+                                                <option value="float" :selected="row.anchor === 'float'">float</option>
+                                            </select>
+                                        </div>
                                         <div class="mt-2 flex flex-wrap gap-2">
                                             <button type="button" x-show="row.canAddShot" @click="addShot(row.key)"
                                                     class="text-sm font-semibold text-sky-800 hover:underline">Add shot</button>
@@ -327,67 +411,93 @@
         </section>
 
         <section class="bg-white border-2 border-slate-300 rounded-xl p-5" x-show="active" x-cloak>
-            <h2 class="text-lg font-bold text-slate-900 mb-3">Save to a peg</h2>
+            <h2 class="text-lg font-bold text-slate-900 mb-3">Save this rig</h2>
 
             @auth
-                @if ($venues === [])
-                    <p class="text-sm text-slate-600">No venues have verified pegs yet, so there is nowhere to save this pattern.</p>
-                @else
-                    <form method="POST" action="{{ route('tools.float-shotting.store') }}" class="space-y-3">
-                        @csrf
+                <form method="POST" action="{{ $canUpdate ? route('tools.rigs.update', $rig) : route('tools.rigs.store') }}" class="space-y-4">
+                    @csrf
+                    @if ($canUpdate)
+                        @method('PUT')
+                    @endif
 
-                        <div class="grid sm:grid-cols-2 gap-3">
-                            <div>
-                                <label for="save-venue" class="block text-sm font-semibold mb-1">Venue</label>
-                                <select id="save-venue" x-model="venueId" @change="onVenueChange()" class="{{ $inputClass }}">
-                                    <option value="">Choose a venue</option>
-                                    @foreach ($venues as $venue)
-                                        <option value="{{ $venue['id'] }}">{{ $venue['name'] }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div>
-                                <label for="save-peg" class="block text-sm font-semibold mb-1">Peg</label>
-                                <select id="save-peg" name="water_peg_id" x-model="pegId" required class="{{ $inputClass }}">
-                                    <option value="" x-text="venueId ? 'Choose a peg' : 'Pick a venue first'"></option>
-                                    <template x-for="peg in pegOptions" :key="peg.id">
-                                        <option :value="peg.id" x-text="peg.label"></option>
-                                    </template>
-                                </select>
-                                @error('water_peg_id')
-                                    <p class="text-sm text-red-700 mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
+                    <div>
+                        <label for="rig-name" class="block text-sm font-semibold mb-1">Rig name</label>
+                        <input id="rig-name" name="name" type="text" required maxlength="120" x-model="rigName"
+                               placeholder="e.g. The Standard Deep-Water Rig" class="{{ $inputClass }}">
+                        @error('name')
+                            <p class="text-sm text-red-700 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                        <div>
-                            <label for="rig-notes" class="block text-sm font-semibold mb-1">Notes (optional)</label>
-                            <textarea id="rig-notes" name="notes" rows="2" maxlength="2000"
-                                      placeholder="e.g. Fish came 6in off bottom" class="{{ $inputClass }}">{{ old('notes') }}</textarea>
-                            @error('notes')
+                    @if ($venues !== [])
+                        <fieldset>
+                            <legend class="text-sm font-semibold mb-2">Venues and pegs</legend>
+                            <p class="text-sm text-slate-600 mb-2">Tick the venues this rig is for. Pegs are optional.</p>
+                            <div class="max-h-64 space-y-3 overflow-y-auto rounded-lg border-2 border-slate-200 p-3">
+                                <template x-for="venue in venues" :key="venue.id">
+                                    <div>
+                                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                            <input type="checkbox" name="venue_ids[]" :value="venue.id" x-model="venueIds"
+                                                   class="rounded border-slate-400 text-sky-800">
+                                            <span x-text="venue.name"></span>
+                                        </label>
+                                        <div class="mt-1 space-y-1 ps-6" x-show="venueChosen(venue.id)">
+                                            <template x-for="peg in venue.pegs" :key="peg.id">
+                                                <label class="flex items-center gap-2 text-sm text-slate-700">
+                                                    <input type="checkbox" name="peg_ids[]" :value="peg.id" x-model="pegIds"
+                                                           class="rounded border-slate-400 text-sky-800">
+                                                    <span x-text="peg.label"></span>
+                                                </label>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                            @error('venue_ids')
                                 <p class="text-sm text-red-700 mt-1">{{ $message }}</p>
                             @enderror
-                        </div>
+                            @error('peg_ids')
+                                <p class="text-sm text-red-700 mt-1">{{ $message }}</p>
+                            @enderror
+                            @error('peg_ids.*')
+                                <p class="text-sm text-red-700 mt-1">{{ $message }}</p>
+                            @enderror
+                        </fieldset>
+                    @else
+                        <p class="text-sm text-slate-600">No venues have verified pegs yet. You can still save the rig and attach a venue later.</p>
+                    @endif
 
-                        <input type="hidden" name="float_name" :value="savePayload.float_name">
-                        <input type="hidden" name="float_size" :value="savePayload.float_size">
-                        <input type="hidden" name="float_type" :value="savePayload.float_type">
-                        <input type="hidden" name="float_grams" :value="savePayload.float_grams">
-                        <input type="hidden" name="depth" :value="savePayload.depth">
-                        <input type="hidden" name="depth_unit" :value="savePayload.depth_unit">
-                        <input type="hidden" name="pattern_id" :value="savePayload.pattern_id">
-                        <input type="hidden" name="olivette_grams" :value="savePayload.olivette_grams">
+                    <div>
+                        <label for="rig-notes" class="block text-sm font-semibold mb-1">Notes (optional)</label>
+                        <textarea id="rig-notes" name="notes" rows="2" maxlength="2000"
+                                  placeholder="e.g. Fish came 6in off bottom" class="{{ $inputClass }}">{{ old('notes', $rig?->notes ?? '') }}</textarea>
+                        @error('notes')
+                            <p class="text-sm text-red-700 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                        <button type="submit" class="px-5 py-3 rounded-md bg-sky-800 text-white font-bold hover:bg-sky-900">
-                            Save shotting pattern
-                        </button>
-                    </form>
-                @endif
+                    <input type="hidden" name="float_name" :value="savePayload.float_name">
+                    <input type="hidden" name="float_size" :value="savePayload.float_size">
+                    <input type="hidden" name="float_type" :value="savePayload.float_type">
+                    <input type="hidden" name="float_grams" :value="savePayload.float_grams">
+                    <input type="hidden" name="depth" :value="savePayload.depth">
+                    <input type="hidden" name="depth_unit" :value="savePayload.depth_unit">
+                    <input type="hidden" name="pattern_id" :value="savePayload.pattern_id">
+                    <input type="hidden" name="olivette_grams" :value="savePayload.olivette_grams">
+                    <input type="hidden" name="placements" :value="placementsPayload">
+                    @error('placements')
+                        <p class="text-sm text-red-700">{{ $message }}</p>
+                    @enderror
+
+                    <button type="submit" class="px-5 py-3 rounded-md bg-sky-800 text-white font-bold hover:bg-sky-900">
+                        Save rig
+                    </button>
+                </form>
             @else
                 <p class="text-sm text-slate-700">
                     <a href="{{ route('register') }}" class="font-semibold text-sky-800 hover:underline">Create a free account</a>
                     or <a href="{{ route('login') }}" class="font-semibold text-sky-800 hover:underline">log in</a>
-                    to save patterns against the pegs you fish.
+                    to save this rig.
                 </p>
             @endauth
         </section>

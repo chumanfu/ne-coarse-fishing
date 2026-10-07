@@ -73,7 +73,7 @@
 
         <p class="text-sm text-slate-600">
             Ready to work out a rig?
-            <a href="{{ route('tools.float-shotting') }}" class="font-semibold text-sky-800 hover:underline">Open the float shotting calculator</a>.
+            <a href="{{ route('tools.rigs.create') }}" class="font-semibold text-sky-800 hover:underline">Create a rig</a>.
         </p>
     </div>
 </x-app-layout>

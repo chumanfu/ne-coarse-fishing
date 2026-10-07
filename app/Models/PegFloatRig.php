@@ -6,10 +6,11 @@ use Database\Factories\PegFloatRigFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
- * A shotting pattern saved against a peg. The shot list itself is not stored:
- * the calculator regenerates it from the float, depth and chosen pattern.
+ * A named rig. The shot and where it sits are stored, and the rig can be
+ * saved against venues, pegs, or both.
  */
 class PegFloatRig extends Model
 {
@@ -20,8 +21,10 @@ class PegFloatRig extends Model
 
     public const PATTERN_IDS = [
         'strung', 'bulk_droppers', 'olivette', 'shirt_button', 'waggler_locking', 'waggler_drop', 'slider',
-        'slider_olivette', 'loaded_waggler', 'loaded_bb', 'loaded_no4', 'loaded_no6', 'loaded_aaa', 'pellet_waggler',
+        'slider_olivette', 'loaded_waggler', 'loaded_bb', 'loaded_no4', 'loaded_no6', 'loaded_aaa',         'pellet_waggler',
     ];
+
+    public const ROLES = ['locking', 'stops', 'bulk', 'olivette', 'dropper', 'strung', 'trim', 'dot'];
 
     private const FLOAT_TYPE_LABELS = [
         'pole' => 'Pole',
@@ -63,6 +66,8 @@ class PegFloatRig extends Model
         'pattern_id',
         'olivette_grams',
         'notes',
+        'name',
+        'placements',
     ];
 
     protected function casts(): array
@@ -71,7 +76,38 @@ class PegFloatRig extends Model
             'float_grams' => 'float',
             'depth' => 'float',
             'olivette_grams' => 'float',
+            'placements' => 'array',
         ];
+    }
+
+    public function venues(): BelongsToMany
+    {
+        return $this->belongsToMany(Venue::class, 'peg_float_rig_venue')->orderBy('name');
+    }
+
+    public function pegs(): BelongsToMany
+    {
+        return $this->belongsToMany(WaterPeg::class, 'peg_float_rig_peg');
+    }
+
+    public function displayName(): string
+    {
+        return $this->name ?: $this->float_name;
+    }
+
+    public function venueSummary(): string
+    {
+        $names = $this->venues->pluck('name')->filter()->unique()->values();
+
+        return $names->isEmpty() ? 'Not saved against a venue' : $names->join(', ');
+    }
+
+    public function pegSummary(): string
+    {
+        return $this->pegs
+            ->map(fn (WaterPeg $peg) => trim(($peg->water?->venue?->name ? $peg->water->venue->name.' · ' : '').$peg->label()))
+            ->filter()
+            ->join(', ');
     }
 
     public function peg(): BelongsTo

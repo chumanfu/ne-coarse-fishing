@@ -12,6 +12,11 @@ class PegFloatRigPolicy
         return true;
     }
 
+    public function update(User $user, PegFloatRig $rig): bool
+    {
+        return $this->delete($user, $rig);
+    }
+
     public function delete(User $user, PegFloatRig $rig): bool
     {
         return $rig->user_id === $user->id || $user->hasRole('super_admin');

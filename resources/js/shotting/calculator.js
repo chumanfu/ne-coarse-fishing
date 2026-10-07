@@ -1,4 +1,4 @@
-import { FLOAT_TYPES, formatGrams, guessFloatType, parseFloatSize } from './floats';
+import { FLOAT_TYPES, floatTypeLabel, formatGrams, guessFloatType, parseFloatSize } from './floats';
 import { SHOT, SHOTS, describeItems } from './shots';
 import { GENERAL_TIPS, MIN_DEPTH_CM, generatePatterns, groupGrams, olivetteOptions, patternUsesOlivette } from './shotting';
 import { depthToCm, formatHeight } from './units';
@@ -18,10 +18,30 @@ const LINE_X = 48;
 const LABEL_X = 96;
 const WATER_Y = 48; // the water line the float sinks through
 const BRISTLE_H = 20;
-const BODY_H = 26;
 const MAX_SINK = BRISTLE_H + 8;
 const MAX_RISE = 16;
-const DIAGRAM_TOP = WATER_Y + MAX_SINK + BODY_H + 12; // line starts below a fully sunk float
+
+/**
+ * Each float is drawn so the sight tip is the part above the water when the
+ * rig is dotted down. `tipH` is that tip; the rest of the picture sits in the water.
+ */
+const FLOAT_PICTURES = {
+    pole: { w: 24, h: 66, tipH: 24 },
+    dibber: { w: 33, h: 45, tipH: 14 },
+    waggler: { w: 21, h: 78, tipH: 21 },
+    loaded_waggler: { w: 24, h: 81, tipH: 21 },
+    pellet_waggler: { w: 30, h: 54, tipH: 15 },
+    slider: { w: 27, h: 96, tipH: 24 },
+    stick: { w: 24, h: 75, tipH: 15 },
+    avon: { w: 30, h: 78, tipH: 15 },
+};
+
+function floatPicture(type) {
+    const picture = FLOAT_PICTURES[type] ?? FLOAT_PICTURES.pole;
+
+    return { ...picture, kind: picture === FLOAT_PICTURES[type] ? type : 'pole' };
+}
+
 const LABEL_SPACING = 6;
 const LABEL_ESTIMATE = 36; // used until a label has been measured
 const LABEL_OVERHANG_TOP = 20; // how far labels may sit above the float
@@ -114,11 +134,41 @@ function groupText(g) {
     return parts.join(' + ');
 }
 
-function positionText(g, unit) {
-    if (g.role === 'locking' || g.role === 'stops') return 'At float';
+function distanceFields(group, depthUnit, depthCm) {
+    const distanceUnit = group.distanceUnit ?? (depthUnit === 'ft' ? 'in' : 'cm');
+    const anchor = group.anchor ?? 'hook';
+    const cm = anchor === 'float' ? depthCm - group.heightCm : group.heightCm;
+    const distance = distanceUnit === 'in' ? cm / 2.54 : cm;
+
+    return {
+        distance: Math.round(Math.max(0, distance) * 10) / 10,
+        distanceUnit,
+        anchor,
+    };
+}
+
+function positionText(g, depthUnit, depthCm) {
+    if (g.role === 'locking' || g.role === 'stops') return 'At the float';
     if (g.role === 'dot') return 'Under the float';
 
-    return `${formatHeight(g.heightCm, unit)} from hook`;
+    const { distance, distanceUnit, anchor } = distanceFields(g, depthUnit, depthCm);
+    const from = anchor === 'float' ? 'float' : 'hook';
+
+    return `${distance}${distanceUnit} from the ${from}`;
+}
+
+/** A saved rig stores plain shot, already placed on the line. */
+function groupsFromSaved(placements) {
+    return placements.map((group, index) => ({
+        key: `${group.role}-${index}`,
+        role: group.role,
+        heightCm: Number(group.height_cm),
+        olivetteGrams: group.olivette_grams ?? null,
+        note: group.note ?? null,
+        anchor: group.anchor === 'float' ? 'float' : 'hook',
+        distanceUnit: group.distance_unit === 'in' ? 'in' : 'cm',
+        items: (group.items ?? []).map((item) => ({ size: item.size, count: Number(item.count) || 1 })),
+    }));
 }
 
 /** A plain copy of the engine groups, so each shot can be changed without touching the suggestion. */
@@ -170,7 +220,6 @@ export default function shottingCalculator(config = {}) {
         generalTips: GENERAL_TIPS,
         lineX: LINE_X,
         labelX: LABEL_X,
-        diagramTop: DIAGRAM_TOP,
 
         floatName: config.floatName ?? '',
         floatSize: config.floatSize ?? '',
@@ -182,25 +231,22 @@ export default function shottingCalculator(config = {}) {
         olivetteGrams: config.olivetteGrams ?? null,
         dots: [],
         dotSize: 'No8',
+        addSize: 'No8',
         dotPick: 'none',
-        edits: null,
+        extraShot: 0,
+        savedPlacements: Array.isArray(config.placements) && config.placements.length ? config.placements : null,
+        openingPlacements: null,
+        edits: Array.isArray(config.placements) && config.placements.length ? groupsFromSaved(config.placements) : null,
         shotSizes: SHOTS,
         shotCounts: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
         labelHeights: [],
 
         venues: config.venues ?? [],
-        venueId: config.venueId ?? '',
-        pegId: config.pegId ?? '',
+        venueIds: (config.venueIds ?? []).map(String),
+        pegIds: (config.pegIds ?? []).map(String),
+        rigName: config.rigName ?? '',
 
         init() {
-            // The peg options are rendered by Alpine, so the preselected peg has to
-            // wait until they exist or the select falls back to its empty option.
-            const preselectedPeg = this.pegId;
-            this.pegId = '';
-            this.$nextTick(() => {
-                this.pegId = preselectedPeg;
-            });
-
             this.remeasure = () => this.measureLabels();
             window.addEventListener('resize', this.remeasure);
             this.$watch('floatSize', () => this.resetLine());
@@ -208,6 +254,7 @@ export default function shottingCalculator(config = {}) {
             this.$watch('patternId', () => this.resetLine());
             this.$watch('olivetteGrams', () => this.resetLine());
             this.$watch('depthText', () => this.resetLine());
+            this.openingPlacements = this.savedPlacements ? this.placementsPayload : null;
         },
 
         destroy() {
@@ -349,7 +396,7 @@ export default function shottingCalculator(config = {}) {
                     key: group.key ?? group.role,
                     role: ROLE_LABEL[group.role] ?? group.role,
                     text: groupText(group),
-                    position: positionText(group, this.unit),
+                    position: positionText(group, this.unit, this.depthCm),
                     note: group.note ?? null,
                     grams: group.role === 'stops' ? '' : formatGrams(groupGrams(group)),
                     editable: Boolean(group.key) && group.role !== 'stops' && group.role !== 'dot',
@@ -362,6 +409,8 @@ export default function shottingCalculator(config = {}) {
                     canMoveUp: moveAt > 0,
                     canMoveDown: moveAt >= 0 && moveAt < movable.length - 1,
                     canAddShot: group.role === 'bulk' || group.role === 'olivette',
+                    canPlace: Boolean(group.key) && ! ['stops', 'locking', 'dot'].includes(group.role),
+                    ...distanceFields(group, this.unit, this.depthCm),
                 };
             });
         },
@@ -376,18 +425,20 @@ export default function shottingCalculator(config = {}) {
             // The line stretches to fit the labels, so a pattern with more shot than
             // the depth leaves room for never ends up with the hook off the bottom.
             const labelsNeeded = heights.reduce((sum, h) => sum + h + LABEL_SPACING, -LABEL_SPACING);
+            const picture = floatPicture(this.floatType);
+            const lineTop = WATER_Y + MAX_SINK + (picture.h - picture.tipH) + 10;
             const lineLen = Math.max(
                 Math.min(420, Math.max(220, depthCm * 1.1)),
                 labelsNeeded - LABEL_OVERHANG_TOP - LABEL_OVERHANG_BOTTOM,
             );
-            const hookY = DIAGRAM_TOP + lineLen;
-            const yFor = (h) => DIAGRAM_TOP + (1 - h / depthCm) * lineLen;
+            const hookY = lineTop + lineLen;
+            const yFor = (h) => lineTop + (1 - h / depthCm) * lineLen;
 
             const groups = source.map((g) => ({ g, y: yFor(g.heightCm), text: groupText(g) }));
             const tops = layoutLabels(
                 groups.map(({ y }) => y),
                 heights,
-                DIAGRAM_TOP - LABEL_OVERHANG_TOP,
+                lineTop - LABEL_OVERHANG_TOP,
                 hookY + LABEL_OVERHANG_BOTTOM,
             );
             const labelsBottom = tops.length ? tops[tops.length - 1] + heights[tops.length - 1] : 0;
@@ -396,28 +447,27 @@ export default function shottingCalculator(config = {}) {
             const sinkPx = over >= 0
                 ? Math.min(MAX_SINK, (over / SHOT.No8.grams) * BRISTLE_H)
                 : -Math.min(MAX_RISE, (-over / Math.max(SHOT.No4.grams, pattern.floatGrams * 0.12)) * MAX_RISE);
-            const floatTop = WATER_Y - BRISTLE_H + sinkPx;
-            const stemTop = floatTop + BRISTLE_H + BODY_H - 2;
+            const floatTop = WATER_Y - picture.tipH + sinkPx;
+            const stemTop = floatTop + picture.h;
             const sit = tipSit(over, this.floatType);
 
             return {
                 lineLen,
+                lineTop,
                 hookY,
                 bedY,
                 height: bedY + 30,
                 waterY: WATER_Y,
                 floatTop,
-                bristleH: BRISTLE_H,
-                bodyH: BODY_H,
                 stemTop,
-                stemH: Math.max(8, DIAGRAM_TOP - stemTop),
-                washHeight: Math.max(0, DIAGRAM_TOP - WATER_Y - 8),
-                isBristle: this.floatType === 'pole' || this.floatType === 'dibber',
+                stemH: Math.max(0, lineTop - stemTop),
+                kind: picture.kind,
+                picture,
                 sitTitle: sit.title,
                 sitDetail: sit.detail,
                 depthLabel: formatHeight(depthCm, this.unit),
-                aria: `Rig diagram, ${sit.title}. ${groups
-                    .map(({ g, text }) => `${text}, ${positionText(g, this.unit)}`)
+                aria: `${floatTypeLabel(this.floatType)} rig diagram, ${sit.title}. ${groups
+                    .map(({ g, text }) => `${text}, ${positionText(g, this.unit, depthCm)}`)
                     .join('; ')}`,
                 groups: groups.map(({ g, y, text }, i) => {
                     const grams = groupGrams(g);
@@ -425,7 +475,7 @@ export default function shottingCalculator(config = {}) {
 
                     return {
                         text,
-                        position: positionText(g, this.unit),
+                        position: positionText(g, this.unit, depthCm),
                         isOlivette: g.role === 'olivette',
                         isLocking: g.role === 'locking',
                         isStops: g.role === 'stops',
@@ -444,17 +494,23 @@ export default function shottingCalculator(config = {}) {
             };
         },
 
-        get pegOptions() {
-            return this.venues.find((v) => v.id === Number(this.venueId))?.pegs ?? [];
+        venueChosen(id) {
+            return this.venueIds.map(String).includes(String(id));
         },
 
-        onVenueChange() {
-            if (! this.pegOptions.some((peg) => peg.id === Number(this.pegId))) {
-                this.pegId = '';
-            }
+        /** The payload posted when saving the rig. */
+        get placementsPayload() {
+            return JSON.stringify(this.placements.map((group) => ({
+                role: group.role,
+                height_cm: Math.round(group.heightCm * 100) / 100,
+                olivette_grams: group.olivetteGrams ?? null,
+                anchor: group.anchor ?? 'hook',
+                distance_unit: group.distanceUnit ?? (this.unit === 'ft' ? 'in' : 'cm'),
+                note: group.note ?? null,
+                items: group.items.map((item) => ({ size: item.size, count: item.count })),
+            })));
         },
 
-        /** The payload posted when saving the pattern against a peg. */
         get savePayload() {
             const pattern = this.active;
 
@@ -493,6 +549,21 @@ export default function shottingCalculator(config = {}) {
             this.edits = null;
         },
 
+        get canResetShots() {
+            if (this.dots.length > 0 || this.dotPick !== 'none') return true;
+            if (this.savedPlacements) return this.placementsPayload !== this.openingPlacements;
+
+            return this.edits !== null;
+        },
+
+        /** Puts the line back to the shot you started with. */
+        resetShots() {
+            this.dots = [];
+            this.dotPick = 'none';
+            this.extraShot = 0;
+            this.edits = this.savedPlacements ? groupsFromSaved(this.savedPlacements) : null;
+        },
+
         ensureEdits() {
             if (this.edits || ! this.active) return;
 
@@ -517,6 +588,66 @@ export default function shottingCalculator(config = {}) {
                 ...group,
                 items: group.items.map((item, index) => (index === itemIndex ? { ...item, count: next } : item)),
             }));
+        },
+
+        setPosition(key, patch) {
+            this.replaceEdit(key, (group) => {
+                const unit = patch.unit ?? group.distanceUnit ?? (this.unit === 'ft' ? 'in' : 'cm');
+                const anchor = patch.anchor ?? group.anchor ?? 'hook';
+                let heightCm = group.heightCm;
+
+                if (patch.distance !== undefined && patch.distance !== '') {
+                    const distance = Number(patch.distance);
+                    if (! isFinite(distance) || distance < 0) return group;
+
+                    const cm = unit === 'in' ? distance * 2.54 : distance;
+                    heightCm = anchor === 'float' ? this.depthCm - cm : cm;
+                }
+
+                if (isFinite(this.depthCm)) {
+                    heightCm = Math.min(Math.max(heightCm, 0), this.depthCm);
+                }
+
+                return { ...group, heightCm, distanceUnit: unit, anchor };
+            });
+        },
+
+        get canAddLineShot() {
+            return Boolean(this.active) && this.depthValid && this.placements.length < 30;
+        },
+
+        /** One shot on the line, with its own place, size and count. */
+        addLineShot() {
+            if (! this.canAddLineShot) return;
+
+            this.ensureEdits();
+            const size = SHOT[this.addSize] ? this.addSize : 'No8';
+            const depth = this.depthCm;
+            const gap = Math.max(depth * 0.05, 5);
+            let heightCm = Math.min(Math.max(depth * 0.35, gap), Math.max(depth - gap, 0));
+            let guard = 0;
+
+            while (this.edits.some((group) => Math.abs(group.heightCm - heightCm) < gap * 0.6) && guard < 24) {
+                heightCm += gap;
+                if (heightCm > depth) heightCm = gap * ((guard % 8) + 1);
+                guard += 1;
+            }
+
+            heightCm = Math.min(Math.max(heightCm, 0), depth);
+            this.extraShot += 1;
+            this.edits = [
+                ...this.edits,
+                {
+                    key: `dropper-extra-${this.extraShot}`,
+                    role: 'dropper',
+                    heightCm,
+                    olivetteGrams: null,
+                    note: null,
+                    anchor: 'hook',
+                    distanceUnit: this.unit === 'ft' ? 'in' : 'cm',
+                    items: [{ size, count: 1 }],
+                },
+            ];
         },
 
         addShot(key) {
