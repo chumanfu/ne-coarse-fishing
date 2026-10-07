@@ -158,7 +158,7 @@
                 <template x-for="(group, index) in diagram?.groups ?? []" :key="'shot-' + index">
                     <div aria-hidden="true">
                         <div class="absolute border" :style="group.markerStyle"
-                             :class="group.isLocking ? 'bg-water-dark border-water-dark' : 'bg-slate-400 border-slate-600'"></div>
+                             :class="group.isStops ? 'bg-water border-water' : (group.isLocking ? 'bg-water-dark border-water-dark' : 'bg-slate-400 border-slate-600')"></div>
                         <div class="absolute right-2.5 leading-tight" data-shot-label
                              :style="`top: ${group.labelTop}px; left: ${labelX}px`">
                             <div class="text-[13px] font-semibold text-slate-900" x-text="group.text"></div>

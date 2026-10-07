@@ -1,4 +1,4 @@
-import { OLIVETTES, SHOT, fillWeight, shotsBetween, totalGrams } from './shots';
+import { OLIVETTES, SHOT, describeItems, fillWeight, shotsBetween, totalGrams } from './shots';
 
 export const MIN_DEPTH_CM = 30;
 
@@ -277,23 +277,26 @@ function wagglerDropper(fg) {
     return SHOT.No4;
 }
 
+/** Shot an angler actually locks a waggler with. No.5 is a stick-float size, not a locking shot. */
+const LOCKING_SIZES = ['SSG', 'AAA', 'BB', 'No1', 'No4', 'No6'];
+
 /**
- * Locking shot has to be small enough to sit either side of the float.
- * A 1g waggler must not get 2 × BB (0.80g) as locking shot – that would cock it on its own.
+ * About four fifths of an unloaded waggler sits at the float (Total Fishing).
+ * One piece stays under a third of the float, so 2 × BB cannot cock a 1g waggler on its own.
  */
 function lockingItems(floatGrams, lockTarget) {
-    const maxShot = Math.max(SHOT.No13.grams, Math.min(lockTarget / 4, floatGrams * 0.2));
+    const ceiling = Math.max(SHOT.No6.grams, floatGrams / 3);
+    const allowed = shotsBetween(SHOT.No6.grams, ceiling).filter((shot) => LOCKING_SIZES.includes(shot.size));
 
-    return fillWeight(lockTarget, shotsBetween(SHOT.No13.grams, maxShot));
+    return fillWeight(lockTarget, allowed.length ? allowed : [SHOT.No6]);
 }
 
 function wagglerLocking(input) {
     const { floatGrams: fg, depthCm: d } = input;
-    const dropper = wagglerDropper(fg);
+    const dropper = SHOT.No8;
     let n = d < 120 ? 2 : 3;
     while (n > 1 && n * dropper.grams > fg * 0.25) n--;
-    const lockTarget = fg - n * dropper.grams;
-    const lock = lockingItems(fg, lockTarget);
+    const lock = lockingItems(fg, fg - n * dropper.grams);
 
     const lowest = lowestShot(d);
     const top = onLine(Math.max(lowest + 10, d * 0.33), d);
@@ -319,6 +322,7 @@ function wagglerLocking(input) {
             whenToUse: 'The standard waggler set-up for stillwaters and slow rivers from about 4ft deep.',
             groups,
             tips: [
+                'Lock with AAA, BB, No.4 or No.6. About four fifths of the float sits at the base, the rest is droppers.',
                 'Sink the line after casting: overcast, then dip the rod tip and wind back sharply.',
                 'Keep most of the weight at the float for casting distance and accuracy.',
                 'Move the droppers up the line if fish are feeding off the bottom.',
@@ -476,6 +480,122 @@ function pelletWaggler(input) {
     );
 }
 
+function neatBulkShot(grams) {
+    for (const shot of [SHOT.BB, SHOT.AAA, SHOT.No4, SHOT.SSG, SHOT.No1, SHOT.No6]) {
+        const count = grams / shot.grams;
+        if (count >= 1 && Math.abs(count - Math.round(count)) < 0.05) return shot;
+    }
+
+    return SHOT.No4;
+}
+
+/** The printed shot, made up exactly. A remainder smaller than that shot is added as smaller shot. */
+function bulkForShot(target, shot) {
+    const count = Math.floor((target + 1e-6) / shot.grams);
+    const items = count > 0 ? [{ shot, count }] : [];
+    const leftover = target - count * shot.grams;
+
+    return [...items, ...trimItems(leftover, shot.grams * 0.99)];
+}
+
+function loadedAllAtFloat(input, shot) {
+    const { floatGrams: fg, depthCm: d } = input;
+    const items = bulkForShot(fg, shot);
+    const text = describeItems(items);
+
+    return finish(
+        {
+            id: `loaded_${shot.size.toLowerCase()}`,
+            name: items.length === 1 ? text : shot.label,
+            summary: `${text} just under the float, held with float stops`,
+            whenToUse:
+                'All of the shot the float asks for, bunched at the adaptor, when you want the bait down in one go.',
+            groups: [
+                {
+                    role: 'stops',
+                    heightCm: d,
+                    items: [],
+                    note: 'Silicone stops set the depth — do not lock a loaded waggler with shot',
+                },
+                {
+                    role: 'bulk',
+                    heightCm: onLine(d - 15, d),
+                    items,
+                    note: 'The whole of the added shot, around the adaptor',
+                },
+            ],
+            tips: [
+                'Fix the float with silicone stops either side of the adaptor. The shot does not lock it in place.',
+                'This uses the whole of the shot printed after the plus, with nothing down the line.',
+                'Swap to Bulk & droppers if you want the last few inches to fall slowly.',
+            ],
+        },
+        input,
+    );
+}
+
+function loadedWithDroppers(input, printed) {
+    const { floatGrams: fg, depthCm: d } = input;
+    const dropper = SHOT.No8;
+    let n = d < 120 ? 2 : 3;
+    while (n > 1 && n * dropper.grams > fg * 0.35) n--;
+
+    const bulk = bulkForShot(fg - n * dropper.grams, printed);
+    const lowest = lowestShot(d);
+    const bulkH = onLine(Math.max(lowest + 15, d - 15), d);
+    const groups = [
+        {
+            role: 'stops',
+            heightCm: d,
+            items: [],
+            note: 'Silicone stops set the depth — do not lock a loaded waggler with shot',
+        },
+        {
+            role: 'bulk',
+            heightCm: bulkH,
+            items: bulk,
+            note: 'Most of the added shot, around the adaptor',
+        },
+    ];
+    for (let i = 0; i < n; i++) {
+        groups.push({
+            role: 'dropper',
+            heightCm: lowest + (i * (bulkH - lowest)) / n,
+            items: [{ shot: dropper, count: 1 }],
+        });
+    }
+
+    return finish(
+        {
+            id: 'loaded_waggler',
+            name: 'Bulk & droppers',
+            summary: `${describeItems(bulk)} under the float, ${n} × ${dropper.label} droppers`,
+            whenToUse:
+                'A loaded waggler already carries weight in the base. Stops set the depth, the bulk cocks the float, and the droppers show the bite.',
+            groups,
+            tips: [
+                'Fix the float with silicone stops either side of the adaptor. The shot does not lock it in place.',
+                'The 2 × BB on a 1+2BB is the shot you add in total. Most of it sits at the adaptor; a few No.8s go down the line.',
+                'The other chips put that same weight on as 2 × BB, No.4 or No.6, with nothing down the line.',
+                'The weight already inside the float is not shot you add on the line.',
+            ],
+        },
+        input,
+    );
+}
+
+function loadedPatterns(input) {
+    const printed = input.addShot && SHOT[input.addShot] ? SHOT[input.addShot] : neatBulkShot(input.floatGrams);
+    const choices = [];
+    for (const shot of [printed, SHOT.No4, SHOT.No6, SHOT.BB]) {
+        if (shot.grams < input.floatGrams - 1e-6 && ! choices.some((choice) => choice.size === shot.size)) {
+            choices.push(shot);
+        }
+    }
+
+    return [loadedWithDroppers(input, printed), ...choices.map((shot) => loadedAllAtFloat(input, shot))];
+}
+
 function recommendedId(input) {
     const { floatGrams: fg, floatType, depthCm: d } = input;
     switch (floatType) {
@@ -495,6 +615,8 @@ function recommendedId(input) {
             return d < 120 ? 'waggler_drop' : 'waggler_locking';
         case 'slider':
             return 'slider';
+        case 'loaded_waggler':
+            return 'loaded_waggler';
         case 'pellet_waggler':
             return 'pellet_waggler';
     }
@@ -526,6 +648,9 @@ export function generatePatterns(input) {
         case 'slider':
             patterns.push(slider(input), sliderOlivette(input));
             break;
+        case 'loaded_waggler':
+            patterns.push(...loadedPatterns(input));
+            break;
         case 'pellet_waggler':
             patterns.push(pelletWaggler(input));
             break;
@@ -553,6 +678,11 @@ export const PATTERN_IDS = [
     'waggler_drop',
     'slider',
     'slider_olivette',
+    'loaded_waggler',
+    'loaded_bb',
+    'loaded_no4',
+    'loaded_no6',
+    'loaded_aaa',
     'pellet_waggler',
 ];
 

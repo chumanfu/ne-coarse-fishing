@@ -5,6 +5,7 @@ import { depthToCm, formatHeight } from './units';
 
 const ROLE_LABEL = {
     locking: 'Locking',
+    stops: 'Stops',
     bulk: 'Bulk',
     olivette: 'Olivette',
     dropper: 'Dropper',
@@ -21,6 +22,8 @@ const LABEL_OVERHANG_TOP = 20; // how far labels may sit above the float
 const LABEL_OVERHANG_BOTTOM = 10; // and below the hook
 
 function groupText(g) {
+    if (g.role === 'stops') return 'Float stops';
+
     const parts = [];
     if (g.olivetteGrams) parts.push(`${g.olivetteGrams}g olivette`);
     if (g.items.length) parts.push(describeItems(g.items));
@@ -29,7 +32,7 @@ function groupText(g) {
 }
 
 function positionText(g, unit) {
-    if (g.role === 'locking') return 'At float';
+    if (g.role === 'locking' || g.role === 'stops') return 'At float';
 
     return `${formatHeight(g.heightCm, unit)} from hook`;
 }
@@ -135,6 +138,7 @@ export default function shottingCalculator(config = {}) {
                 floatType: this.floatType,
                 depthCm: this.depthCm,
                 olivetteGrams: this.olivetteGrams ?? undefined,
+                addShot: this.parsed.addShot ?? undefined,
             });
         },
 
@@ -163,8 +167,9 @@ export default function shottingCalculator(config = {}) {
 
             return {
                 heading: `Shot load ${formatGrams(pattern.loadGrams)} of ${formatGrams(pattern.floatGrams)}`,
-                detail:
-                    diff > 0.015
+                detail: this.parsed?.loadedGrams && pattern.groups.some((group) => group.role === 'stops')
+                    ? `Plus ${formatGrams(this.parsed.loadedGrams)} already in the float. The stops set the depth.`
+                    : diff > 0.015
                         ? `About ${formatGrams(diff)} light – add a small shot under the float to dot the tip down.`
                         : 'Should sit the float with just the tip showing.',
             };
@@ -179,7 +184,7 @@ export default function shottingCalculator(config = {}) {
                 text: groupText(g),
                 position: positionText(g, this.unit),
                 note: g.note ?? null,
-                grams: formatGrams(groupGrams(g)),
+                grams: g.role === 'stops' ? '' : formatGrams(groupGrams(g)),
             }));
         },
 
@@ -227,12 +232,15 @@ export default function shottingCalculator(config = {}) {
                         position: positionText(g, this.unit),
                         isOlivette: g.role === 'olivette',
                         isLocking: g.role === 'locking',
+                        isStops: g.role === 'stops',
                         y,
                         labelTop: tops[i],
                         markerStyle:
                             g.role === 'olivette'
                                 ? `width:12px;height:26px;border-radius:6px;top:${y - 13}px;left:${LINE_X - 6}px`
-                                : `width:${size}px;height:${size}px;border-radius:${size / 2}px;top:${y - size / 2}px;left:${LINE_X - size / 2}px`,
+                                : g.role === 'stops'
+                                    ? `width:16px;height:4px;border-radius:2px;top:${y - 2}px;left:${LINE_X - 8}px`
+                                    : `width:${size}px;height:${size}px;border-radius:${size / 2}px;top:${y - size / 2}px;left:${LINE_X - size / 2}px`,
                         leader: { x1: LINE_X + 12, y1: y, x2: LABEL_X - 4, y2: tops[i] + 10 },
                     };
                 }),

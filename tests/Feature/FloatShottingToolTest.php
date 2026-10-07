@@ -82,6 +82,29 @@ class FloatShottingToolTest extends TestCase
         $this->assertSame('Olivette', $rig->patternLabel());
     }
 
+    public function test_a_loaded_waggler_can_be_saved(): void
+    {
+        $user = User::factory()->create();
+        $peg = $this->verifiedPeg();
+
+        $this->actingAs($user)->post(route('tools.float-shotting.store'), [
+            'water_peg_id' => $peg->id,
+            'float_name' => 'Lidsters crystal',
+            'float_size' => '1+2BB 0.4+0.8 gr',
+            'float_type' => 'loaded_waggler',
+            'float_grams' => 0.8,
+            'depth' => 6,
+            'depth_unit' => 'ft',
+            'pattern_id' => 'loaded_waggler',
+        ])->assertSessionHasNoErrors();
+
+        $rig = PegFloatRig::query()->firstOrFail();
+
+        $this->assertSame('loaded_waggler', $rig->float_type);
+        $this->assertSame('Bulk & droppers', $rig->patternLabel());
+        $this->assertSame('Loaded waggler', $rig->floatTypeLabel());
+    }
+
     public function test_user_can_save_a_pattern_against_a_verified_peg(): void
     {
         $user = User::factory()->create();

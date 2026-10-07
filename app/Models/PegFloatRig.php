@@ -16,17 +16,18 @@ class PegFloatRig extends Model
     /** @use HasFactory<PegFloatRigFactory> */
     use HasFactory;
 
-    public const FLOAT_TYPES = ['pole', 'dibber', 'waggler', 'pellet_waggler', 'slider', 'stick', 'avon'];
+    public const FLOAT_TYPES = ['pole', 'dibber', 'waggler', 'loaded_waggler', 'pellet_waggler', 'slider', 'stick', 'avon'];
 
     public const PATTERN_IDS = [
         'strung', 'bulk_droppers', 'olivette', 'shirt_button', 'waggler_locking', 'waggler_drop', 'slider',
-        'slider_olivette', 'pellet_waggler',
+        'slider_olivette', 'loaded_waggler', 'loaded_bb', 'loaded_no4', 'loaded_no6', 'loaded_aaa', 'pellet_waggler',
     ];
 
     private const FLOAT_TYPE_LABELS = [
         'pole' => 'Pole',
         'dibber' => 'Dibber',
         'waggler' => 'Waggler',
+        'loaded_waggler' => 'Loaded waggler',
         'pellet_waggler' => 'Pellet waggler',
         'slider' => 'Slider',
         'stick' => 'Stick',
@@ -42,6 +43,11 @@ class PegFloatRig extends Model
         'waggler_drop' => 'On the drop',
         'slider' => 'Bulk',
         'slider_olivette' => 'Olivette',
+        'loaded_waggler' => 'Bulk & droppers',
+        'loaded_bb' => 'BB under stops',
+        'loaded_no4' => 'No.4 under stops',
+        'loaded_no6' => 'No.6 under stops',
+        'loaded_aaa' => 'AAA under stops',
         'pellet_waggler' => 'Pellet waggler',
     ];
 

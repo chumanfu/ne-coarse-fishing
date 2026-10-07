@@ -3,7 +3,8 @@ import { SHOT } from './shots';
 export const FLOAT_TYPES = [
     { id: 'pole', label: 'Pole', hint: 'Pole floats rated like 4x10, 4x16 or in grams' },
     { id: 'dibber', label: 'Dibber', hint: 'Short margin/shallow pole floats' },
-    { id: 'waggler', label: 'Waggler', hint: 'Straight, insert or bodied wagglers' },
+    { id: 'waggler', label: 'Waggler', hint: 'Straight, insert or bodied wagglers, locked with shot' },
+    { id: 'loaded_waggler', label: 'Loaded', hint: 'Weight already in the base — held with float stops, not locking shot' },
     { id: 'pellet_waggler', label: 'Pellet wag', hint: 'Short, often pre-loaded wagglers' },
     { id: 'slider', label: 'Slider', hint: 'Big waggler (4AAA+) that slides on the line for deep water' },
     { id: 'stick', label: 'Stick', hint: 'Running-water stick floats, e.g. 4 No.4' },
@@ -46,11 +47,13 @@ function resolveShot(token) {
     return SHOT[key] ? key : null;
 }
 
-function loadedResult(loadedGrams, addGrams, explanation) {
+function loadedResult(loadedGrams, addGrams, explanation, addShot = null, addCount = null) {
     return withRange({
         grams: addGrams,
         loadedGrams,
         notation: 'loaded',
+        addShot,
+        addCount,
         explanation,
     });
 }
@@ -83,6 +86,8 @@ export function parseFloatSize(input) {
             loadedGrams,
             addGrams,
             `Loaded ${formatGrams(loadedGrams)} in the float; add ${formatGrams(addGrams)} of shot${shotNote}`,
+            shot,
+            shot ? parseFloat(loadedBoth[2]) : null,
         );
     }
 
@@ -101,6 +106,8 @@ export function parseFloatSize(input) {
                 loadedGrams,
                 addGrams,
                 `Loaded ${loadedNamed[1]} × ${SHOT[loadedSize].label} (${formatGrams(loadedGrams)}) in the float; add ${loadedNamed[3]} × ${SHOT[addSize].label} (${formatGrams(addGrams)})`,
+                addSize,
+                parseFloat(loadedNamed[3]),
             );
         }
     }
@@ -117,6 +124,8 @@ export function parseFloatSize(input) {
                 loadedGrams,
                 addGrams,
                 `Loaded ${loadedShot[1]} × ${SHOT[size].label} (${formatGrams(loadedGrams)}) in the float; add ${loadedShot[2]} × ${SHOT[size].label} (${formatGrams(addGrams)})`,
+                size,
+                parseFloat(loadedShot[2]),
             );
         }
     }
@@ -189,7 +198,7 @@ function withRange(p) {
 
 /** Best guess at the float type from how its size is written. */
 export function guessFloatType(p) {
-    if (p.notation === 'loaded') return 'waggler';
+    if (p.notation === 'loaded') return 'loaded_waggler';
     if (p.notation === 'pole') return 'pole';
     if (p.shotSize && p.shotSize.startsWith('No')) return 'stick';
     if (p.notation === 'shot') return 'waggler';
