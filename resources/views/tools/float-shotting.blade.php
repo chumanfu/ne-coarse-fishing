@@ -59,7 +59,7 @@
                 <input id="float-size" type="text" x-model="floatSize" @input="onSizeChange()"
                        autocapitalize="none" autocorrect="off" spellcheck="false"
                        :aria-invalid="sizeInvalid" aria-describedby="float-size-hint"
-                       placeholder="e.g. 4x10, 0.5g, 3BB, 1+2BB, 0.4+0.8gr" class="{{ $inputClass }}">
+                       placeholder="e.g. 4x10, 0.5g, 3BB, 1+2BB, 1.5g + 0.5g" class="{{ $inputClass }}">
                 <p id="float-size-hint" class="mt-1 text-xs" x-show="sizeHint" x-cloak
                    :class="sizeInvalid ? 'text-red-700' : 'text-slate-600'" x-text="sizeHint"></p>
             </div>
@@ -239,19 +239,71 @@
                 </p>
             </div>
 
-            <table class="mt-4 w-full border-separate border-spacing-0 overflow-hidden rounded-xl border-2 border-slate-200 text-left">
+            <p class="mt-4 text-sm text-slate-600">Change a shot, take it off, add one to the bulk, or move it towards the float or the hook.</p>
+            <button type="button" x-show="edits" x-cloak @click="edits = null"
+                    class="mt-2 text-sm font-semibold text-sky-800 hover:underline">Use the suggested shot</button>
+
+            <table class="mt-3 w-full border-separate border-spacing-0 overflow-hidden rounded-xl border-2 border-slate-200 text-left">
                 <caption class="sr-only">Shot positions</caption>
                 <tbody>
-                    <template x-for="(row, index) in rows" :key="'row-' + index">
+                    <template x-for="(row, index) in rows" :key="row.key">
                         <tr>
-                            <th scope="row" class="w-20 p-2.5 align-middle text-xs font-bold text-sky-800"
+                            <th scope="row" class="w-20 p-2.5 align-top text-xs font-bold text-sky-800"
                                 :class="index > 0 && 'border-t-2 border-slate-200'" x-text="row.role"></th>
                             <td class="p-2.5" :class="index > 0 && 'border-t-2 border-slate-200'">
-                                <div class="text-sm font-semibold text-slate-900" x-text="row.text"></div>
-                                <div class="mt-0.5 text-xs text-slate-600"
-                                     x-text="row.position + (row.note ? ' · ' + row.note : '')"></div>
+                                <template x-if="! row.editable">
+                                    <div>
+                                        <div class="text-sm font-semibold text-slate-900" x-text="row.text"></div>
+                                        <div class="mt-0.5 text-xs text-slate-600"
+                                             x-text="row.position + (row.note ? ' · ' + row.note : '')"></div>
+                                    </div>
+                                </template>
+                                <template x-if="row.editable">
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-900" x-show="row.olivetteLabel" x-text="row.olivetteLabel"></p>
+                                        <div class="mt-0.5 text-xs text-slate-600"
+                                             x-text="row.position + (row.note ? ' · ' + row.note : '')"></div>
+                                        <div class="mt-2 space-y-2">
+                                            <template x-for="item in row.items" :key="row.key + '-' + item.itemIndex + '-' + item.size + '-' + item.count">
+                                                <div class="flex flex-wrap items-center gap-2">
+                                                    <label class="sr-only" :for="'count-' + row.key + '-' + item.itemIndex">Number of shot</label>
+                                                    <select :id="'count-' + row.key + '-' + item.itemIndex"
+                                                            class="rounded-md border-2 border-slate-400 py-1 pl-2 pr-7 text-sm"
+                                                            :value="item.count"
+                                                            @change="changeShotCount(row.key, item.itemIndex, $event.target.value)">
+                                                        <template x-for="count in shotCounts" :key="count">
+                                                            <option :value="count" x-text="count" :selected="count === item.count"></option>
+                                                        </template>
+                                                    </select>
+                                                    <span class="text-sm text-slate-600">×</span>
+                                                    <label class="sr-only" :for="'size-' + row.key + '-' + item.itemIndex">Shot size</label>
+                                                    <select :id="'size-' + row.key + '-' + item.itemIndex"
+                                                            class="rounded-md border-2 border-slate-400 py-1 pl-2 pr-8 text-sm"
+                                                            :value="item.size"
+                                                            @change="changeShot(row.key, item.itemIndex, $event.target.value)">
+                                                        <template x-for="option in shotSizes" :key="option.size">
+                                                            <option :value="option.size" x-text="option.label" :selected="option.size === item.size"></option>
+                                                        </template>
+                                                    </select>
+                                                    <button type="button" @click="removeShot(row.key, item.itemIndex)"
+                                                            class="text-sm font-semibold text-sky-800 hover:underline">Remove</button>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div class="mt-2 flex flex-wrap gap-2">
+                                            <button type="button" x-show="row.canAddShot" @click="addShot(row.key)"
+                                                    class="text-sm font-semibold text-sky-800 hover:underline">Add shot</button>
+                                            <button type="button" @click="moveShot(row.key, 'float')" :disabled="! row.canMoveUp"
+                                                    class="text-sm font-semibold text-sky-800 hover:underline disabled:text-slate-400 disabled:no-underline">Towards float</button>
+                                            <button type="button" @click="moveShot(row.key, 'hook')" :disabled="! row.canMoveDown"
+                                                    class="text-sm font-semibold text-sky-800 hover:underline disabled:text-slate-400 disabled:no-underline">Towards hook</button>
+                                            <button type="button" x-show="row.olivetteLabel" @click="removePlacement(row.key)"
+                                                    class="text-sm font-semibold text-sky-800 hover:underline">Remove olivette</button>
+                                        </div>
+                                    </div>
+                                </template>
                             </td>
-                            <td class="p-2.5 text-right text-xs tabular-nums text-slate-600"
+                            <td class="p-2.5 text-right align-top text-xs tabular-nums text-slate-600"
                                 :class="index > 0 && 'border-t-2 border-slate-200'" x-text="row.grams"></td>
                         </tr>
                     </template>

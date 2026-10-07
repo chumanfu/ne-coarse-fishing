@@ -63,7 +63,7 @@ function loadedResult(loadedGrams, addGrams, explanation, addShot = null, addCou
  *  - pole notation: "4x10", "4X16", "4 x 0.2"  (4x10 ≈ 0.10g)
  *  - grams: "0.5g", "1.5 grams", "0.4"
  *  - shot ratings: "3BB", "2.5AAA", "4No4", "6 x No.8", "2SSG"
- *  - loaded wagglers: "1+2BB", "1BB+2BB", "0.4+0.8gr", "1+2BB 0.4+0.8 gr"
+ *  - loaded wagglers: "1+2BB", "1BB+2BB", "0.4+0.8gr", "1.5g + 0.5g", "1+2BB 0.4+0.8 gr"
  *    (loading already in the float + shot to add on the line)
  */
 export function parseFloatSize(input) {
@@ -130,11 +130,11 @@ export function parseFloatSize(input) {
         }
     }
 
-    // "0.4+0.8gr" / "0.4+0.8g"
+    // "0.4+0.8gr", "1.5g+0.5g", "1.5g + 0.5g" — a unit may sit on either number.
     const loadedGramsOnly = s.match(
-        new RegExp(`^(\\d+(?:\\.\\d+)?)[+x](\\d+(?:\\.\\d+)?)(?:${GRAM_UNIT})$`),
+        new RegExp(`^(\\d+(?:\\.\\d+)?)(?:${GRAM_UNIT})?[+x](\\d+(?:\\.\\d+)?)(?:${GRAM_UNIT})?$`),
     );
-    if (loadedGramsOnly) {
+    if (loadedGramsOnly && new RegExp(GRAM_UNIT).test(s)) {
         const loadedGrams = parseFloat(loadedGramsOnly[1]);
         const addGrams = parseFloat(loadedGramsOnly[2]);
 

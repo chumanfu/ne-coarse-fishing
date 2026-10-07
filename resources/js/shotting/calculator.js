@@ -1,5 +1,5 @@
 import { FLOAT_TYPES, formatGrams, guessFloatType, parseFloatSize } from './floats';
-import { SHOT, describeItems } from './shots';
+import { SHOT, SHOTS, describeItems } from './shots';
 import { GENERAL_TIPS, MIN_DEPTH_CM, generatePatterns, groupGrams, olivetteOptions, patternUsesOlivette } from './shotting';
 import { depthToCm, formatHeight } from './units';
 
@@ -121,6 +121,27 @@ function positionText(g, unit) {
     return `${formatHeight(g.heightCm, unit)} from hook`;
 }
 
+/** A plain copy of the engine groups, so each shot can be changed without touching the suggestion. */
+function cloneGroups(groups) {
+    return groups.map((group, index) => ({
+        key: `${group.role}-${index}`,
+        role: group.role,
+        heightCm: group.heightCm,
+        olivetteGrams: group.olivetteGrams ?? null,
+        note: group.note ?? null,
+        items: (group.items ?? []).map((item) => ({ size: item.shot.size, count: item.count })),
+    }));
+}
+
+function hydrateGroup(group) {
+    return {
+        ...group,
+        items: group.items
+            .filter((item) => SHOT[item.size])
+            .map((item) => ({ shot: SHOT[item.size], count: item.count })),
+    };
+}
+
 /**
  * Places labels as close to their shot as possible without overlapping:
  * a top-down pass pushes them apart, then a bottom-up pass pulls them back
@@ -162,6 +183,9 @@ export default function shottingCalculator(config = {}) {
         dots: [],
         dotSize: 'No8',
         dotPick: 'none',
+        edits: null,
+        shotSizes: SHOTS,
+        shotCounts: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
         labelHeights: [],
 
         venues: config.venues ?? [],
@@ -179,11 +203,11 @@ export default function shottingCalculator(config = {}) {
 
             this.remeasure = () => this.measureLabels();
             window.addEventListener('resize', this.remeasure);
-            this.$watch('floatSize', () => this.clearDots());
-            this.$watch('floatType', () => this.clearDots());
-            this.$watch('patternId', () => this.clearDots());
-            this.$watch('olivetteGrams', () => this.clearDots());
-            this.$watch('depthText', () => this.clearDots());
+            this.$watch('floatSize', () => this.resetLine());
+            this.$watch('floatType', () => this.resetLine());
+            this.$watch('patternId', () => this.resetLine());
+            this.$watch('olivetteGrams', () => this.resetLine());
+            this.$watch('depthText', () => this.resetLine());
         },
 
         destroy() {
@@ -219,7 +243,7 @@ export default function shottingCalculator(config = {}) {
 
             return this.parsed
                 ? this.parsed.explanation
-                : 'Not recognised – try a format like 4x12, 0.3g, 2AAA or 1+2BB 0.4+0.8gr';
+                : 'Not recognised – try a format like 4x12, 0.3g, 2AAA, 1+2BB or 1.5g + 0.5g';
         },
 
         get patterns() {
@@ -255,12 +279,11 @@ export default function shottingCalculator(config = {}) {
         get loadSummary() {
             const pattern = this.active;
             if (! pattern) return null;
-            const load = pattern.loadGrams + this.dotGrams;
-            const sit = tipSit(load - pattern.floatGrams, this.floatType);
+            const sit = tipSit(this.shotLoadGrams - pattern.floatGrams, this.floatType);
 
             return {
-                heading: `Shot load ${formatGrams(load)} of ${formatGrams(pattern.floatGrams)}`,
-                detail: this.parsed?.loadedGrams && pattern.groups.some((group) => group.role === 'stops')
+                heading: `Shot load ${formatGrams(this.shotLoadGrams)} of ${formatGrams(pattern.floatGrams)}`,
+                detail: this.parsed?.loadedGrams && this.displayGroups.some((group) => group.role === 'stops')
                     ? `Plus ${formatGrams(this.parsed.loadedGrams)} already in the float. The stops set the depth. ${sit.detail}`
                     : sit.detail,
             };
@@ -287,12 +310,18 @@ export default function shottingCalculator(config = {}) {
             return dotSuggestions(pattern.floatGrams - pattern.loadGrams, this.dotSizeOptions);
         },
 
-        /** Pattern groups plus any shot the angler has added to dot the tip. */
-        get displayGroups() {
+        /** Engine groups, or the angler's edited copy once they have changed a shot. */
+        get placements() {
+            if (this.edits) return this.edits;
             if (! this.active) return [];
 
-            const groups = [...this.active.groups];
-            if (this.dots.length) {
+            return cloneGroups(this.active.groups);
+        },
+
+        /** Pattern groups plus any shot the angler has added to dot the tip. */
+        get displayGroups() {
+            const groups = this.placements.map(hydrateGroup);
+            if (this.dots.length && this.depthValid) {
                 groups.push({
                     role: 'dot',
                     heightCm: Math.max(this.depthCm - 25, this.depthCm * 0.82),
@@ -304,15 +333,37 @@ export default function shottingCalculator(config = {}) {
             return groups.sort((a, b) => b.heightCm - a.heightCm);
         },
 
+        get shotLoadGrams() {
+            return this.displayGroups.reduce((sum, group) => sum + groupGrams(group), 0);
+        },
+
         /** Table rows for the pattern, in the same order as the diagram. */
         get rows() {
-            return this.displayGroups.map((g) => ({
-                role: ROLE_LABEL[g.role],
-                text: groupText(g),
-                position: positionText(g, this.unit),
-                note: g.note ?? null,
-                grams: g.role === 'stops' ? '' : formatGrams(groupGrams(g)),
-            }));
+            const sorted = this.displayGroups;
+            const movable = sorted.filter((group) => group.key && group.role !== 'stops' && group.role !== 'dot');
+
+            return sorted.map((group) => {
+                const moveAt = movable.findIndex((item) => item.key === group.key);
+
+                return {
+                    key: group.key ?? group.role,
+                    role: ROLE_LABEL[group.role] ?? group.role,
+                    text: groupText(group),
+                    position: positionText(group, this.unit),
+                    note: group.note ?? null,
+                    grams: group.role === 'stops' ? '' : formatGrams(groupGrams(group)),
+                    editable: Boolean(group.key) && group.role !== 'stops' && group.role !== 'dot',
+                    olivetteLabel: group.olivetteGrams ? `${group.olivetteGrams}g olivette` : null,
+                    items: (group.items ?? []).map((item, itemIndex) => ({
+                        itemIndex,
+                        size: item.shot.size,
+                        count: item.count,
+                    })),
+                    canMoveUp: moveAt > 0,
+                    canMoveDown: moveAt >= 0 && moveAt < movable.length - 1,
+                    canAddShot: group.role === 'bulk' || group.role === 'olivette',
+                };
+            });
         },
 
         get diagram() {
@@ -341,7 +392,7 @@ export default function shottingCalculator(config = {}) {
             );
             const labelsBottom = tops.length ? tops[tops.length - 1] + heights[tops.length - 1] : 0;
             const bedY = Math.max(hookY + 14, labelsBottom + 8);
-            const over = pattern.loadGrams + this.dotGrams - pattern.floatGrams;
+            const over = this.shotLoadGrams - pattern.floatGrams;
             const sinkPx = over >= 0
                 ? Math.min(MAX_SINK, (over / SHOT.No8.grams) * BRISTLE_H)
                 : -Math.min(MAX_RISE, (-over / Math.max(SHOT.No4.grams, pattern.floatGrams * 0.12)) * MAX_RISE);
@@ -435,6 +486,88 @@ export default function shottingCalculator(config = {}) {
 
             this.dots = [];
             this.dotPick = 'none';
+        },
+
+        resetLine() {
+            this.clearDots();
+            this.edits = null;
+        },
+
+        ensureEdits() {
+            if (this.edits || ! this.active) return;
+
+            this.edits = cloneGroups(this.active.groups);
+        },
+
+        replaceEdit(key, update) {
+            this.ensureEdits();
+            this.edits = this.edits.map((group) => (group.key === key ? update(group) : group));
+        },
+
+        changeShot(key, itemIndex, size) {
+            this.replaceEdit(key, (group) => ({
+                ...group,
+                items: group.items.map((item, index) => (index === itemIndex ? { ...item, size } : item)),
+            }));
+        },
+
+        changeShotCount(key, itemIndex, count) {
+            const next = Math.max(1, Math.min(12, Number(count) || 1));
+            this.replaceEdit(key, (group) => ({
+                ...group,
+                items: group.items.map((item, index) => (index === itemIndex ? { ...item, count: next } : item)),
+            }));
+        },
+
+        addShot(key) {
+            this.replaceEdit(key, (group) => {
+                if (group.role !== 'bulk' && group.role !== 'olivette') return group;
+                if (group.items.length >= 8) return group;
+
+                const sizes = SHOTS.map((shot) => shot.size);
+                let lightestAt = -1;
+                for (const item of group.items) {
+                    lightestAt = Math.max(lightestAt, sizes.indexOf(item.size));
+                }
+                const size = lightestAt < 0 ? 'No8' : (sizes[lightestAt + 1] ?? sizes[lightestAt]);
+
+                return { ...group, items: [...group.items, { size, count: 1 }] };
+            });
+        },
+
+        removeShot(key, itemIndex) {
+            this.ensureEdits();
+            this.edits = this.edits.flatMap((group) => {
+                if (group.key !== key) return [group];
+
+                const items = group.items.filter((_, index) => index !== itemIndex);
+                if (! items.length && ! group.olivetteGrams) return [];
+
+                return [{ ...group, items }];
+            });
+        },
+
+        removePlacement(key) {
+            this.ensureEdits();
+            this.edits = this.edits.filter((group) => group.key !== key);
+        },
+
+        moveShot(key, direction) {
+            this.ensureEdits();
+            const sorted = this.edits
+                .filter((group) => group.role !== 'stops')
+                .sort((a, b) => b.heightCm - a.heightCm);
+            const index = sorted.findIndex((group) => group.key === key);
+            const next = direction === 'float' ? index - 1 : index + 1;
+            if (index < 0 || next < 0 || next >= sorted.length) return;
+
+            const height = sorted[index].heightCm;
+            sorted[index].heightCm = sorted[next].heightCm;
+            sorted[next].heightCm = height;
+            this.edits = this.edits.map((group) => ({
+                ...group,
+                items: group.items.map((item) => ({ ...item })),
+            }));
         },
 
         applyDots(choice) {
