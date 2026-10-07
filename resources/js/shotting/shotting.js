@@ -250,13 +250,23 @@ function wagglerDropper(fg) {
     return SHOT.No4;
 }
 
+/**
+ * Locking shot has to be small enough to sit either side of the float.
+ * A 1g waggler must not get 2 × BB (0.80g) as locking shot – that would cock it on its own.
+ */
+function lockingItems(floatGrams, lockTarget) {
+    const maxShot = Math.max(SHOT.No13.grams, Math.min(lockTarget / 4, floatGrams * 0.2));
+
+    return fillWeight(lockTarget, shotsBetween(SHOT.No13.grams, maxShot));
+}
+
 function wagglerLocking(input) {
     const { floatGrams: fg, depthCm: d } = input;
     const dropper = wagglerDropper(fg);
     let n = d < 120 ? 2 : 3;
     while (n > 1 && n * dropper.grams > fg * 0.25) n--;
     const lockTarget = fg - n * dropper.grams;
-    const lock = fillWeight(lockTarget, shotsBetween(SHOT.No13.grams, Math.max(SHOT.No13.grams, lockTarget / 2)));
+    const lock = lockingItems(fg, lockTarget);
 
     const lowest = lowestShot(d);
     const top = onLine(Math.max(lowest + 10, d * 0.33), d);
@@ -298,7 +308,7 @@ function wagglerDrop(input) {
     const shot = candidates.find((s) => stringTarget / s.grams >= 3) ?? SHOT.No11;
     const count = clamp(Math.floor((stringTarget + 1e-6) / shot.grams), 1, 8);
     const lockTarget = fg - count * shot.grams;
-    const lock = fillWeight(lockTarget, shotsBetween(SHOT.No13.grams, Math.max(SHOT.No13.grams, lockTarget / 2)));
+    const lock = lockingItems(fg, lockTarget);
 
     const lowest = lowestShot(d);
     const top = onLine(Math.max(lowest + 10, d * 0.6), d);
@@ -322,6 +332,68 @@ function wagglerDrop(input) {
                 'Watch the tip settle after each cast – a missed "settle" is a bite.',
                 'Loose-feed regularly so fish compete for falling bait.',
             ],
+        },
+        input,
+    );
+}
+
+/** Sliders start at the 4AAA floats; lighter shot cannot pull line through the adaptor. */
+const SLIDER_MIN_GRAMS = 4 * SHOT.AAA.grams;
+
+/** Roughly the length of a float rod. Deeper than this and the float has to slide. */
+const SLIDER_MIN_DEPTH_CM = 365;
+
+function slider(input) {
+    const { floatGrams: fg, depthCm: d } = input;
+    const dropper = wagglerDropper(fg);
+    let n = d < 450 ? 2 : 3;
+    // The bulk has to stay heavy enough to draw line through the float adaptor.
+    while (n > 1 && n * dropper.grams > fg * 0.2) n--;
+
+    const bulkTarget = fg - n * dropper.grams;
+    const bulk = fillWeight(bulkTarget, shotsBetween(dropper.grams, SHOT.SSG.grams));
+    const trim = trimItems(bulkTarget - totalGrams(bulk), dropper.grams * 0.99);
+
+    const lowest = lowestShot(d);
+    const bulkH = onLine(Math.max(lowest + 20, clamp(d * 0.2, 60, 120)), d);
+    const groups = [
+        {
+            role: 'bulk',
+            heightCm: bulkH,
+            items: [...bulk, ...trim],
+            note: 'All of the shot goes below the float, which slides on the line',
+        },
+    ];
+    for (let i = 0; i < n; i++) {
+        groups.push({
+            role: 'dropper',
+            heightCm: lowest + (i * (bulkH - lowest)) / n,
+            items: [{ shot: dropper, count: 1 }],
+        });
+    }
+
+    const tips = [
+        'Thread the line through a swivel float adaptor so the float slides cleanly and the line does not twist.',
+        'Tie the stop knot above the float and leave about an inch of tag, so the float cannot slip over it.',
+        'Cast with the bail arm open and let line run until the float settles, then close it and take up the slack.',
+        'Plumb up carefully, then slide the stop knot until the float sits with just the tip showing.',
+    ];
+    if (fg < SLIDER_MIN_GRAMS) {
+        tips.unshift('A slider needs a big float – 4AAA (3.20g) and up – so the bulk can pull line through the adaptor.');
+    }
+    if (d < SLIDER_MIN_DEPTH_CM) {
+        tips.unshift('A fixed waggler is easier at this depth; the slider earns its keep once the water is deeper than the rod is long.');
+    }
+
+    return finish(
+        {
+            id: 'slider',
+            name: 'Slider',
+            summary: `Bulk below the float with ${n} × ${dropper.label} droppers, depth set by a stop knot above the float`,
+            whenToUse:
+                'Water deeper than your rod is long – reservoirs, gravel pits and tidal rivers where a fixed waggler leaves too long a hooklength to cast.',
+            groups,
+            tips,
         },
         input,
     );
@@ -369,14 +441,18 @@ function recommendedId(input) {
         case 'avon':
             return 'bulk_droppers';
         case 'waggler':
+            if (d >= SLIDER_MIN_DEPTH_CM && fg >= SLIDER_MIN_GRAMS) return 'slider';
+
             return d < 120 ? 'waggler_drop' : 'waggler_locking';
+        case 'slider':
+            return 'slider';
         case 'pellet_waggler':
             return 'pellet_waggler';
     }
 }
 
 export function generatePatterns(input) {
-    const { floatGrams: fg, floatType } = input;
+    const { floatGrams: fg, floatType, depthCm: d } = input;
     const patterns = [];
     switch (floatType) {
         case 'pole':
@@ -393,6 +469,11 @@ export function generatePatterns(input) {
             break;
         case 'waggler':
             patterns.push(wagglerLocking(input), wagglerDrop(input));
+            // Past rod length a fixed waggler cannot be cast, so offer the slider too.
+            if (d >= SLIDER_MIN_DEPTH_CM && fg >= SLIDER_MIN_GRAMS) patterns.push(slider(input));
+            break;
+        case 'slider':
+            patterns.push(slider(input));
             break;
         case 'pellet_waggler':
             patterns.push(pelletWaggler(input));
@@ -419,5 +500,6 @@ export const PATTERN_IDS = [
     'shirt_button',
     'waggler_locking',
     'waggler_drop',
+    'slider',
     'pellet_waggler',
 ];

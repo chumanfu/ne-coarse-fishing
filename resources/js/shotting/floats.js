@@ -5,6 +5,7 @@ export const FLOAT_TYPES = [
     { id: 'dibber', label: 'Dibber', hint: 'Short margin/shallow pole floats' },
     { id: 'waggler', label: 'Waggler', hint: 'Straight, insert or bodied wagglers' },
     { id: 'pellet_waggler', label: 'Pellet wag', hint: 'Short, often pre-loaded wagglers' },
+    { id: 'slider', label: 'Slider', hint: 'Big waggler (4AAA+) that slides on the line for deep water' },
     { id: 'stick', label: 'Stick', hint: 'Running-water stick floats, e.g. 4 No.4' },
     { id: 'avon', label: 'Avon', hint: 'Bodied running-water floats, e.g. 3AAA' },
 ];
@@ -20,6 +21,9 @@ const SHOT_TOKENS = {
     bb: 'BB',
 };
 
+const SHOT_NAME = String.raw`ssg|aaa|ab|bb|no\.?\d{1,2}|#\d{1,2}`;
+const GRAM_UNIT = String.raw`g|gr|gram|grams`;
+
 function round(n, dp = 2) {
     const f = Math.pow(10, dp);
 
@@ -32,15 +36,105 @@ export function formatGrams(g) {
     return `${round(g, 2).toFixed(2)}g`;
 }
 
+function resolveShot(token) {
+    const match = String(token).match(/^(ssg|aaa|ab|bb|no\.?(\d{1,2})|#(\d{1,2}))$/);
+    if (!match) return null;
+    if (SHOT_TOKENS[match[1]]) return SHOT_TOKENS[match[1]];
+    const num = match[2] ?? match[3];
+    const key = `No${parseInt(num, 10)}`;
+
+    return SHOT[key] ? key : null;
+}
+
+function loadedResult(loadedGrams, addGrams, explanation) {
+    return withRange({
+        grams: addGrams,
+        loadedGrams,
+        notation: 'loaded',
+        explanation,
+    });
+}
+
 /**
  * Parses the size written on a float. Supports:
  *  - pole notation: "4x10", "4X16", "4 x 0.2"  (4x10 ≈ 0.10g)
  *  - grams: "0.5g", "1.5 grams", "0.4"
  *  - shot ratings: "3BB", "2.5AAA", "4No4", "6 x No.8", "2SSG"
+ *  - loaded wagglers: "1+2BB", "1BB+2BB", "0.4+0.8gr", "1+2BB 0.4+0.8 gr"
+ *    (loading already in the float + shot to add on the line)
  */
 export function parseFloatSize(input) {
-    const s = input.trim().toLowerCase().replace(/\s+/g, '').replace(/×/g, 'x');
+    const s = input.trim().toLowerCase().replace(/,/g, '.').replace(/\s+/g, '').replace(/×/g, 'x');
     if (!s) return null;
+
+    // Printed on loaded crystals: "1+2BB 0.4+0.8 gr" — grams are the source of truth.
+    const loadedBoth = s.match(
+        new RegExp(
+            `^(\\d+(?:\\.\\d+)?)[+x](\\d+(?:\\.\\d+)?)(${SHOT_NAME})(\\d+(?:\\.\\d+)?)[+x](\\d+(?:\\.\\d+)?)(?:${GRAM_UNIT})?$`,
+        ),
+    );
+    if (loadedBoth) {
+        const loadedGrams = parseFloat(loadedBoth[4]);
+        const addGrams = parseFloat(loadedBoth[5]);
+        const shot = resolveShot(loadedBoth[3]);
+        const shotNote = shot ? ` (${loadedBoth[1]}+${loadedBoth[2]} ${SHOT[shot].label})` : '';
+
+        return loadedResult(
+            loadedGrams,
+            addGrams,
+            `Loaded ${formatGrams(loadedGrams)} in the float; add ${formatGrams(addGrams)} of shot${shotNote}`,
+        );
+    }
+
+    // "1BB+2BB" or "1ssg+2aaa"
+    const loadedNamed = s.match(
+        new RegExp(`^(\\d+(?:\\.\\d+)?)(${SHOT_NAME})[+x](\\d+(?:\\.\\d+)?)(${SHOT_NAME})$`),
+    );
+    if (loadedNamed) {
+        const loadedSize = resolveShot(loadedNamed[2]);
+        const addSize = resolveShot(loadedNamed[4]);
+        if (loadedSize && addSize) {
+            const loadedGrams = parseFloat(loadedNamed[1]) * SHOT[loadedSize].grams;
+            const addGrams = parseFloat(loadedNamed[3]) * SHOT[addSize].grams;
+
+            return loadedResult(
+                loadedGrams,
+                addGrams,
+                `Loaded ${loadedNamed[1]} × ${SHOT[loadedSize].label} (${formatGrams(loadedGrams)}) in the float; add ${loadedNamed[3]} × ${SHOT[addSize].label} (${formatGrams(addGrams)})`,
+            );
+        }
+    }
+
+    // "1+2BB" — both counts are the same shot size.
+    const loadedShot = s.match(new RegExp(`^(\\d+(?:\\.\\d+)?)[+x](\\d+(?:\\.\\d+)?)(${SHOT_NAME})$`));
+    if (loadedShot) {
+        const size = resolveShot(loadedShot[3]);
+        if (size) {
+            const loadedGrams = parseFloat(loadedShot[1]) * SHOT[size].grams;
+            const addGrams = parseFloat(loadedShot[2]) * SHOT[size].grams;
+
+            return loadedResult(
+                loadedGrams,
+                addGrams,
+                `Loaded ${loadedShot[1]} × ${SHOT[size].label} (${formatGrams(loadedGrams)}) in the float; add ${loadedShot[2]} × ${SHOT[size].label} (${formatGrams(addGrams)})`,
+            );
+        }
+    }
+
+    // "0.4+0.8gr" / "0.4+0.8g"
+    const loadedGramsOnly = s.match(
+        new RegExp(`^(\\d+(?:\\.\\d+)?)[+x](\\d+(?:\\.\\d+)?)(?:${GRAM_UNIT})$`),
+    );
+    if (loadedGramsOnly) {
+        const loadedGrams = parseFloat(loadedGramsOnly[1]);
+        const addGrams = parseFloat(loadedGramsOnly[2]);
+
+        return loadedResult(
+            loadedGrams,
+            addGrams,
+            `Loaded ${formatGrams(loadedGrams)} in the float; add ${formatGrams(addGrams)} of shot`,
+        );
+    }
 
     // Shot rating: optional count, optional "x", then shot name.
     const shotMatch = s.match(/^(\d+(?:\.\d+)?)?x?(ssg|aaa|ab|bb|no\.?(\d{1,2})|#(\d{1,2}))$/);
@@ -76,7 +170,7 @@ export function parseFloatSize(input) {
         });
     }
 
-    const gramMatch = s.match(/^(\d*\.?\d+)(g|gr|gram|grams)?$/);
+    const gramMatch = s.match(new RegExp(`^(\\d*\\.?\\d+)(?:${GRAM_UNIT})?$`));
     if (gramMatch) {
         const grams = parseFloat(gramMatch[1]);
 
@@ -88,12 +182,14 @@ export function parseFloatSize(input) {
 
 function withRange(p) {
     if (!isFinite(p.grams) || p.grams < 0.02 || p.grams > 30) return null;
+    if (p.loadedGrams != null && (!isFinite(p.loadedGrams) || p.loadedGrams < 0)) return null;
 
     return p;
 }
 
 /** Best guess at the float type from how its size is written. */
 export function guessFloatType(p) {
+    if (p.notation === 'loaded') return 'waggler';
     if (p.notation === 'pole') return 'pole';
     if (p.shotSize && p.shotSize.startsWith('No')) return 'stick';
     if (p.notation === 'shot') return 'waggler';

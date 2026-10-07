@@ -7,13 +7,25 @@
                     <span class="font-display font-semibold text-ink tracking-tight hidden md:inline text-[1.05rem] whitespace-nowrap">NE Coarse Fishing</span>
                 </a>
 
-                <div class="hidden space-x-5 lg:flex">
+                <div class="hidden items-center space-x-5 lg:flex">
                     <x-nav-link :href="route('venues.index')" :active="request()->routeIs('venues.*')">Venues</x-nav-link>
                     <x-nav-link :href="route('clubs.index')" :active="request()->routeIs('clubs.*')">Clubs</x-nav-link>
                     <x-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-nav-link>
                     <x-nav-link :href="route('tackle-reviews.index')" :active="request()->routeIs('tackle-reviews.*')">Reviews</x-nav-link>
                     <x-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-nav-link>
-                    <x-nav-link :href="route('tools.float-shotting')" :active="request()->routeIs('tools.*')">Shotting</x-nav-link>
+                    <a href="{{ route('tools.float-shotting') }}"
+                       @class([
+                           'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-semibold whitespace-nowrap transition duration-150 ease-in-out',
+                           'border-water-dark bg-water-dark text-paper-bright' => request()->routeIs('tools.*'),
+                           'border-water/50 bg-water-soft text-water-dark hover:bg-water-mist hover:border-water' => ! request()->routeIs('tools.*'),
+                       ])>
+                        Shotting
+                        <span @class([
+                            'rounded-full px-1.5 py-px text-[10px] font-extrabold uppercase tracking-wide',
+                            'bg-paper-bright text-water-dark' => request()->routeIs('tools.*'),
+                            'bg-water text-paper-bright' => ! request()->routeIs('tools.*'),
+                        ])>New</span>
+                    </a>
                     <x-nav-link :href="route('about')" :active="request()->routeIs('about')">About</x-nav-link>
                     <x-nav-link :href="route('contact.create')" :active="request()->routeIs('contact.*')">Contact</x-nav-link>
                 </div>
@@ -80,7 +92,12 @@
             <x-responsive-nav-link :href="route('tackle-shops.index')" :active="request()->routeIs('tackle-shops.*')">Tackle shops</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('tackle-reviews.index')" :active="request()->routeIs('tackle-reviews.*')">Reviews</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('map.index')" :active="request()->routeIs('map.*')">Map</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('tools.float-shotting')" :active="request()->routeIs('tools.*')">Shotting</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('tools.float-shotting')" :active="request()->routeIs('tools.*')">
+                <span class="inline-flex items-center gap-2">
+                    Shotting
+                    <span class="rounded-full bg-water px-1.5 py-px text-[10px] font-extrabold uppercase tracking-wide text-paper-bright">New</span>
+                </span>
+            </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('about')" :active="request()->routeIs('about')">About</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('contact.create')" :active="request()->routeIs('contact.*')">Contact</x-responsive-nav-link>
             @auth

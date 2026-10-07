@@ -59,7 +59,7 @@
                 <input id="float-size" type="text" x-model="floatSize" @input="onSizeChange()"
                        autocapitalize="none" autocorrect="off" spellcheck="false"
                        :aria-invalid="sizeInvalid" aria-describedby="float-size-hint"
-                       placeholder="e.g. 4x10, 4x16, 0.5g, 3BB, 4No4" class="{{ $inputClass }}">
+                       placeholder="e.g. 4x10, 0.5g, 3BB, 1+2BB, 0.4+0.8gr" class="{{ $inputClass }}">
                 <p id="float-size-hint" class="mt-1 text-xs" x-show="sizeHint" x-cloak
                    :class="sizeInvalid ? 'text-red-700' : 'text-slate-600'" x-text="sizeHint"></p>
             </div>
@@ -284,7 +284,15 @@
                 </template>
             </ul>
             <p class="mt-2 text-sm text-slate-700" x-show="parsed" x-cloak>
-                Float load used: <span x-text="formatGrams(parsed?.grams ?? 0)"></span>.
+                <template x-if="parsed?.loadedGrams">
+                    <span>
+                        Float already carries <span x-text="formatGrams(parsed.loadedGrams)"></span>;
+                        add <span x-text="formatGrams(parsed.grams)"></span> of shot.
+                    </span>
+                </template>
+                <template x-if="! parsed?.loadedGrams">
+                    <span>Float load used: <span x-text="formatGrams(parsed?.grams ?? 0)"></span>.</span>
+                </template>
             </p>
             <p class="mt-2 text-sm text-slate-700">
                 New to shotting patterns? Read the

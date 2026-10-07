@@ -17,6 +17,8 @@ const LABEL_X = 96;
 const DIAGRAM_TOP = 72; // where the line leaves the float
 const LABEL_SPACING = 6;
 const LABEL_ESTIMATE = 36; // used until a label has been measured
+const LABEL_OVERHANG_TOP = 20; // how far labels may sit above the float
+const LABEL_OVERHANG_BOTTOM = 10; // and below the hook
 
 function groupText(g) {
     const parts = [];
@@ -120,7 +122,9 @@ export default function shottingCalculator(config = {}) {
         get sizeHint() {
             if (! this.floatSize) return null;
 
-            return this.parsed ? this.parsed.explanation : 'Not recognised – try a format like 4x12, 0.3g or 2AAA';
+            return this.parsed
+                ? this.parsed.explanation
+                : 'Not recognised – try a format like 4x12, 0.3g, 2AAA or 1+2BB 0.4+0.8gr';
         },
 
         get patterns() {
@@ -180,17 +184,23 @@ export default function shottingCalculator(config = {}) {
             if (! pattern || ! this.depthValid) return null;
 
             const depthCm = this.depthCm;
-            const lineLen = Math.min(420, Math.max(220, depthCm * 1.1));
+            const heights = pattern.groups.map((_, i) => this.labelHeights[i] ?? LABEL_ESTIMATE);
+            // The line stretches to fit the labels, so a pattern with more shot than
+            // the depth leaves room for never ends up with the hook off the bottom.
+            const labelsNeeded = heights.reduce((sum, h) => sum + h + LABEL_SPACING, -LABEL_SPACING);
+            const lineLen = Math.max(
+                Math.min(420, Math.max(220, depthCm * 1.1)),
+                labelsNeeded - LABEL_OVERHANG_TOP - LABEL_OVERHANG_BOTTOM,
+            );
             const hookY = DIAGRAM_TOP + lineLen;
             const yFor = (h) => DIAGRAM_TOP + (1 - h / depthCm) * lineLen;
 
             const groups = pattern.groups.map((g) => ({ g, y: yFor(g.heightCm), text: groupText(g) }));
-            const heights = groups.map((_, i) => this.labelHeights[i] ?? LABEL_ESTIMATE);
             const tops = layoutLabels(
                 groups.map(({ y }) => y),
                 heights,
-                DIAGRAM_TOP - 20,
-                hookY + 10,
+                DIAGRAM_TOP - LABEL_OVERHANG_TOP,
+                hookY + LABEL_OVERHANG_BOTTOM,
             );
             const labelsBottom = tops.length ? tops[tops.length - 1] + heights[heights.length - 1] : 0;
             const bedY = Math.max(hookY + 14, labelsBottom + 8);

@@ -20,13 +20,42 @@ class FloatShottingToolTest extends TestCase
             ->assertOk()
             ->assertSee('Float shotting')
             ->assertSee('Shotting pattern')
+            ->assertSee('1+2BB')
             ->assertSee('log in', false);
 
         $this->get(route('tools.shot-guide'))
             ->assertOk()
             ->assertSee('Shot sizes')
             ->assertSee('No.8')
-            ->assertSee('0.06g');
+            ->assertSee('0.06g')
+            ->assertSee('Slider');
+    }
+
+    public function test_a_slider_rig_can_be_saved_and_shows_on_the_venue(): void
+    {
+        $user = User::factory()->create();
+        $peg = $this->verifiedPeg();
+
+        $this->actingAs($user)->post(route('tools.float-shotting.store'), [
+            'water_peg_id' => $peg->id,
+            'float_name' => 'Drennan Loaded Slider',
+            'float_size' => '4AAA',
+            'float_type' => 'slider',
+            'float_grams' => 3.2,
+            'depth' => 15,
+            'depth_unit' => 'ft',
+            'pattern_id' => 'slider',
+        ])->assertSessionHasNoErrors();
+
+        $rig = PegFloatRig::query()->firstOrFail();
+
+        $this->assertSame('slider', $rig->float_type);
+        $this->assertSame('Slider', $rig->patternLabel());
+
+        $this->get(route('venues.show', $peg->water->venue))
+            ->assertOk()
+            ->assertSee('Drennan Loaded Slider')
+            ->assertSee('Slider · Slider · 15ft');
     }
 
     public function test_user_can_save_a_pattern_against_a_verified_peg(): void
