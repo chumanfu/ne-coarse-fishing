@@ -10,7 +10,7 @@ const ROLE_LABEL = {
     olivette: 'Olivette',
     dropper: 'Dropper',
     strung: 'Strung',
-    trim: 'Trim',
+    trim: 'Trimmer',
     dot: 'Dot',
 };
 
@@ -616,20 +616,129 @@ export default function shottingCalculator(config = {}) {
             return Boolean(this.active) && this.depthValid && this.placements.length < 30;
         },
 
+        chosenAddSize() {
+            return SHOT[this.addSize] ? this.addSize : 'No8';
+        },
+
+        get canAddToBulk() {
+            if (! this.active || ! this.depthValid) return false;
+
+            return this.canAddInto(this.placements.find((group) => group.role === 'bulk')
+                ?? this.placements.find((group) => group.role === 'olivette'));
+        },
+
+        get canAddToLocking() {
+            if (! this.active || ! this.depthValid) return false;
+
+            return this.canAddInto(this.placements.find((group) => group.role === 'locking'));
+        },
+
+        canAddInto(target) {
+            if (! target) return this.placements.length < 30;
+
+            const existing = target.items.find((item) => item.size === this.chosenAddSize());
+            if (existing) return existing.count < 12;
+
+            return target.items.length < 8;
+        },
+
+        withChosenShot(group) {
+            const size = this.chosenAddSize();
+            const index = group.items.findIndex((item) => item.size === size);
+            if (index >= 0) {
+                return {
+                    ...group,
+                    items: group.items.map((item, itemIndex) => (
+                        itemIndex === index ? { ...item, count: Math.min(12, item.count + 1) } : item
+                    )),
+                };
+            }
+
+            if (group.items.length >= 8) return group;
+
+            return { ...group, items: [...group.items, { size, count: 1 }] };
+        },
+
+        /** Puts the chosen shot into the bulk, or starts a bulk when the rig has none. */
+        addToBulk() {
+            if (! this.canAddToBulk) return;
+
+            this.ensureEdits();
+            const target = this.edits.find((group) => group.role === 'bulk')
+                ?? this.edits.find((group) => group.role === 'olivette');
+
+            if (! target) {
+                this.pushPlacedShot('bulk', this.depthCm * 0.65);
+
+                return;
+            }
+
+            this.replaceEdit(target.key, (group) => this.withChosenShot(group));
+        },
+
+        /** Puts the chosen shot with the locking shot, at the float. */
+        addToLocking() {
+            if (! this.canAddToLocking) return;
+
+            this.ensureEdits();
+            const target = this.edits.find((group) => group.role === 'locking');
+
+            if (! target) {
+                this.extraShot += 1;
+                this.edits = [
+                    ...this.edits,
+                    {
+                        key: `locking-extra-${this.extraShot}`,
+                        role: 'locking',
+                        heightCm: this.depthCm,
+                        olivetteGrams: null,
+                        note: null,
+                        anchor: 'hook',
+                        distanceUnit: this.unit === 'ft' ? 'in' : 'cm',
+                        items: [{ size: this.chosenAddSize(), count: 1 }],
+                    },
+                ];
+
+                return;
+            }
+
+            this.replaceEdit(target.key, (group) => this.withChosenShot(group));
+        },
+
         /** One shot on the line, with its own place, size and count. */
-        addLineShot() {
+        addPlacedShot(role) {
             if (! this.canAddLineShot) return;
 
             this.ensureEdits();
-            const size = SHOT[this.addSize] ? this.addSize : 'No8';
             const depth = this.depthCm;
-            const gap = Math.max(depth * 0.05, 5);
-            let heightCm = Math.min(Math.max(depth * 0.35, gap), Math.max(depth - gap, 0));
+            const gap = Math.max(depth * 0.04, 4);
+            const bulk = this.edits.find((group) => group.role === 'bulk')
+                ?? this.edits.find((group) => group.role === 'olivette');
+            let start = depth * 0.5;
+
+            if (role === 'trim' && bulk) {
+                const below = this.edits
+                    .filter((group) => group.key !== bulk.key && group.heightCm < bulk.heightCm - 0.5)
+                    .sort((a, b) => b.heightCm - a.heightCm)[0];
+                start = below ? (bulk.heightCm + below.heightCm) / 2 : Math.max(bulk.heightCm - gap, 0);
+            } else if (role === 'trim') {
+                start = depth * 0.8;
+            } else if (this.edits.length) {
+                start = Math.max(Math.min(...this.edits.map((group) => group.heightCm)) - gap, 0);
+            }
+
+            this.pushPlacedShot(role, start);
+        },
+
+        pushPlacedShot(role, start) {
+            const size = this.chosenAddSize();
+            const depth = this.depthCm;
+            let heightCm = Math.min(Math.max(start, 0), depth);
             let guard = 0;
 
-            while (this.edits.some((group) => Math.abs(group.heightCm - heightCm) < gap * 0.6) && guard < 24) {
-                heightCm += gap;
-                if (heightCm > depth) heightCm = gap * ((guard % 8) + 1);
+            while (this.edits.some((group) => Math.abs(group.heightCm - heightCm) < 1.5) && guard < 12) {
+                heightCm -= 1.5;
+                if (heightCm < 0) heightCm = Math.max(depth - 1.5 * ((guard % 8) + 1), 0);
                 guard += 1;
             }
 
@@ -638,8 +747,8 @@ export default function shottingCalculator(config = {}) {
             this.edits = [
                 ...this.edits,
                 {
-                    key: `dropper-extra-${this.extraShot}`,
-                    role: 'dropper',
+                    key: `${role}-extra-${this.extraShot}`,
+                    role,
                     heightCm,
                     olivetteGrams: null,
                     note: null,

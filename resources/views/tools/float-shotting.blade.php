@@ -186,7 +186,7 @@
 
             <div class="mt-4 rounded-xl bg-paper p-3">
                 <h3 class="text-sm font-bold text-slate-900">Add a shot</h3>
-                <p class="mt-1 text-sm text-slate-600">Add any size to the line the calculator suggested. Change it, move it, or take it off with the others.</p>
+                <p class="mt-1 text-sm text-slate-600">Choose a size, then add it to the locking shot or the bulk, or put it on the line as a dropper or a trimmer.</p>
                 <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Shot size to add">
                     <template x-for="size in shotSizes" :key="'add-' + size.size">
                         <button type="button" @click="addSize = size.size" :aria-pressed="addSize === size.size"
@@ -195,14 +195,30 @@
                                 x-text="size.label"></button>
                     </template>
                 </div>
-                <button type="button" @click="addLineShot()" :disabled="! canAddLineShot"
-                        class="mt-3 {{ $chipBase }} border-slate-300 bg-white text-slate-900 hover:text-slate-900 disabled:opacity-50">
-                    Add shot
-                </button>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <button type="button" @click="addToLocking()" :disabled="! canAddToLocking"
+                            class="{{ $chipBase }} border-slate-300 bg-white text-slate-900 hover:text-slate-900 disabled:opacity-50">
+                        Add to locking
+                    </button>
+                    <button type="button" @click="addToBulk()" :disabled="! canAddToBulk"
+                            class="{{ $chipBase }} border-slate-300 bg-white text-slate-900 hover:text-slate-900 disabled:opacity-50">
+                        Add to bulk
+                    </button>
+                    <button type="button" @click="addPlacedShot('dropper')" :disabled="! canAddLineShot"
+                            class="{{ $chipBase }} border-slate-300 bg-white text-slate-900 hover:text-slate-900 disabled:opacity-50">
+                        Add dropper
+                    </button>
+                    <button type="button" @click="addPlacedShot('trim')" :disabled="! canAddLineShot"
+                            class="{{ $chipBase }} border-slate-300 bg-white text-slate-900 hover:text-slate-900 disabled:opacity-50">
+                        Add trimmer
+                    </button>
+                </div>
             </div>
 
-            <p class="mt-4 text-sm font-bold text-slate-900" x-show="diagram" x-cloak x-text="diagram?.sitTitle"></p>
-            <p class="text-sm text-slate-600" x-show="diagram" x-cloak x-text="diagram?.sitDetail"></p>
+            <div class="mt-4 rounded-xl bg-paper p-3" x-show="loadSummary" x-cloak>
+                <p class="font-bold text-slate-900 mb-1" x-text="loadSummary?.heading"></p>
+                <p class="text-sm text-slate-600" x-text="loadSummary?.detail"></p>
+            </div>
 
             {{-- Rig diagram: the float sinks through the water line as dotting shot is added. --}}
             <div class="relative mt-4 overflow-hidden rounded-xl bg-water-soft" x-show="diagram" x-cloak
@@ -393,11 +409,6 @@
                     </template>
                 </tbody>
             </table>
-
-            <div class="mt-3 rounded-xl bg-paper p-3">
-                <p class="font-bold text-slate-900 mb-1" x-text="loadSummary?.heading"></p>
-                <p class="text-sm text-slate-600" x-text="loadSummary?.detail"></p>
-            </div>
 
             <ul class="mt-3 space-y-1.5 text-sm text-slate-600">
                 <template x-for="(tip, index) in active?.tips ?? []" :key="'tip-' + index">
