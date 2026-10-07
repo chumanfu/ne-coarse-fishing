@@ -145,10 +145,26 @@ export function olivetteOptions(floatGrams) {
     return OLIVETTES.filter((o) => floatGrams - o >= SHOT.No12.grams - 1e-6);
 }
 
-function olivette(input) {
+function olivetteHeight(lowest, depthCm) {
+    let olH = onLine(clamp(depthCm * 0.3, 40, 100), depthCm);
+    if (olH <= lowest + 5) olH = onLine(lowest + 15, depthCm);
+
+    return olH;
+}
+
+function sliderBulkHeight(lowest, depthCm) {
+    return onLine(Math.max(lowest + 20, clamp(depthCm * 0.2, 60, 120)), depthCm);
+}
+
+function olivettePattern(input, spec) {
     const { floatGrams: fg, depthCm: d } = input;
-    const options = olivetteOptions(fg);
-    if (!options.length) return null;
+    let options = olivetteOptions(fg);
+    if (!options.length) {
+        if (spec.requireOptions !== false) return null;
+        // Sliders still offer an olivette even on a light float: use the smallest that fits.
+        options = OLIVETTES.filter((o) => o < fg);
+        if (!options.length) options = [OLIVETTES[0]];
+    }
 
     const base = poleDropper(fg).grams < SHOT.No10.grams ? SHOT.No10 : poleDropper(fg);
     const maxDroppers = d > 250 ? 4 : 3;
@@ -156,11 +172,11 @@ function olivette(input) {
     const auto = [...options].reverse().find((o) => o <= fg - maxDroppers * base.grams + 1e-6) ?? options[0];
     const olive = input.olivetteGrams && options.includes(input.olivetteGrams) ? input.olivetteGrams : auto;
 
-    const rem = fg - olive;
+    const rem = Math.max(0, fg - olive);
     const dropper =
         [base, SHOT.No10, SHOT.No11, SHOT.No12].find((s) => s.grams <= base.grams && rem / s.grams >= 1 - 1e-6) ??
         SHOT.No12;
-    const n = clamp(Math.floor((rem + 1e-6) / dropper.grams), 1, maxDroppers);
+    const n = rem < SHOT.No12.grams ? 0 : clamp(Math.floor((rem + 1e-6) / dropper.grams), 1, maxDroppers);
     // A small olivette leaves extra weight: carry it as shot just under the olivette.
     const leftover = rem - n * dropper.grams;
     const extra =
@@ -169,8 +185,7 @@ function olivette(input) {
             : trimItems(leftover, dropper.grams * 0.99);
 
     const lowest = lowestShot(d);
-    let olH = onLine(clamp(d * 0.3, 40, 100), d);
-    if (olH <= lowest + 5) olH = onLine(lowest + 15, d);
+    const olH = spec.height(lowest, d);
 
     const groups = [
         {
@@ -178,33 +193,45 @@ function olivette(input) {
             heightCm: olH,
             olivetteGrams: olive,
             items: extra,
-            note: extra.length ? 'Olivette, with extra shot just beneath it' : 'Olivette',
+            note: extra.length ? 'Olivette, with extra shot just beneath it' : spec.note ?? 'Olivette',
         },
     ];
     for (let i = 0; i < n; i++) {
         groups.push({
             role: 'dropper',
-            heightCm: lowest + (i * (olH - lowest)) / n,
+            heightCm: lowest + (i * (olH - lowest)) / Math.max(n, 1),
             items: [{ shot: dropper, count: 1 }],
         });
     }
 
+    const dropperSummary = n ? ` with ${n} × ${dropper.label} droppers` : '';
+
     return finish(
         {
-            id: 'olivette',
-            name: 'Olivette',
-            summary: `${olive}g olivette with ${n} × ${dropper.label} droppers`,
-            whenToUse:
-                'Deep water (6ft+) or heavier pole floats, especially in wind or tow – the most stable pole rig.',
+            id: spec.id,
+            name: spec.name,
+            summary: `${olive}g olivette${dropperSummary}`,
+            whenToUse: spec.whenToUse,
             groups,
-            tips: [
-                'Lock the olivette with a small shot or silicone stop either side.',
-                'Use an in-line olivette threaded on the main line, not on the hooklength.',
-                'Lay the rig in so it falls in a straight line from float to hook.',
-            ],
+            tips: spec.tips,
         },
         input,
     );
+}
+
+function olivette(input) {
+    return olivettePattern(input, {
+        id: 'olivette',
+        name: 'Olivette',
+        whenToUse:
+            'Deep water (6ft+) or heavier pole floats, especially in wind or tow – the most stable pole rig.',
+        height: olivetteHeight,
+        tips: [
+            'Lock the olivette with a small shot or silicone stop either side.',
+            'Use an in-line olivette threaded on the main line, not on the hooklength.',
+            'Lay the rig in so it falls in a straight line from float to hook.',
+        ],
+    });
 }
 
 function shirtButton(input) {
@@ -343,6 +370,25 @@ const SLIDER_MIN_GRAMS = 4 * SHOT.AAA.grams;
 /** Roughly the length of a float rod. Deeper than this and the float has to slide. */
 const SLIDER_MIN_DEPTH_CM = 365;
 
+function sliderTips(input, extras = []) {
+    const { floatGrams: fg, depthCm: d } = input;
+    const tips = [
+        ...extras,
+        'Thread the line through a swivel float adaptor so the float slides cleanly and the line does not twist.',
+        'Tie the stop knot above the float and leave about an inch of tag, so the float cannot slip over it.',
+        'Cast with the bail arm open and let line run until the float settles, then close it and take up the slack.',
+        'Plumb up carefully, then slide the stop knot until the float sits with just the tip showing.',
+    ];
+    if (fg < SLIDER_MIN_GRAMS) {
+        tips.unshift('A slider needs a big float – 4AAA (3.20g) and up – so the weight below can pull line through the adaptor.');
+    }
+    if (d < SLIDER_MIN_DEPTH_CM) {
+        tips.unshift('A fixed waggler is easier at this depth; the slider earns its keep once the water is deeper than the rod is long.');
+    }
+
+    return tips;
+}
+
 function slider(input) {
     const { floatGrams: fg, depthCm: d } = input;
     const dropper = wagglerDropper(fg);
@@ -355,7 +401,7 @@ function slider(input) {
     const trim = trimItems(bulkTarget - totalGrams(bulk), dropper.grams * 0.99);
 
     const lowest = lowestShot(d);
-    const bulkH = onLine(Math.max(lowest + 20, clamp(d * 0.2, 60, 120)), d);
+    const bulkH = sliderBulkHeight(lowest, d);
     const groups = [
         {
             role: 'bulk',
@@ -372,31 +418,34 @@ function slider(input) {
         });
     }
 
-    const tips = [
-        'Thread the line through a swivel float adaptor so the float slides cleanly and the line does not twist.',
-        'Tie the stop knot above the float and leave about an inch of tag, so the float cannot slip over it.',
-        'Cast with the bail arm open and let line run until the float settles, then close it and take up the slack.',
-        'Plumb up carefully, then slide the stop knot until the float sits with just the tip showing.',
-    ];
-    if (fg < SLIDER_MIN_GRAMS) {
-        tips.unshift('A slider needs a big float – 4AAA (3.20g) and up – so the bulk can pull line through the adaptor.');
-    }
-    if (d < SLIDER_MIN_DEPTH_CM) {
-        tips.unshift('A fixed waggler is easier at this depth; the slider earns its keep once the water is deeper than the rod is long.');
-    }
-
     return finish(
         {
             id: 'slider',
-            name: 'Slider',
+            name: 'Bulk',
             summary: `Bulk below the float with ${n} × ${dropper.label} droppers, depth set by a stop knot above the float`,
             whenToUse:
                 'Water deeper than your rod is long – reservoirs, gravel pits and tidal rivers where a fixed waggler leaves too long a hooklength to cast.',
             groups,
-            tips,
+            tips: sliderTips(input),
         },
         input,
     );
+}
+
+function sliderOlivette(input) {
+    return olivettePattern(input, {
+        id: 'slider_olivette',
+        name: 'Olivette',
+        requireOptions: false,
+        note: 'Olivette below the float, which slides on the line',
+        whenToUse:
+            'The same deep-water slider, with an olivette instead of a bulk of shot – cleaner through the water and more stable in wind or tow.',
+        height: sliderBulkHeight,
+        tips: sliderTips(input, [
+            'Lock the olivette with a small shot or silicone stop either side.',
+            'Use an in-line olivette threaded on the main line, not on the hooklength.',
+        ]),
+    });
 }
 
 function pelletWaggler(input) {
@@ -470,10 +519,12 @@ export function generatePatterns(input) {
         case 'waggler':
             patterns.push(wagglerLocking(input), wagglerDrop(input));
             // Past rod length a fixed waggler cannot be cast, so offer the slider too.
-            if (d >= SLIDER_MIN_DEPTH_CM && fg >= SLIDER_MIN_GRAMS) patterns.push(slider(input));
+            if (d >= SLIDER_MIN_DEPTH_CM && fg >= SLIDER_MIN_GRAMS) {
+                patterns.push(slider(input), sliderOlivette(input));
+            }
             break;
         case 'slider':
-            patterns.push(slider(input));
+            patterns.push(slider(input), sliderOlivette(input));
             break;
         case 'pellet_waggler':
             patterns.push(pelletWaggler(input));
@@ -501,5 +552,10 @@ export const PATTERN_IDS = [
     'waggler_locking',
     'waggler_drop',
     'slider',
+    'slider_olivette',
     'pellet_waggler',
 ];
+
+export function patternUsesOlivette(id) {
+    return id === 'olivette' || id === 'slider_olivette';
+}

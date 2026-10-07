@@ -20,7 +20,7 @@ class PegFloatRig extends Model
 
     public const PATTERN_IDS = [
         'strung', 'bulk_droppers', 'olivette', 'shirt_button', 'waggler_locking', 'waggler_drop', 'slider',
-        'pellet_waggler',
+        'slider_olivette', 'pellet_waggler',
     ];
 
     private const FLOAT_TYPE_LABELS = [
@@ -40,7 +40,8 @@ class PegFloatRig extends Model
         'shirt_button' => 'Shirt button',
         'waggler_locking' => 'Locking + droppers',
         'waggler_drop' => 'On the drop',
-        'slider' => 'Slider',
+        'slider' => 'Bulk',
+        'slider_olivette' => 'Olivette',
         'pellet_waggler' => 'Pellet waggler',
     ];
 

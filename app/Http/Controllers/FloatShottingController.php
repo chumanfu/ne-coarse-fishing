@@ -57,7 +57,9 @@ class FloatShottingController extends Controller
         $rig = $request->user()->pegFloatRigs()->create([
             ...$data,
             'float_name' => filled($data['float_name'] ?? null) ? $data['float_name'] : 'Unnamed float',
-            'olivette_grams' => $data['pattern_id'] === 'olivette' ? ($data['olivette_grams'] ?? null) : null,
+            'olivette_grams' => in_array($data['pattern_id'], ['olivette', 'slider_olivette'], true)
+                ? ($data['olivette_grams'] ?? null)
+                : null,
         ]);
 
         $peg = WaterPeg::with('water.venue')->find($data['water_peg_id']);

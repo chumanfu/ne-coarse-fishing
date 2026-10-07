@@ -1,6 +1,6 @@
 import { FLOAT_TYPES, formatGrams, guessFloatType, parseFloatSize } from './floats';
 import { describeItems } from './shots';
-import { GENERAL_TIPS, MIN_DEPTH_CM, generatePatterns, groupGrams, olivetteOptions } from './shotting';
+import { GENERAL_TIPS, MIN_DEPTH_CM, generatePatterns, groupGrams, olivetteOptions, patternUsesOlivette } from './shotting';
 import { depthToCm, formatHeight } from './units';
 
 const ROLE_LABEL = {
@@ -152,6 +152,10 @@ export default function shottingCalculator(config = {}) {
             return this.parsed ? olivetteOptions(this.parsed.grams) : [];
         },
 
+        get usesOlivette() {
+            return patternUsesOlivette(this.active?.id);
+        },
+
         get loadSummary() {
             const pattern = this.active;
             if (! pattern) return null;
@@ -257,7 +261,7 @@ export default function shottingCalculator(config = {}) {
                 depth: isFinite(this.depth) ? this.depth : '',
                 depth_unit: this.unit,
                 pattern_id: pattern ? pattern.id : '',
-                olivette_grams: pattern?.id === 'olivette' ? (this.activeOlivette ?? '') : '',
+                olivette_grams: patternUsesOlivette(pattern?.id) ? (this.activeOlivette ?? '') : '',
             };
         },
 

@@ -114,7 +114,7 @@
                 </template>
             </div>
 
-            <div class="rounded-xl bg-paper p-3 mb-4" x-show="active?.id === 'olivette'" x-cloak>
+            <div class="rounded-xl bg-paper p-3 mb-4" x-show="usesOlivette" x-cloak>
                 <p class="text-sm font-semibold text-slate-700 mb-2">Olivette size</p>
                 <div class="flex flex-wrap gap-2" role="group" aria-label="Olivette size">
                     <button type="button" @click="olivetteGrams = null" :aria-pressed="olivetteGrams === null"
