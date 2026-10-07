@@ -19,6 +19,19 @@ class PegFloatRigPolicy
 
     public function delete(User $user, PegFloatRig $rig): bool
     {
+        if ($rig->is_system) {
+            return false;
+        }
+
+        return $rig->user_id === $user->id || $user->hasRole('super_admin');
+    }
+
+    public function duplicate(User $user, PegFloatRig $rig): bool
+    {
+        if ($rig->is_system) {
+            return true;
+        }
+
         return $rig->user_id === $user->id || $user->hasRole('super_admin');
     }
 }

@@ -255,6 +255,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tools/rigs', [FloatShottingController::class, 'store'])->name('tools.rigs.store');
     Route::put('/tools/rigs/{pegFloatRig}', [FloatShottingController::class, 'update'])->name('tools.rigs.update');
     Route::patch('/tools/rigs/{pegFloatRig}', [FloatShottingController::class, 'rename'])->name('tools.rigs.rename');
+    Route::patch('/tools/rigs/{pegFloatRig}/notes', [FloatShottingController::class, 'notes'])->name('tools.rigs.notes');
     Route::post('/tools/rigs/{pegFloatRig}/duplicate', [FloatShottingController::class, 'duplicate'])->name('tools.rigs.duplicate');
     Route::delete('/tools/rigs/{pegFloatRig}', [FloatShottingController::class, 'destroy'])->name('tools.rigs.destroy');
 

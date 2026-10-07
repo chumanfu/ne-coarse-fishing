@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\Water;
 use App\Models\WaterPeg;
+use App\Support\ShotReference;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,7 +21,8 @@ class FloatShottingToolTest extends TestCase
             ->assertOk()
             ->assertSee('Rigs')
             ->assertSee('Create New Rig')
-            ->assertSee('log in', false);
+            ->assertSee('log in', false)
+            ->assertDontSee('System rigs');
 
         $this->get(route('tools.rigs.create'))
             ->assertOk()
@@ -37,7 +39,9 @@ class FloatShottingToolTest extends TestCase
             ->assertSee('Shot sizes')
             ->assertSee('No.8')
             ->assertSee('0.06g')
-            ->assertSee('Slider');
+            ->assertSee('0.75g')
+            ->assertSee('Slider')
+            ->assertDontSee('hundredths');
     }
 
     public function test_a_slider_rig_can_be_saved_and_shows_on_the_venue(): void
@@ -55,7 +59,7 @@ class FloatShottingToolTest extends TestCase
             'pattern_id' => 'slider',
         ]))->assertSessionHasNoErrors();
 
-        $rig = PegFloatRig::query()->firstOrFail();
+        $rig = PegFloatRig::query()->where('user_id', $user->id)->firstOrFail();
 
         $this->assertSame('slider', $rig->float_type);
         $this->assertSame('Bulk', $rig->patternLabel());
@@ -89,7 +93,7 @@ class FloatShottingToolTest extends TestCase
             'olivette_grams' => 2.5,
         ]))->assertSessionHasNoErrors();
 
-        $rig = PegFloatRig::query()->firstOrFail();
+        $rig = PegFloatRig::query()->where('user_id', $user->id)->firstOrFail();
 
         $this->assertSame('slider_olivette', $rig->pattern_id);
         $this->assertEquals(2.5, $rig->olivette_grams);
@@ -110,7 +114,7 @@ class FloatShottingToolTest extends TestCase
             'pattern_id' => 'loaded_waggler',
         ]))->assertSessionHasNoErrors();
 
-        $rig = PegFloatRig::query()->firstOrFail();
+        $rig = PegFloatRig::query()->where('user_id', $user->id)->firstOrFail();
 
         $this->assertSame('loaded_waggler', $rig->float_type);
         $this->assertSame('Bulk & droppers', $rig->patternLabel());
@@ -144,7 +148,7 @@ class FloatShottingToolTest extends TestCase
             ]),
         ]));
 
-        $rig = PegFloatRig::query()->firstOrFail();
+        $rig = PegFloatRig::query()->where('user_id', $user->id)->firstOrFail();
 
         $response->assertRedirect(route('tools.rigs'));
         $this->assertSame($peg->id, $rig->water_peg_id);
@@ -172,7 +176,7 @@ class FloatShottingToolTest extends TestCase
             'venue_ids' => [$peg->water->venue_id],
         ]))->assertSessionHasNoErrors();
 
-        $rig = PegFloatRig::query()->with('venues', 'pegs')->firstOrFail();
+        $rig = PegFloatRig::query()->where('user_id', $user->id)->with('venues', 'pegs')->firstOrFail();
 
         $this->assertNull($rig->water_peg_id);
         $this->assertTrue($rig->pegs->isEmpty());
@@ -188,7 +192,7 @@ class FloatShottingToolTest extends TestCase
         $this->actingAs($user)->post(route('tools.rigs.store'), $this->payload($peg))
             ->assertSessionHasErrors('peg_ids.0');
 
-        $this->assertDatabaseCount('peg_float_rigs', 0);
+        $this->assertSame(0, PegFloatRig::query()->where('is_system', false)->count());
     }
 
     public function test_saved_rig_reopens_in_the_editor_and_shows_on_the_venue(): void
@@ -236,8 +240,49 @@ class FloatShottingToolTest extends TestCase
             'name' => 'Shallow pellet rig, peg 12',
         ])->assertRedirect(route('tools.rigs'));
 
-        $this->assertSame(2, PegFloatRig::query()->count());
+        $this->assertSame(2, PegFloatRig::query()->where('user_id', $owner->id)->count());
         $this->assertTrue(PegFloatRig::query()->where('name', 'Shallow pellet rig, peg 12')->exists());
+    }
+
+    public function test_the_owner_can_add_notes_to_a_rig(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $rig = PegFloatRig::factory()->for($owner)->create([
+            'water_peg_id' => $this->verifiedPeg()->id,
+            'name' => 'Margin rig',
+            'notes' => null,
+        ]);
+
+        $this->actingAs($owner)->get(route('tools.rigs'))
+            ->assertOk()
+            ->assertSee('Add notes');
+
+        $this->actingAs($other)->patch(route('tools.rigs.notes', $rig), [
+            'notes' => 'Stolen',
+        ])->assertForbidden();
+
+        $this->actingAs($owner)->patch(route('tools.rigs.notes', $rig), [
+            'notes' => 'Fish came 6in off bottom',
+        ])->assertRedirect(route('tools.rigs'));
+
+        $this->assertSame('Fish came 6in off bottom', $rig->fresh()->notes);
+
+        $this->actingAs($owner)->get(route('tools.rigs'))
+            ->assertSee('Fish came 6in off bottom')
+            ->assertSee('Edit notes');
+
+        $this->actingAs($owner)->patch(route('tools.rigs.notes', $rig), [
+            'notes' => '   ',
+        ])->assertRedirect(route('tools.rigs'));
+
+        $this->assertNull($rig->fresh()->notes);
+
+        $system = PegFloatRig::query()->where('is_system', true)->firstOrFail();
+        $this->actingAs($owner)->patch(route('tools.rigs.notes', $system), [
+            'notes' => 'Changed',
+        ])->assertForbidden();
+        $this->assertNotSame('Changed', $system->fresh()->notes);
     }
 
     public function test_only_the_owner_can_remove_a_saved_rig(): void
@@ -250,7 +295,72 @@ class FloatShottingToolTest extends TestCase
         $this->actingAs($other)->patch(route('tools.rigs.rename', $rig), ['name' => 'Taken'])->assertForbidden();
         $this->actingAs($owner)->delete(route('tools.rigs.destroy', $rig))->assertRedirect();
 
-        $this->assertDatabaseCount('peg_float_rigs', 0);
+        $this->assertSame(0, PegFloatRig::query()->where('is_system', false)->count());
+    }
+
+    public function test_system_rigs_can_be_copied_but_not_changed(): void
+    {
+        $user = User::factory()->create();
+        $system = PegFloatRig::query()->where('system_key', 'pole-4x12-rig-1')->firstOrFail();
+        $this->post(route('tools.rigs.duplicate', $system), ['name' => 'Nope'])->assertRedirect(route('login'));
+
+        foreach (['4x10', '4x12', '4x14', '4x16', '4x18', '4x20'] as $size) {
+            $this->assertSame(5, PegFloatRig::query()->where('is_system', true)->where('float_size', $size)->count());
+        }
+
+        $weights = collect(ShotReference::shots())->pluck('grams', 'size');
+        foreach (PegFloatRig::query()->where('is_system', true)->get() as $rig) {
+            $load = collect($rig->placements)->sum(function (array $group) use ($weights) {
+                $shot = collect($group['items'])->sum(fn (array $item) => $weights[$item['size']] * $item['count']);
+
+                return $shot + (float) ($group['olivette_grams'] ?? 0);
+            });
+
+            $this->assertGreaterThanOrEqual($rig->float_grams - 0.012, $load, $rig->name);
+            $this->assertLessThanOrEqual($rig->float_grams + 0.012, $load, $rig->name);
+        }
+
+        $this->get(route('tools.rigs'))
+            ->assertOk()
+            ->assertDontSee('4x14 · Rig 1 – Bulk and droppers');
+
+        $this->actingAs($user)->get(route('tools.rigs'))
+            ->assertOk()
+            ->assertSee('System rigs')
+            ->assertSee('4x10 · Rig 1 – Bulk and droppers')
+            ->assertSee('4x20 · Rig 5 – Over-depth Double Bulk')
+            ->assertSee('About 0.40g');
+
+        $this->assertSame(3, $system->placements[0]['items'][0]['count']);
+        $this->assertSame('No10', $system->placements[0]['items'][0]['size']);
+        $this->assertSame(0.6, PegFloatRig::query()->where('system_key', 'pole-4x18-rig-1')->firstOrFail()->olivette_grams);
+
+        $this->actingAs($user)->get(route('tools.rigs.edit', $system))
+            ->assertOk()
+            ->assertSee('Duplicate this rig')
+            ->assertDontSee('Save rig');
+
+        $this->actingAs($user)->put(route('tools.rigs.update', $system), [])->assertForbidden();
+        $this->actingAs($user)->patch(route('tools.rigs.rename', $system), ['name' => 'Taken'])->assertForbidden();
+        $this->actingAs($user)->delete(route('tools.rigs.destroy', $system))->assertForbidden();
+
+        $admin = User::factory()->create();
+        $admin->assignRole('super_admin');
+        $this->actingAs($admin)->delete(route('tools.rigs.destroy', $system))->assertForbidden();
+
+        $this->actingAs($user)->post(route('tools.rigs.duplicate', $system), [
+            'name' => 'My 4x12 bulk',
+        ])->assertRedirect(route('tools.rigs'));
+
+        $copy = PegFloatRig::query()->where('name', 'My 4x12 bulk')->firstOrFail();
+        $this->assertFalse($copy->is_system);
+        $this->assertNull($copy->system_key);
+        $this->assertSame($user->id, $copy->user_id);
+        $this->assertSame($system->placements, $copy->placements);
+        $this->assertTrue($system->fresh()->is_system);
+
+        $this->actingAs($user)->delete(route('tools.rigs.destroy', $copy))->assertRedirect();
+        $this->assertNotNull($system->fresh());
     }
 
     private function payload(WaterPeg $peg, array $overrides = []): array

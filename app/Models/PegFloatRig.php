@@ -57,6 +57,8 @@ class PegFloatRig extends Model
     protected $fillable = [
         'water_peg_id',
         'user_id',
+        'is_system',
+        'system_key',
         'float_name',
         'float_size',
         'float_type',
@@ -77,6 +79,7 @@ class PegFloatRig extends Model
             'depth' => 'float',
             'olivette_grams' => 'float',
             'placements' => 'array',
+            'is_system' => 'boolean',
         ];
     }
 

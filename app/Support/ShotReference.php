@@ -29,6 +29,21 @@ final class ShotReference
         return self::data()['poleSizes'];
     }
 
+    /** Shot capacity for a pole float size. Listed sizes use their usual commercial weight. */
+    public static function poleGrams(string $size): float
+    {
+        $key = strtolower((string) preg_replace('/\s+/', '', $size));
+        foreach (self::data()['poleWeights'] ?? [] as $rated => $grams) {
+            if (strtolower((string) $rated) === $key) {
+                return (float) $grams;
+            }
+        }
+
+        $second = explode('x', $key)[1] ?? null;
+
+        return is_numeric($second) ? ((float) $second) / 100 : 0.0;
+    }
+
     /** @return list<array{name: string, text: string}> */
     public static function patterns(): array
     {

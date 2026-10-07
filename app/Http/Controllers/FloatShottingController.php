@@ -34,8 +34,13 @@ class FloatShottingController extends Controller
             ? $request->user()->pegFloatRigs()->with(['venues', 'pegs.water.venue'])->latest()->get()
             : collect();
 
+        $systemRigs = $request->user()
+            ? PegFloatRig::query()->where('is_system', true)->orderBy('name')->get()
+            : collect();
+
         return view('tools.rigs.index', [
             'rigs' => $rigs,
+            'systemRigs' => $systemRigs,
         ]);
     }
 
@@ -95,17 +100,35 @@ class FloatShottingController extends Controller
             ->with('status', 'Renamed to '.$pegFloatRig->displayName().'.');
     }
 
-    public function duplicate(Request $request, PegFloatRig $pegFloatRig): RedirectResponse
+    public function notes(Request $request, PegFloatRig $pegFloatRig): RedirectResponse
     {
         Gate::authorize('update', $pegFloatRig);
+
+        $data = $request->validate([
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $notes = trim($data['notes'] ?? '');
+        $pegFloatRig->update(['notes' => $notes === '' ? null : $notes]);
+
+        return redirect()
+            ->route('tools.rigs')
+            ->with('status', 'Saved notes for '.$pegFloatRig->displayName().'.');
+    }
+
+    public function duplicate(Request $request, PegFloatRig $pegFloatRig): RedirectResponse
+    {
+        Gate::authorize('duplicate', $pegFloatRig);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
         ]);
 
-        $copy = $pegFloatRig->replicate();
+        $copy = $pegFloatRig->replicate(['system_key']);
         $copy->name = $data['name'];
         $copy->user_id = $request->user()->id;
+        $copy->is_system = false;
+        $copy->system_key = null;
         $copy->save();
         $copy->venues()->sync($pegFloatRig->venues()->pluck('venues.id'));
         $copy->pegs()->sync($pegFloatRig->pegs()->pluck('water_pegs.id'));

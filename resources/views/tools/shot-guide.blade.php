@@ -34,12 +34,12 @@
 
         <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
             <h2 class="text-lg font-bold text-slate-900 mb-1">Pole float sizes</h2>
-            <p class="text-sm text-slate-600 mb-3">The second number is roughly hundredths of a gram. Always check the packaging, as brands differ.</p>
+            <p class="text-sm text-slate-600 mb-3">Usual commercial capacities. A 4x10 takes about 0.10g, and the larger sizes take more than the second number on its own. Always check the packaging, as brands differ.</p>
             <div class="flex flex-wrap gap-2">
                 @foreach (ShotReference::poleSizes() as $size)
                     <div class="min-w-[84px] rounded-xl bg-paper px-3 py-2">
                         <p class="font-bold text-slate-900">{{ $size }}</p>
-                        <p class="text-sm text-slate-600">≈ {{ ShotReference::formatGrams(((int) explode('x', $size)[1]) / 100) }}</p>
+                        <p class="text-sm text-slate-600">≈ {{ ShotReference::formatGrams(ShotReference::poleGrams($size)) }}</p>
                     </div>
                 @endforeach
             </div>

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Club;
 use App\Models\ClubClaim;
+use App\Models\PegFloatRig;
 use App\Models\SiteAnnouncement;
 use App\Models\TackleShop;
 use App\Models\TackleShopClaim;
@@ -25,7 +26,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        Gate::before(function ($user, string $ability) {
+        Gate::before(function ($user, string $ability, array $arguments = []) {
+            $rig = collect($arguments)->first(fn ($argument) => $argument instanceof PegFloatRig);
+            if ($rig?->is_system && in_array($ability, ['update', 'delete'], true)) {
+                return false;
+            }
+
             if ($user instanceof User && $user->hasRole('super_admin')) {
                 return true;
             }

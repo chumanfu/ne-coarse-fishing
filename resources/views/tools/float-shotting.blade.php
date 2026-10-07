@@ -30,8 +30,13 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <h1 class="text-2xl font-bold text-slate-900">{{ $canUpdate ? 'Edit rig' : 'New rig' }}</h1>
-        <p class="text-slate-600 mt-1">Work out the shot a float needs, then move the bulk and the droppers. Save the rig when the diagram looks right.</p>
+        @if ($rig?->is_system)
+            <h1 class="text-2xl font-bold text-slate-900">{{ $rig->displayName() }}</h1>
+            <p class="text-slate-600 mt-1">A system rig. Duplicate it to make your own copy. This one stays as it is.</p>
+        @else
+            <h1 class="text-2xl font-bold text-slate-900">{{ $canUpdate ? 'Edit rig' : 'New rig' }}</h1>
+            <p class="text-slate-600 mt-1">Work out the shot a float needs, then move the bulk and the droppers. Save the rig when the diagram looks right.</p>
+        @endif
     </x-slot>
 
     <div
@@ -51,6 +56,7 @@
             @endif
         </p>
 
+        <fieldset @disabled($rig?->is_system) class="min-w-0 space-y-4 border-0 p-0 disabled:opacity-100">
         <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
             <h2 class="text-lg font-bold text-slate-900 mb-3">Float</h2>
 
@@ -146,8 +152,12 @@
                 <p class="text-sm text-slate-600 mt-2">The droppers adjust to whichever olivette you pick.</p>
             </div>
 
-            <p class="text-slate-900" x-text="active?.summary"></p>
-            <p class="text-sm text-slate-600 mt-1.5" x-text="active?.whenToUse"></p>
+            @if ($rig?->is_system)
+                <p class="text-slate-900">{{ $rig->notes }}</p>
+            @else
+                <p class="text-slate-900" x-text="active?.summary"></p>
+                <p class="text-sm text-slate-600 mt-1.5" x-text="active?.whenToUse"></p>
+            @endif
 
             <div class="mt-4 rounded-xl bg-paper p-3">
                 <h3 class="text-sm font-bold text-slate-900">Dot the tip</h3>
@@ -416,12 +426,36 @@
                 </template>
             </ul>
         </section>
+        </fieldset>
 
         <section class="bg-paper border-2 border-slate-300 rounded-xl p-5" x-show="! active" x-cloak>
             <p class="text-sm text-slate-700">Enter a float size and depth to see which shot to use and where to put it.</p>
         </section>
 
         <section class="bg-white border-2 border-slate-300 rounded-xl p-5" x-show="active" x-cloak>
+            @if ($rig?->is_system)
+                <h2 class="text-lg font-bold text-slate-900 mb-3">Duplicate this rig</h2>
+                <p class="text-sm text-slate-700 mb-4">Duplicating makes a copy that belongs to you. Change the shot on that copy. This system rig cannot be edited or deleted.</p>
+                @auth
+                    <form method="POST" action="{{ route('tools.rigs.duplicate', $rig) }}" class="flex flex-wrap items-end gap-3">
+                        @csrf
+                        <div class="grow">
+                            <label for="rig-name" class="block text-sm font-semibold mb-1">Name for your copy</label>
+                            <input id="rig-name" name="name" type="text" required maxlength="120"
+                                   value="{{ mb_substr('Copy of '.$rig->displayName(), 0, 120) }}" class="{{ $inputClass }}">
+                        </div>
+                        <button type="submit" class="px-5 py-3 rounded-md bg-sky-800 text-white font-bold hover:bg-sky-900">
+                            Duplicate
+                        </button>
+                    </form>
+                @else
+                    <p class="text-sm text-slate-700">
+                        <a href="{{ route('register') }}" class="font-semibold text-sky-800 hover:underline">Create a free account</a>
+                        or <a href="{{ route('login') }}" class="font-semibold text-sky-800 hover:underline">log in</a>
+                        to duplicate this rig.
+                    </p>
+                @endauth
+            @else
             <h2 class="text-lg font-bold text-slate-900 mb-3">Save this rig</h2>
 
             @auth
@@ -511,6 +545,7 @@
                     to save this rig.
                 </p>
             @endauth
+            @endif
         </section>
 
         <section class="bg-paper border-2 border-slate-300 rounded-xl p-5">

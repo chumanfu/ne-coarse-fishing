@@ -1,4 +1,7 @@
+import reference from '../../data/shot-reference.json';
 import { SHOT } from './shots';
+
+const POLE_WEIGHTS = reference.poleWeights ?? {};
 
 export const FLOAT_TYPES = [
     { id: 'pole', label: 'Pole', hint: 'Pole floats rated like 4x10, 4x16 or in grams' },
@@ -60,7 +63,7 @@ function loadedResult(loadedGrams, addGrams, explanation, addShot = null, addCou
 
 /**
  * Parses the size written on a float. Supports:
- *  - pole notation: "4x10", "4X16", "4 x 0.2"  (4x10 ≈ 0.10g)
+ *  - pole notation: "4x10", "4X16", "4 x 0.2"  (4x10 ≈ 0.10g, 4x14 ≈ 0.40g, 4x20 ≈ 1.00g)
  *  - grams: "0.5g", "1.5 grams", "0.4"
  *  - shot ratings: "3BB", "2.5AAA", "4No4", "6 x No.8", "2SSG"
  *  - loaded wagglers: "1+2BB", "1BB+2BB", "0.4+0.8gr", "1.5g + 0.5g", "1+2BB 0.4+0.8 gr"
@@ -166,11 +169,13 @@ export function parseFloatSize(input) {
         });
     }
 
-    // Pole notation "4x10" → 0.10g. A decimal second number ("4x0.2") is read as grams.
+    // Pole notation. Listed commercial sizes use their usual shot capacity.
+    // A decimal second number ("4x0.2") is read as grams. Anything else is hundredths.
     const poleMatch = s.match(/^(\d+)x(\d+(?:\.\d+)?)$/);
     if (poleMatch) {
         const second = poleMatch[2];
-        const grams = second.includes('.') ? parseFloat(second) : parseInt(second, 10) / 100;
+        const listed = POLE_WEIGHTS[`${poleMatch[1]}x${second}`];
+        const grams = second.includes('.') ? parseFloat(second) : (listed ?? parseInt(second, 10) / 100);
 
         return withRange({
             grams,
