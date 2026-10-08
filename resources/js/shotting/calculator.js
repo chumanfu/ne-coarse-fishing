@@ -157,6 +157,57 @@ function positionText(g, depthUnit, depthCm) {
     return `${distance}${distanceUnit} from the ${from}`;
 }
 
+/** Diameter of one shot on the diagram, from that shot's own weight. */
+function shotMarkSize(grams) {
+    return Math.max(7, Math.min(22, 6 + Math.sqrt(Math.max(0, grams)) * 14));
+}
+
+/**
+ * One mark per shot in the placement, stacked on the line and centred on its
+ * distance from the hook. An olivette or the float stops stay a single piece.
+ */
+function placementMarks(group, y) {
+    if (group.role === 'stops') {
+        return [{
+            tone: 'stops',
+            style: `width:16px;height:4px;border-radius:2px;top:${y - 2}px;left:${LINE_X - 8}px`,
+        }];
+    }
+
+    const pieces = [];
+
+    if (group.olivetteGrams) {
+        pieces.push({ w: 12, h: 26, radius: 6, tone: 'shot' });
+    }
+
+    const tone = group.role === 'locking' ? 'locking' : 'shot';
+
+    for (const item of group.items ?? []) {
+        const count = Math.max(0, Math.round(Number(item.count) || 0));
+        const size = shotMarkSize(item.shot?.grams ?? 0);
+
+        for (let n = 0; n < count; n++) {
+            pieces.push({ w: size, h: size, radius: size / 2, tone });
+        }
+    }
+
+    if (pieces.length === 0) {
+        const size = shotMarkSize(0);
+        pieces.push({ w: size, h: size, radius: size / 2, tone });
+    }
+
+    const gap = pieces.length > 1 ? 2 : 0;
+    const total = pieces.reduce((sum, piece) => sum + piece.h, 0) + gap * (pieces.length - 1);
+    let top = y - total / 2;
+
+    return pieces.map((piece) => {
+        const style = `width:${piece.w}px;height:${piece.h}px;border-radius:${piece.radius}px;top:${top}px;left:${LINE_X - piece.w / 2}px`;
+        top += piece.h + gap;
+
+        return { tone: piece.tone, style };
+    });
+}
+
 /** A saved rig stores plain shot, already placed on the line. */
 function groupsFromSaved(placements) {
     return placements.map((group, index) => ({
@@ -223,6 +274,7 @@ export default function shottingCalculator(config = {}) {
 
         floatName: config.floatName ?? '',
         floatSize: config.floatSize ?? '',
+        ratedGrams: config.ratedGrams ?? null,
         floatType: config.floatType ?? 'pole',
         typeChosen: Boolean(config.floatType),
         depthText: config.depth ? String(config.depth) : '',
@@ -249,7 +301,10 @@ export default function shottingCalculator(config = {}) {
         init() {
             this.remeasure = () => this.measureLabels();
             window.addEventListener('resize', this.remeasure);
-            this.$watch('floatSize', () => this.resetLine());
+            this.$watch('floatSize', () => {
+                this.ratedGrams = null;
+                this.resetLine();
+            });
             this.$watch('floatType', () => this.resetLine());
             this.$watch('patternId', () => this.resetLine());
             this.$watch('olivetteGrams', () => this.resetLine());
@@ -287,6 +342,7 @@ export default function shottingCalculator(config = {}) {
 
         get sizeHint() {
             if (! this.floatSize) return null;
+            if (this.ratedGrams != null) return `Shotted to ${formatGrams(this.ratedGrams)}`;
 
             return this.parsed
                 ? this.parsed.explanation
@@ -326,10 +382,11 @@ export default function shottingCalculator(config = {}) {
         get loadSummary() {
             const pattern = this.active;
             if (! pattern) return null;
-            const sit = tipSit(this.shotLoadGrams - pattern.floatGrams, this.floatType);
+            const capacity = this.ratedGrams ?? pattern.floatGrams;
+            const sit = tipSit(this.shotLoadGrams - capacity, this.floatType);
 
             return {
-                heading: `Shot load ${formatGrams(this.shotLoadGrams)} of ${formatGrams(pattern.floatGrams)}`,
+                heading: `Shot load ${formatGrams(this.shotLoadGrams)} of ${formatGrams(capacity)}`,
                 detail: this.parsed?.loadedGrams && this.displayGroups.some((group) => group.role === 'stops')
                     ? `Plus ${formatGrams(this.parsed.loadedGrams)} already in the float. The stops set the depth. ${sit.detail}`
                     : sit.detail,
@@ -443,10 +500,11 @@ export default function shottingCalculator(config = {}) {
             );
             const labelsBottom = tops.length ? tops[tops.length - 1] + heights[tops.length - 1] : 0;
             const bedY = Math.max(hookY + 14, labelsBottom + 8);
-            const over = this.shotLoadGrams - pattern.floatGrams;
+            const capacity = this.ratedGrams ?? pattern.floatGrams;
+            const over = this.shotLoadGrams - capacity;
             const sinkPx = over >= 0
                 ? Math.min(MAX_SINK, (over / SHOT.No8.grams) * BRISTLE_H)
-                : -Math.min(MAX_RISE, (-over / Math.max(SHOT.No4.grams, pattern.floatGrams * 0.12)) * MAX_RISE);
+                : -Math.min(MAX_RISE, (-over / Math.max(SHOT.No4.grams, capacity * 0.12)) * MAX_RISE);
             const floatTop = WATER_Y - picture.tipH + sinkPx;
             const stemTop = floatTop + picture.h;
             const sit = tipSit(over, this.floatType);
@@ -469,28 +527,13 @@ export default function shottingCalculator(config = {}) {
                 aria: `${floatTypeLabel(this.floatType)} rig diagram, ${sit.title}. ${groups
                     .map(({ g, text }) => `${text}, ${positionText(g, this.unit, depthCm)}`)
                     .join('; ')}`,
-                groups: groups.map(({ g, y, text }, i) => {
-                    const grams = groupGrams(g);
-                    const size = Math.max(7, Math.min(22, 6 + Math.sqrt(grams) * 14));
-
-                    return {
-                        text,
-                        position: positionText(g, this.unit, depthCm),
-                        isOlivette: g.role === 'olivette',
-                        isLocking: g.role === 'locking',
-                        isStops: g.role === 'stops',
-                        isDot: g.role === 'dot',
-                        y,
-                        labelTop: tops[i],
-                        markerStyle:
-                            g.role === 'olivette'
-                                ? `width:12px;height:26px;border-radius:6px;top:${y - 13}px;left:${LINE_X - 6}px`
-                                : g.role === 'stops'
-                                    ? `width:16px;height:4px;border-radius:2px;top:${y - 2}px;left:${LINE_X - 8}px`
-                                    : `width:${size}px;height:${size}px;border-radius:${size / 2}px;top:${y - size / 2}px;left:${LINE_X - size / 2}px`,
-                        leader: { x1: LINE_X + 12, y1: y, x2: LABEL_X - 4, y2: tops[i] + 10 },
-                    };
-                }),
+                groups: groups.map(({ g, y, text }, i) => ({
+                    text,
+                    position: positionText(g, this.unit, depthCm),
+                    labelTop: tops[i],
+                    marks: placementMarks(g, y),
+                    leader: { x1: LINE_X + 12, y1: y, x2: LABEL_X - 4, y2: tops[i] + 10 },
+                })),
             };
         },
 
@@ -518,7 +561,8 @@ export default function shottingCalculator(config = {}) {
                 float_name: this.floatName.trim(),
                 float_size: this.floatSize.trim(),
                 float_type: this.floatType,
-                float_grams: this.parsed ? this.parsed.grams : '',
+                float_grams: this.ratedGrams ?? (this.parsed ? this.parsed.grams : ''),
+                use_stored_grams: this.ratedGrams != null ? 1 : 0,
                 depth: isFinite(this.depth) ? this.depth : '',
                 depth_unit: this.unit,
                 pattern_id: pattern ? pattern.id : '',

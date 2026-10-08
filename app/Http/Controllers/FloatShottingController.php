@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PegFloatRig;
 use App\Models\Venue;
 use App\Models\WaterPeg;
+use App\Support\RwRigs;
 use App\Support\ShotReference;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,13 +35,14 @@ class FloatShottingController extends Controller
             ? $request->user()->pegFloatRigs()->with(['venues', 'pegs.water.venue'])->latest()->get()
             : collect();
 
-        $systemRigs = $request->user()
-            ? PegFloatRig::query()->where('is_system', true)->orderBy('name')->get()
+        $shared = $request->user()
+            ? PegFloatRig::query()->where('is_system', true)->get()
             : collect();
 
         return view('tools.rigs.index', [
             'rigs' => $rigs,
-            'systemRigs' => $systemRigs,
+            'standardRigs' => $shared->where('catalogue', 'standard')->sortBy('name')->groupBy('float_size'),
+            'rwRigs' => $shared->where('catalogue', 'rw')->sortBy(fn (PegFloatRig $rig) => RwRigs::sortKey($rig))->groupBy('float_name'),
         ]);
     }
 
@@ -128,6 +130,7 @@ class FloatShottingController extends Controller
         $copy->name = $data['name'];
         $copy->user_id = $request->user()->id;
         $copy->is_system = false;
+        $copy->catalogue = null;
         $copy->system_key = null;
         $copy->save();
         $copy->venues()->sync($pegFloatRig->venues()->pluck('venues.id'));
@@ -178,6 +181,7 @@ class FloatShottingController extends Controller
             'float_size' => $data['float_size'],
             'float_type' => $data['float_type'],
             'float_grams' => $data['float_grams'],
+            'use_stored_grams' => $request->boolean('use_stored_grams'),
             'depth' => $data['depth'],
             'depth_unit' => $data['depth_unit'],
             'pattern_id' => $data['pattern_id'],

@@ -58,6 +58,8 @@ class PegFloatRig extends Model
         'water_peg_id',
         'user_id',
         'is_system',
+        'catalogue',
+        'use_stored_grams',
         'system_key',
         'float_name',
         'float_size',
@@ -80,6 +82,7 @@ class PegFloatRig extends Model
             'olivette_grams' => 'float',
             'placements' => 'array',
             'is_system' => 'boolean',
+            'use_stored_grams' => 'boolean',
         ];
     }
 
@@ -96,6 +99,14 @@ class PegFloatRig extends Model
     public function displayName(): string
     {
         return $this->name ?: $this->float_name;
+    }
+
+    public function sharedIntro(): string
+    {
+        return match ($this->catalogue) {
+            'rw' => 'An RW Floats rig. The float name and type are fixed.',
+            default => 'A standard rig.',
+        };
     }
 
     public function venueSummary(): string

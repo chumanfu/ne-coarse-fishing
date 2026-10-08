@@ -22,7 +22,9 @@ class FloatShottingToolTest extends TestCase
             ->assertSee('Rigs')
             ->assertSee('Create New Rig')
             ->assertSee('log in', false)
-            ->assertDontSee('System rigs');
+            ->assertDontSee('Standard Rigs')
+            ->assertDontSee('RW Floats')
+            ->assertDontSee('https://rwfloats.co.uk/');
 
         $this->get(route('tools.rigs.create'))
             ->assertOk()
@@ -49,7 +51,7 @@ class FloatShottingToolTest extends TestCase
         $user = User::factory()->create();
         $peg = $this->verifiedPeg();
 
-        $this->actingAs($user)->post(route('tools.rigs.store'), $this->payload($peg, [
+        $response = $this->actingAs($user)->followingRedirects()->post(route('tools.rigs.store'), $this->payload($peg, [
             'name' => 'Far bank slider',
             'float_name' => 'Drennan Loaded Slider',
             'float_size' => '4AAA',
@@ -57,7 +59,10 @@ class FloatShottingToolTest extends TestCase
             'float_grams' => 3.2,
             'depth' => 15,
             'pattern_id' => 'slider',
-        ]))->assertSessionHasNoErrors();
+        ]));
+
+        $response->assertOk();
+        $this->assertSame(1, substr_count($response->getContent(), 'Saved Far bank slider.'));
 
         $rig = PegFloatRig::query()->where('user_id', $user->id)->firstOrFail();
 
@@ -305,7 +310,7 @@ class FloatShottingToolTest extends TestCase
         $this->post(route('tools.rigs.duplicate', $system), ['name' => 'Nope'])->assertRedirect(route('login'));
 
         foreach (['4x10', '4x12', '4x14', '4x16', '4x18', '4x20'] as $size) {
-            $this->assertSame(5, PegFloatRig::query()->where('is_system', true)->where('float_size', $size)->count());
+            $this->assertSame(5, PegFloatRig::query()->where('catalogue', 'standard')->where('float_size', $size)->count());
         }
 
         $weights = collect(ShotReference::shots())->pluck('grams', 'size');
@@ -326,7 +331,8 @@ class FloatShottingToolTest extends TestCase
 
         $this->actingAs($user)->get(route('tools.rigs'))
             ->assertOk()
-            ->assertSee('System rigs')
+            ->assertSee('Standard Rigs')
+            ->assertSee('My Rigs')
             ->assertSee('4x10 · Rig 1 – Bulk and droppers')
             ->assertSee('4x20 · Rig 5 – Over-depth Double Bulk')
             ->assertSee('About 0.40g');
@@ -361,6 +367,62 @@ class FloatShottingToolTest extends TestCase
 
         $this->actingAs($user)->delete(route('tools.rigs.destroy', $copy))->assertRedirect();
         $this->assertNotNull($system->fresh());
+    }
+
+    public function test_rw_float_rigs_use_the_makers_shot_and_float(): void
+    {
+        $user = User::factory()->create();
+        $winter = PegFloatRig::query()->where('system_key', 'rw-winter-maggie-4x10')->firstOrFail();
+
+        $this->assertSame('1.2mm Winter Maggie', $winter->float_name);
+        $this->assertSame('pole', $winter->float_type);
+        $this->assertSame('4x10', $winter->float_size);
+        $this->assertTrue($winter->use_stored_grams);
+        $this->assertSame('dropper', $winter->placements[0]['role']);
+        $this->assertSame([['size' => 'No11', 'count' => 1]], $winter->placements[0]['items']);
+        $this->assertSame('trim', $winter->placements[1]['role']);
+        $this->assertSame([['size' => 'No13', 'count' => 2]], $winter->placements[1]['items']);
+        $this->assertSame('bulk', $winter->placements[2]['role']);
+        $this->assertSame([['size' => 'No10', 'count' => 4]], $winter->placements[2]['items']);
+
+        $dibber = PegFloatRig::query()->where('system_key', 'rw-dibber-1')->firstOrFail();
+        $this->assertSame('dibber', $dibber->float_type);
+        $this->assertSame('Dibber', $dibber->float_name);
+
+        $this->assertSame(24, PegFloatRig::query()->where('catalogue', 'rw')->count());
+        $this->assertNull(PegFloatRig::query()->where('float_name', '1.5mm Maggie')->where('float_size', '4x8')->first());
+        $this->assertNull(PegFloatRig::query()->where('float_name', '1.5mm Dink')->where('float_size', '4x10')->first());
+
+        $this->actingAs($user)->get(route('tools.rigs'))
+            ->assertOk()
+            ->assertSee('RW Floats')
+            ->assertSee('https://rwfloats.co.uk/')
+            ->assertSee('1.2mm Winter Maggie')
+            ->assertSee('Shalla Slim')
+            ->assertSeeInOrder(['My Rigs', 'RW Floats', 'Standard Rigs'])
+            ->assertSeeInOrder([
+                '4x10',
+                'Bulk & droppers',
+                'Dropper: 1 × No.11. Bulk: 4 × No.10. Trimmers: 2 × No.13.',
+            ]);
+
+        $this->actingAs($user)->get(route('tools.rigs.edit', $winter))
+            ->assertOk()
+            ->assertSee('An RW Floats rig')
+            ->assertSee('The float name and type are fixed');
+
+        $this->actingAs($user)->post(route('tools.rigs.duplicate', $winter), [
+            'name' => 'My winter maggie',
+        ])->assertRedirect(route('tools.rigs'));
+
+        $copy = PegFloatRig::query()->where('name', 'My winter maggie')->firstOrFail();
+        $this->assertFalse($copy->is_system);
+        $this->assertNull($copy->catalogue);
+        $this->assertTrue($copy->use_stored_grams);
+        $this->assertSame('1.2mm Winter Maggie', $copy->float_name);
+        $this->assertSame('pole', $copy->float_type);
+        $this->assertSame($winter->placements, $copy->placements);
+        $this->assertSame($winter->float_grams, $copy->float_grams);
     }
 
     private function payload(WaterPeg $peg, array $overrides = []): array

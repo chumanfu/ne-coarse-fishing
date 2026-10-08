@@ -24,6 +24,7 @@
             'depthUnit' => $rig->depth_unit,
             'patternId' => $rig->pattern_id,
             'olivetteGrams' => $rig->olivette_grams,
+            'ratedGrams' => $rig->use_stored_grams ? $rig->float_grams : null,
         ];
     }
 @endphp
@@ -32,7 +33,7 @@
     <x-slot name="header">
         @if ($rig?->is_system)
             <h1 class="text-2xl font-bold text-slate-900">{{ $rig->displayName() }}</h1>
-            <p class="text-slate-600 mt-1">A system rig. Duplicate it to make your own copy. This one stays as it is.</p>
+            <p class="text-slate-600 mt-1">{{ $rig->sharedIntro() }} Duplicate it to make your own copy. This one stays as it is.</p>
         @else
             <h1 class="text-2xl font-bold text-slate-900">{{ $canUpdate ? 'Edit rig' : 'New rig' }}</h1>
             <p class="text-slate-600 mt-1">Work out the shot a float needs, then move the bulk and the droppers. Save the rig when the diagram looks right.</p>
@@ -311,8 +312,10 @@
 
                 <template x-for="(group, index) in diagram?.groups ?? []" :key="'shot-' + index">
                     <div aria-hidden="true">
-                        <div class="absolute z-30 border" :style="group.markerStyle"
-                             :class="group.isStops ? 'bg-water border-water' : (group.isLocking ? 'bg-water-dark border-water-dark' : 'bg-slate-400 border-slate-600')"></div>
+                        <template x-for="(mark, markIndex) in group.marks" :key="'mark-' + index + '-' + markIndex">
+                            <div class="absolute z-30 border" data-shot-mark :style="mark.style"
+                                 :class="mark.tone === 'stops' ? 'bg-water border-water' : (mark.tone === 'locking' ? 'bg-water-dark border-water-dark' : 'bg-slate-400 border-slate-600')"></div>
+                        </template>
                         <div class="absolute z-30 right-2.5 leading-tight" data-shot-label
                              :style="`top: ${group.labelTop}px; left: ${labelX}px`">
                             <div class="text-[13px] font-semibold text-slate-900" x-text="group.text"></div>
@@ -435,7 +438,7 @@
         <section class="bg-white border-2 border-slate-300 rounded-xl p-5" x-show="active" x-cloak>
             @if ($rig?->is_system)
                 <h2 class="text-lg font-bold text-slate-900 mb-3">Duplicate this rig</h2>
-                <p class="text-sm text-slate-700 mb-4">Duplicating makes a copy that belongs to you. Change the shot on that copy. This system rig cannot be edited or deleted.</p>
+                <p class="text-sm text-slate-700 mb-4">Duplicating makes a copy that belongs to you. Change the shot on that copy. This one cannot be edited or deleted.</p>
                 @auth
                     <form method="POST" action="{{ route('tools.rigs.duplicate', $rig) }}" class="flex flex-wrap items-end gap-3">
                         @csrf
@@ -525,6 +528,7 @@
                     <input type="hidden" name="float_size" :value="savePayload.float_size">
                     <input type="hidden" name="float_type" :value="savePayload.float_type">
                     <input type="hidden" name="float_grams" :value="savePayload.float_grams">
+                    <input type="hidden" name="use_stored_grams" :value="savePayload.use_stored_grams">
                     <input type="hidden" name="depth" :value="savePayload.depth">
                     <input type="hidden" name="depth_unit" :value="savePayload.depth_unit">
                     <input type="hidden" name="pattern_id" :value="savePayload.pattern_id">
@@ -563,7 +567,7 @@
                     </span>
                 </template>
                 <template x-if="! parsed?.loadedGrams">
-                    <span>Float load used: <span x-text="formatGrams(parsed?.grams ?? 0)"></span>.</span>
+                    <span>Float load used: <span x-text="formatGrams(ratedGrams ?? parsed?.grams ?? 0)"></span>.</span>
                 </template>
             </p>
             <p class="mt-2 text-sm text-slate-700">
