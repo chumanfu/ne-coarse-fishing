@@ -162,16 +162,15 @@ function shotMarkSize(grams) {
     return Math.max(7, Math.min(22, 6 + Math.sqrt(Math.max(0, grams)) * 14));
 }
 
-/**
- * One mark per shot in the placement, stacked on the line and centred on its
- * distance from the hook. An olivette or the float stops stay a single piece.
- */
-function placementMarks(group, y) {
+/** Space between shots in one group, and the wider break before the next group. */
+const SHOT_GAP = 8;
+const GROUP_GAP = 20;
+const HOOK_CLEARANCE = 18;
+
+/** The pieces drawn for one placement. Stops and an olivette stay a single piece. */
+function shotPieces(group) {
     if (group.role === 'stops') {
-        return [{
-            tone: 'stops',
-            style: `width:16px;height:4px;border-radius:2px;top:${y - 2}px;left:${LINE_X - 8}px`,
-        }];
+        return [{ w: 16, h: 4, radius: 2, tone: 'stops' }];
     }
 
     const pieces = [];
@@ -196,9 +195,17 @@ function placementMarks(group, y) {
         pieces.push({ w: size, h: size, radius: size / 2, tone });
     }
 
-    const gap = pieces.length > 1 ? 2 : 0;
-    const total = pieces.reduce((sum, piece) => sum + piece.h, 0) + gap * (pieces.length - 1);
-    let top = y - total / 2;
+    return pieces;
+}
+
+function stackHeight(pieces) {
+    const gap = pieces.length > 1 ? SHOT_GAP : 0;
+
+    return pieces.reduce((sum, piece) => sum + piece.h, 0) + gap * (pieces.length - 1);
+}
+
+function marksAt(pieces, top) {
+    const gap = pieces.length > 1 ? SHOT_GAP : 0;
 
     return pieces.map((piece) => {
         const style = `width:${piece.w}px;height:${piece.h}px;border-radius:${piece.radius}px;top:${top}px;left:${LINE_X - piece.w / 2}px`;
@@ -206,6 +213,33 @@ function placementMarks(group, y) {
 
         return { tone: piece.tone, style };
     });
+}
+
+/**
+ * One mark per shot, with a visible gap inside the group and a wider gap
+ * before the next group. Close groups are pushed apart so the stacks do not merge.
+ */
+function placeShotMarks(groups, minTop) {
+    const stacks = groups.map((group, index) => {
+        const pieces = shotPieces(group.g);
+        const height = stackHeight(pieces);
+
+        return { index, pieces, height, top: group.y - height / 2 };
+    });
+    const order = [...stacks].sort((a, b) => a.top - b.top || a.index - b.index);
+
+    if (order[0] && order[0].top < minTop) order[0].top = minTop;
+
+    for (let i = 1; i < order.length; i++) {
+        const floor = order[i - 1].top + order[i - 1].height + GROUP_GAP;
+        if (order[i].top < floor) order[i].top = floor;
+    }
+
+    return stacks.map((stack) => ({
+        centre: stack.top + stack.height / 2,
+        bottom: stack.top + stack.height,
+        marks: marksAt(stack.pieces, stack.top),
+    }));
 }
 
 /** A saved rig stores plain shot, already placed on the line. */
@@ -488,12 +522,14 @@ export default function shottingCalculator(config = {}) {
                 Math.min(420, Math.max(220, depthCm * 1.1)),
                 labelsNeeded - LABEL_OVERHANG_TOP - LABEL_OVERHANG_BOTTOM,
             );
-            const hookY = lineTop + lineLen;
             const yFor = (h) => lineTop + (1 - h / depthCm) * lineLen;
 
             const groups = source.map((g) => ({ g, y: yFor(g.heightCm), text: groupText(g) }));
+            const placed = placeShotMarks(groups, lineTop);
+            const lowest = placed.reduce((max, group) => Math.max(max, group.bottom), lineTop);
+            const hookY = Math.max(lineTop + lineLen, lowest + HOOK_CLEARANCE);
             const tops = layoutLabels(
-                groups.map(({ y }) => y),
+                placed.map(({ centre }) => centre),
                 heights,
                 lineTop - LABEL_OVERHANG_TOP,
                 hookY + LABEL_OVERHANG_BOTTOM,
@@ -510,7 +546,7 @@ export default function shottingCalculator(config = {}) {
             const sit = tipSit(over, this.floatType);
 
             return {
-                lineLen,
+                lineLen: hookY - lineTop,
                 lineTop,
                 hookY,
                 bedY,
@@ -527,12 +563,12 @@ export default function shottingCalculator(config = {}) {
                 aria: `${floatTypeLabel(this.floatType)} rig diagram, ${sit.title}. ${groups
                     .map(({ g, text }) => `${text}, ${positionText(g, this.unit, depthCm)}`)
                     .join('; ')}`,
-                groups: groups.map(({ g, y, text }, i) => ({
+                groups: groups.map(({ g, text }, i) => ({
                     text,
                     position: positionText(g, this.unit, depthCm),
                     labelTop: tops[i],
-                    marks: placementMarks(g, y),
-                    leader: { x1: LINE_X + 12, y1: y, x2: LABEL_X - 4, y2: tops[i] + 10 },
+                    marks: placed[i].marks,
+                    leader: { x1: LINE_X + 12, y1: placed[i].centre, x2: LABEL_X - 4, y2: tops[i] + 10 },
                 })),
             };
         },
