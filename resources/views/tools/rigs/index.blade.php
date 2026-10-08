@@ -5,9 +5,15 @@
     </x-slot>
 
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-4">
-        <a href="{{ route('tools.rigs.create') }}" class="inline-flex items-center px-5 py-3 rounded-md bg-sky-800 text-white font-bold hover:bg-sky-900">
-            Create New Rig
-        </a>
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ route('tools.rigs.shot') }}" class="inline-flex items-center px-5 py-3 rounded-md bg-sky-800 text-white font-bold hover:bg-sky-900">
+                Quick start
+            </a>
+            <a href="{{ route('tools.rigs.create') }}" class="inline-flex items-center px-5 py-3 rounded-md border-2 border-slate-300 bg-white font-bold text-slate-900 hover:bg-slate-50">
+                Create New Rig
+            </a>
+        </div>
+        <p class="text-sm text-slate-600">Quick start shots a float straight away. Create a rig when you want to keep it.</p>
 
         @guest
             <p class="text-sm text-slate-700">

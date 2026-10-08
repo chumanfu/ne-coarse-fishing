@@ -162,6 +162,7 @@ Route::get('/clubs/{club:slug}', [ClubController::class, 'show'])->name('clubs.s
 Route::get('/map', [MapController::class, 'index'])->name('map.index');
 Route::get('/tools/rigs', [FloatShottingController::class, 'index'])->name('tools.rigs');
 Route::get('/tools/rigs/create', [FloatShottingController::class, 'create'])->name('tools.rigs.create');
+Route::get('/tools/rigs/shot', [FloatShottingController::class, 'shot'])->name('tools.rigs.shot');
 Route::get('/tools/rigs/{pegFloatRig}/edit', [FloatShottingController::class, 'edit'])->name('tools.rigs.edit');
 Route::get('/tools/float-shotting', [FloatShottingController::class, 'legacy'])->name('tools.float-shotting');
 Route::get('/tools/shot-guide', [FloatShottingController::class, 'guide'])->name('tools.shot-guide');

@@ -51,6 +51,11 @@ class FloatShottingController extends Controller
         return $this->editor($request, null);
     }
 
+    public function shot(Request $request): View
+    {
+        return $this->editor($request, null, quick: true);
+    }
+
     public function edit(Request $request, PegFloatRig $pegFloatRig): View
     {
         $pegFloatRig->load(['venues', 'pegs.water.venue', 'peg.water.venue']);
@@ -282,7 +287,7 @@ class FloatShottingController extends Controller
         return $clean;
     }
 
-    private function editor(Request $request, ?PegFloatRig $rig): View
+    private function editor(Request $request, ?PegFloatRig $rig, bool $quick = false): View
     {
         $peg = $rig?->peg ?? ($request->filled('peg')
             ? WaterPeg::verified()->with('water.venue')->find($request->integer('peg'))
@@ -298,6 +303,7 @@ class FloatShottingController extends Controller
             'venues' => $this->venuesWithPegs(),
             'placements' => is_array($placements) ? $placements : null,
             'tips' => ShotReference::patterns(),
+            'quick' => $quick,
         ]);
     }
 

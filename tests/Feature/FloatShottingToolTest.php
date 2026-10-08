@@ -20,6 +20,7 @@ class FloatShottingToolTest extends TestCase
         $this->get(route('tools.rigs'))
             ->assertOk()
             ->assertSee('Rigs')
+            ->assertSee('Quick start')
             ->assertSee('Create New Rig')
             ->assertSee('log in', false)
             ->assertDontSee('Standard Rigs')
@@ -29,8 +30,15 @@ class FloatShottingToolTest extends TestCase
         $this->get(route('tools.rigs.create'))
             ->assertOk()
             ->assertSee('New rig')
+            ->assertSee('Float name')
             ->assertSee('Shot pattern')
             ->assertSee('centimetres or inches');
+
+        $this->get(route('tools.rigs.shot'))
+            ->assertOk()
+            ->assertSee('Shot a float')
+            ->assertSee('Save this as a rig')
+            ->assertDontSee('Float name');
 
         $this->get(route('tools.float-shotting'))
             ->assertRedirect(route('tools.rigs'))

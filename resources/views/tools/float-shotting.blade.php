@@ -34,6 +34,9 @@
         @if ($rig?->is_system)
             <h1 class="text-2xl font-bold text-slate-900">{{ $rig->displayName() }}</h1>
             <p class="text-slate-600 mt-1">{{ $rig->sharedIntro() }} Duplicate it to make your own copy. This one stays as it is.</p>
+        @elseif ($quick)
+            <h1 class="text-2xl font-bold text-slate-900">Shot a float</h1>
+            <p class="text-slate-600 mt-1">Enter the size and the depth. The shot goes on the line. Save it only if you want to keep it.</p>
         @else
             <h1 class="text-2xl font-bold text-slate-900">{{ $canUpdate ? 'Edit rig' : 'New rig' }}</h1>
             <p class="text-slate-600 mt-1">Work out the shot a float needs, then move the bulk and the droppers. Save the rig when the diagram looks right.</p>
@@ -61,11 +64,13 @@
         <section class="bg-white border-2 border-slate-300 rounded-xl p-5">
             <h2 class="text-lg font-bold text-slate-900 mb-3">Float</h2>
 
-            <div class="mb-3">
-                <label for="float-name" class="block text-sm font-semibold mb-1">Float name</label>
-                <input id="float-name" type="text" x-model="floatName" autocapitalize="words"
-                       placeholder="e.g. Preston Chianti" class="{{ $inputClass }}">
-            </div>
+            @unless ($quick)
+                <div class="mb-3">
+                    <label for="float-name" class="block text-sm font-semibold mb-1">Float name</label>
+                    <input id="float-name" type="text" x-model="floatName" autocapitalize="words"
+                           placeholder="e.g. Preston Chianti" class="{{ $inputClass }}">
+                </div>
+            @endunless
 
             <div class="mb-3">
                 <label for="float-size" class="block text-sm font-semibold mb-1">Size</label>
@@ -435,7 +440,14 @@
             <p class="text-sm text-slate-700">Enter a float size and depth to see which shot to use and where to put it.</p>
         </section>
 
-        <section class="bg-white border-2 border-slate-300 rounded-xl p-5" x-show="active" x-cloak>
+        <section class="bg-white border-2 border-slate-300 rounded-xl p-5" x-show="active" x-cloak @if ($quick) x-data="{ saveOpen: false }" @endif>
+            @if ($quick)
+                <button type="button" @click="saveOpen = true" x-show="! saveOpen"
+                        class="text-sm font-semibold text-sky-800 hover:underline">
+                    Save this as a rig
+                </button>
+                <div x-show="saveOpen" x-cloak>
+            @endif
             @if ($rig?->is_system)
                 <h2 class="text-lg font-bold text-slate-900 mb-3">Duplicate this rig</h2>
                 <p class="text-sm text-slate-700 mb-4">Duplicating makes a copy that belongs to you. Change the shot on that copy. This one cannot be edited or deleted.</p>
@@ -549,6 +561,9 @@
                     to save this rig.
                 </p>
             @endauth
+            @endif
+            @if ($quick)
+                </div>
             @endif
         </section>
 
